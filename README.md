@@ -1,40 +1,42 @@
 # LibreECAD
 
-**LibreECAD** ist ein geplantes, quelloffenes Werkzeug zur Planung und Dokumentation von Elektroanlagen – für Verteilerbau und Schaltanlagen. Der Name ist ein **Arbeitsname**; Marken- und Namensrechte wurden nicht abschließend geprüft.
+[Deutsch](Readme-de.md)
 
-> **Projektstatus:** Konzeptphase. Dieses Repository enthält derzeit noch **keine lauffähige Anwendung**. Die nachstehenden Funktionen beschreiben Ziele, nicht bereits verfügbare Produktfunktionen.
+**LibreECAD** is a planned open-source tool for designing and documenting electrical installations, distribution boards, and control panels. The name is a **working title**; trademark and naming rights have not been fully checked.
 
-## Zielbild
+> **Project status:** Concept stage. This repository does **not yet contain a working application**. The features below are goals, not currently available functionality.
 
-Schaltpläne, einpolige Übersichten, Klemmen- und Ansichtszeichnungen sowie Installationspläne sollen auf einem gemeinsamen fachlichen Datenmodell beruhen. Betriebsmittel, Anschlüsse und elektrische Verbindungen sind dabei strukturierte Objekte: Eine grafische Kreuzung ist nicht automatisch ein elektrischer Knoten. Listen, Querverweise und Exporte sollen aus demselben gewählten Projektstand entstehen.
+## Vision
 
-Geplant sind ein gemeinsamer globaler Artikelstamm sowie getrennte persönliche und firmeneigene Bestände. Der globale Stamm unterscheidet allgemeine Artikel, eindeutig zugeordnete Herstellerdaten und bewusst veröffentlichte Nutzerbeiträge. Herkunft, Version und Prüfstatus müssen sichtbar bleiben; ein Nutzerbeitrag wird nicht als verifizierter Herstellerdatensatz ausgegeben.
+Schematics, single-line diagrams, terminal and assembly drawings, and installation plans should share one engineering data model. Devices, terminals, and electrical connections are structured objects: two lines crossing on a drawing do not automatically form an electrical junction. Lists, cross-references, and exports should all be generated from the same selected project revision.
 
-## Entwicklungsfolge
+A shared global article catalog and separate personal and company catalogs are planned. The global catalog will distinguish general articles, data submitted by authorized manufacturers, and contributions deliberately published by users. Provenance, version, and verification status must remain visible; a user contribution must never be presented as verified manufacturer data.
 
-Der **erste Meilenstein** ist bewusst auf ein Grundgerüst begrenzt und wird in dieser Reihenfolge entwickelt:
+## Development sequence
 
-1. **Super-Admin-Backend:** Geschützter Zugang; Firmenzugang und erstes Firmen-Admin-Konto anlegen.
-2. **Globales Artikelbackend:** Eigenständiger Dienst mit Artikel-Basismodell und Suche anhand gekennzeichneter Testdaten. Öffentliche Uploads folgen später.
-3. **Firmen-/Nutzerbackend:** Anmeldung und Benutzerverwaltung innerhalb der eigenen Firma. Zunächst nur **Admin** und **Zeichner**; kein firmenübergreifender Zugriff.
-4. **Flutter-Frontend:** Firmenbackend auswählen (Managed-Backend des Projektbetreibers als änderbare Voreinstellung), anmelden und die für die Rolle passende minimale Ansicht öffnen. Noch kein CAD-Editor.
+The **first milestone** is intentionally limited to a foundation, built in this order:
 
-Die M1-Dienste und die Auslieferung des Web-Frontends sind als getrennte Docker-Container vorgesehen. Installierte Flutter-Anwendungen sind keine Container.
+1. **Super-admin backend:** Protected access for creating a company account and its first company admin.
+2. **Global article backend:** A separate service with a basic article model and search using clearly labeled sample data. Public uploads come later.
+3. **Company/user backend:** Sign-in and user management within each company. Initially there are only two roles: **Admin** and **Drafter**; neither role grants access across companies.
+4. **Flutter frontend:** Select a company backend (the project operator's managed backend is the editable default), sign in, and show a minimal role-appropriate screen. There is no CAD editor in this milestone.
 
-**Spätere Meilensteine:** Projekte und persönliche/Firmenartikel mit Artikel-Baukasten; berechtigte globale Beiträge und Herstellerverwaltung; ECAD-Zeichenkern; Dokumentation, Plausibilitätsprüfung und unveränderliche freigegebene Projektstände; vorbereitete Offline-Arbeit in installierten Clients, Katalog-Ausfallsicherheit und fachliche API/MCP-Schnittstellen; weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt eine mehrsprachige Homepage und ein mehrsprachiges Wiki. Diese Reihenfolge ist ein Plan, keine Implementierungszusage.
+The M1 services and web-frontend delivery are planned as separate Docker containers. Installed Flutter apps are not containers.
 
-## Wichtige Grenzen
+**Later milestones:** Projects and personal/company articles with an article builder; authorized global contributions and manufacturer management; an electrical CAD editing core; documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
 
-- **Web benötigt ein erreichbares Firmenbackend.** Offline-Arbeit ist später nur für installierte Clients mit zuvor heruntergeladenen Projekten und Bibliotheken vorgesehen.
-- **Konflikte werden nicht automatisch entschieden.** Betroffene Änderungen erfordern eine aktive Entscheidung eines berechtigten Nutzers.
-- **Fremde CAD-Daten** sollen ausschließlich als nicht editierbare Bildvorlage übernommen werden, nicht als native Projektobjekte.
-- **DIN-VDE-Konformität wird nicht behauptet.** Normausgaben, Nutzungsrechte, Referenzfälle und fachliche Abnahme müssen vor belastbaren Berechnungs- oder Konformitätsaussagen geklärt werden.
-- Ein verteilter globaler Katalog mit Schreib-Leader und Lesereplikaten ist eine **zu prüfende Architekturidee**, kein implementiertes Hochverfügbarkeitssystem. Ein technisches Quorum prüft keine elektrotechnischen Artikeldaten fachlich.
+## Important boundaries
 
-## Installation und Mitwirkung
+- **The web app requires a reachable company backend.** Offline work is planned only for installed clients with previously downloaded projects and libraries.
+- **Conflicts are never resolved automatically.** Affected changes require an active decision by an authorized user.
+- **External CAD data** will be accepted only as non-editable image references, not imported as native project objects.
+- **No DIN VDE compliance is claimed.** Applicable standard editions, licensing, reference cases, and professional review must be resolved before making credible calculation or compliance claims.
+- A distributed global catalog with a write leader and read replicas is **an architecture idea to evaluate**, not an implemented high-availability system. A technical quorum cannot verify the engineering correctness of article data.
 
-Es gibt aktuell noch keinen Build, keine Installationsanleitung und keine produktiven Zugangsdaten. Bitte keine echten Projektdaten oder Zugangsdaten für Testzwecke in Issues veröffentlichen. Beiträge zu Anforderungen und Architektur können über GitHub-Issues besprochen werden; ausführbare Entwicklungsanweisungen folgen erst mit der Implementierung.
+## Installation and contributing
 
-## Lizenz
+There is no build, installation guide, or production access yet. Please do not post real project data or credentials in issues. Requirements and architecture can be discussed in GitHub issues; executable development instructions will follow when implementation begins.
 
-Der bisherige Repository-Code steht unter der [MIT-Lizenz](LICENSE). Rechte an späteren Schaltzeichen, Normtabellen, Herstellerdaten, Nutzerbeiträgen und anderen Bibliotheksinhalten werden **gesondert** geklärt; die Softwarelizenz erteilt dafür keine pauschalen Nutzungsrechte.
+## License
+
+The repository's software is covered by the [MIT License](LICENSE). Rights for future schematic symbols, standards tables, manufacturer data, user contributions, and other library content must be clarified **separately**; the software license does not grant blanket rights to those materials.
