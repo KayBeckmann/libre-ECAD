@@ -1,0 +1,18 @@
+name: shared_server_kit
+description: >
+  Gemeinsame Hilfsfunktionen für die LibreECAD-Backend-Dienste
+  (Passwort-Hashing, Session-Tokens, JSON-Antworten). Reiner
+  Quellcode-Baustein, keine Laufzeitkopplung zwischen den Diensten —
+  jeder Dienst bindet dieses Paket per Pfadabhängigkeit ein und wird
+  weiterhin unabhängig gebaut/deployed.
+publish_to: none
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  bcrypt: ^1.2.0
+  crypto: ^3.0.6
+  shelf: ^1.4.3
+
+dev_dependencies:
+  test: ^1.26.2

@@ -1,0 +1,27 @@
+# Secrets
+.env
+
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.g.dart.bak
+
+# Flutter platform build artifacts (Quellcode der Plattformordner
+# bleibt versioniert, nur Build-Output nicht).
+**/android/.gradle/
+**/android/app/build/
+**/ios/Pods/
+**/linux/flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/web/build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
