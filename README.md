@@ -1,73 +1,63 @@
 # LibreECAD
 
-Freies, mehrbenutzerfähiges ECAD für Elektroplanung (Schaltpläne,
-Verteilerbau, Installationspläne). Siehe den fachlichen Hintergrund im
-Obsidian-Vault (`10_Projects/libre-ECAD/Brainstorming.md` und
-`Roadmap.md`) — diese Dateien sind die verbindliche Quelle für Umfang
-und Reihenfolge, nicht dieses README.
+[Deutsch](Readme-de.md)
 
-**Status:** Meilenstein 1 (belastbares Grundgerüst) im Aufbau. Noch
-keine Zeichenfunktionen, keine Projekte, keine Artikel-Uploads.
+**LibreECAD** is a planned open-source tool for designing and documenting electrical installations, distribution boards, and control panels. The name is a **working title**; trademark and naming rights have not been fully checked.
 
-## Architektur (M1)
+> **Project status:** Milestone 1 ("resilient foundation") is implemented — see below. There is still **no CAD editor, no project model, and no article upload**; those are later milestones.
 
-Getrennte Docker-Container je Dienst, jeder mit eigener
-Postgres-Datenbank (kein geteiltes DB-Schema zwischen Diensten):
+## Vision
 
-| Dienst | Zweck | Host-Port (Compose) |
-|---|---|---|
-| `super-admin-service` | Kays globale Verwaltung: Firmen/Erst-Admins anlegen, Audit | 8181 |
-| `global-articles-service` | Ein logisch globaler, lesbarer Artikelstamm (Allgemein/Hersteller/User-Upload) | 8182 |
-| `company-users-service` | Firmen, Nutzer, Anmeldung, Rollen (Admin/Zeichner) | 8183 |
-| `web` | Ausliefert den gebauten Flutter-Web-Build (nginx) | 8185 |
+Schematics, single-line diagrams, terminal and assembly drawings, and installation plans should share one engineering data model. Devices, terminals, and electrical connections are structured objects: two lines crossing on a drawing do not automatically form an electrical junction. Lists, cross-references, and exports should all be generated from the same selected project revision.
 
-Host-Ports bewusst im `81xx`-Bereich statt `80xx`, um Kollisionen mit
-anderen auf diesem Rechner laufenden Projekten (z. B. WerkkernERP auf
-8085, saasERP auf 8081/8082) zu vermeiden. Innerhalb des
-Compose-Netzes sprechen die Dienste weiterhin über ihre
-Original-Ports (8081/8082/8083).
+A shared global article catalog and separate personal and company catalogs are planned. The global catalog will distinguish general articles, data submitted by authorized manufacturers, and contributions deliberately published by users. Provenance, version, and verification status must remain visible; a user contribution must never be presented as verified manufacturer data.
 
-Jeder Dienst ist ein eigenständiges Dart-Programm (`shelf` +
-`shelf_router`), das gegen seine **eigene** Postgres-Instanz spricht.
-Installierte Flutter-Clients (Linux/Windows/Android) sind eigenständige
-Clients, keine Container.
+## Development sequence
 
-Details, Entscheidungen und offene Punkte: [`docs/architecture.md`](docs/architecture.md).
+The **first milestone** is intentionally limited to a foundation, built in this order:
 
-## Backend-Dienste starten
+1. **Super-admin backend:** Protected access for creating a company account and its first company admin. — **Implemented** (`backend/super_admin_service`).
+2. **Global article backend:** A separate service with a basic article model and search using clearly labeled sample data. Public uploads come later. — **Implemented** (`backend/global_articles_service`).
+3. **Company/user backend:** Sign-in and user management within each company. Initially there are only two roles: **Admin** and **Drafter**; neither role grants access across companies. — **Implemented** (`backend/company_users_service`).
+4. **Flutter frontend:** Select a company backend (the project operator's managed backend is the editable default), sign in, and show a minimal role-appropriate screen. There is no CAD editor in this milestone. — **Implemented** (`frontend/libre_ecad_app`; web, Linux and Android builds verified, Windows build needs a Windows host/runner).
+
+The M1 services and web-frontend delivery run as separate Docker containers, each with its own PostgreSQL instance. Installed Flutter apps are not containers. Details, test strategy, and open follow-ups: [`docs/architecture.md`](docs/architecture.md).
+
+**Later milestones:** Projects and personal/company articles with an article builder; authorized global contributions and manufacturer management; an electrical CAD editing core; documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
+
+## Important boundaries
+
+- **The web app requires a reachable company backend.** Offline work is planned only for installed clients with previously downloaded projects and libraries.
+- **Conflicts are never resolved automatically.** Affected changes require an active decision by an authorized user.
+- **External CAD data** will be accepted only as non-editable image references, not imported as native project objects.
+- **No DIN VDE compliance is claimed.** Applicable standard editions, licensing, reference cases, and professional review must be resolved before making credible calculation or compliance claims.
+- A distributed global catalog with a write leader and read replicas is **an architecture idea to evaluate**, not an implemented high-availability system. A technical quorum cannot verify the engineering correctness of article data.
+
+## Running Milestone 1 locally
 
 ```bash
-cp .env.example .env   # Secrets lokal anpassen, NIE committen
+cp .env.example .env   # fill in local secrets, never commit this file
 docker compose up -d --build
-curl http://localhost:8181/health
-curl http://localhost:8182/health
-curl http://localhost:8183/health
+curl http://localhost:8181/health   # super-admin-service
+curl http://localhost:8182/health   # global-articles-service
+curl http://localhost:8183/health   # company-users-service
 ```
 
-## Backend-Tests (pro Dienst, ohne laufende DB)
+Backend tests (per service, no running database needed):
 
 ```bash
 cd backend/super_admin_service && dart test
-cd backend/global_articles_service && dart test
-cd backend/company_users_service && dart test
 ```
 
-Die Tests laufen gegen eine In-Memory-Repository-Implementierung
-(keine echte Postgres-Verbindung nötig) — siehe
-`docs/architecture.md#testing`.
-
-## Flutter-Frontend
+Frontend:
 
 ```bash
 cd frontend/libre_ecad_app
-flutter run -d chrome          # Web
-flutter run -d linux           # Linux Desktop
-flutter build windows          # Windows (auf Windows-Host/CI)
-flutter build apk --debug      # Android
+flutter run -d chrome   # or -d linux / flutter build apk --debug
 ```
 
-## Lizenz
+Full details, port rationale, and the request flow (super-admin creates a company and its first admin, who activates their account, signs in, and creates a drafter) are in [`docs/architecture.md`](docs/architecture.md). Please do not post real project data or credentials in issues.
 
-Siehe `LICENSE`. Marken-/Namensrechte für „LibreECAD" sind laut
-Brainstorming **nicht abschließend geprüft** — keine öffentliche
-Vermarktung ohne diese Prüfung.
+## License
+
+The repository's software is covered by the [MIT License](LICENSE). Rights for future schematic symbols, standards tables, manufacturer data, user contributions, and other library content must be clarified **separately**; the software license does not grant blanket rights to those materials.
