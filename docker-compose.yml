@@ -1,0 +1,121 @@
+services:
+  # ---- Super-Admin-Dienst (M1.1) -------------------------------------
+  super-admin-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: super_admin
+      POSTGRES_USER: super_admin
+      POSTGRES_PASSWORD: ${SUPER_ADMIN_DB_PASSWORD:-super_admin}
+    volumes:
+      - super-admin-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U super_admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  super-admin-service:
+    build:
+      context: ./backend
+      dockerfile: super_admin_service/Dockerfile
+    depends_on:
+      super-admin-db:
+        condition: service_healthy
+    environment:
+      PORT: "8081"
+      DB_HOST: super-admin-db
+      DB_PORT: "5432"
+      DB_NAME: super_admin
+      DB_USER: super_admin
+      DB_PASSWORD: ${SUPER_ADMIN_DB_PASSWORD:-super_admin}
+      SUPER_ADMIN_BOOTSTRAP_USERNAME: ${SUPER_ADMIN_BOOTSTRAP_USERNAME:-}
+      SUPER_ADMIN_BOOTSTRAP_PASSWORD: ${SUPER_ADMIN_BOOTSTRAP_PASSWORD:-}
+      COMPANY_USERS_SERVICE_URL: http://company-users-service:8083
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+    ports:
+      - "8181:8081"
+
+  # ---- Globaler Artikel-Dienst (M1.2) --------------------------------
+  global-articles-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: global_articles
+      POSTGRES_USER: global_articles
+      POSTGRES_PASSWORD: ${GLOBAL_ARTICLES_DB_PASSWORD:-global_articles}
+    volumes:
+      - global-articles-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U global_articles"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  global-articles-service:
+    build:
+      context: ./backend
+      dockerfile: global_articles_service/Dockerfile
+    depends_on:
+      global-articles-db:
+        condition: service_healthy
+    environment:
+      PORT: "8082"
+      DB_HOST: global-articles-db
+      DB_PORT: "5432"
+      DB_NAME: global_articles
+      DB_USER: global_articles
+      DB_PASSWORD: ${GLOBAL_ARTICLES_DB_PASSWORD:-global_articles}
+    ports:
+      - "8182:8082"
+
+  # ---- Firmen-/Nutzerdienst (M1.3) -----------------------------------
+  company-users-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: company_users
+      POSTGRES_USER: company_users
+      POSTGRES_PASSWORD: ${COMPANY_USERS_DB_PASSWORD:-company_users}
+    volumes:
+      - company-users-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U company_users"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  company-users-service:
+    build:
+      context: ./backend
+      dockerfile: company_users_service/Dockerfile
+    depends_on:
+      company-users-db:
+        condition: service_healthy
+    environment:
+      PORT: "8083"
+      DB_HOST: company-users-db
+      DB_PORT: "5432"
+      DB_NAME: company_users
+      DB_USER: company_users
+      DB_PASSWORD: ${COMPANY_USERS_DB_PASSWORD:-company_users}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+    ports:
+      - "8183:8083"
+
+  # ---- Web-Frontend-Auslieferung (M1.4) ------------------------------
+  # Liefert den fertig gebauten Flutter-Web-Build aus (gleiches
+  # Muster wie WerkkernERP: lokal bauen, Container liefert nur noch
+  # nginx mit dem Ergebnis aus — kein Flutter-Build im Container).
+  web:
+    build:
+      context: ./frontend/libre_ecad_app
+      dockerfile: Dockerfile
+    ports:
+      - "8185:80"
+    depends_on:
+      - super-admin-service
+      - global-articles-service
+      - company-users-service
+
+volumes:
+  super-admin-db-data:
+  global-articles-db-data:
+  company-users-db-data:

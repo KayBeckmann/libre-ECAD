@@ -1,0 +1,262 @@
+import 'dart:convert';
+
+import 'package:shared_server_kit/shared_server_kit.dart';
+import 'package:shelf/shelf.dart';
+import 'package:shelf_router/shelf_router.dart';
+
+import 'models.dart';
+import 'repository.dart';
+
+/// M1.3 Firmen-/Nutzerdienst. Siehe Roadmap-Abnahme: "Admin A erstellt/
+/// deaktiviert Zeichner in Firma A, kann keine Nutzer in Firma B
+/// sehen/ändern"; "Zeichner erreicht keine Benutzerverwaltung, auch
+/// nicht über direkte API-Aufrufe"; "nicht versehentlich letzten
+/// Admin aussperren".
+class CompanyUserRouter {
+  CompanyUserRouter({
+    required this.repository,
+    required this.internalToken,
+    this.sessionTtl = const Duration(hours: 8),
+  });
+
+  final CompanyUserRepository repository;
+
+  /// Shared Secret für `/internal/*` — siehe `docs/architecture.md`.
+  final String internalToken;
+  final Duration sessionTtl;
+
+  Router get handler {
+    final router = Router();
+    router.get('/health', (Request request) => healthResponse());
+
+    // Öffentlich (bzw. mit Nutzer-Session):
+    router.post('/auth/activate', _activate);
+    router.post('/auth/login', _login);
+    router.post('/auth/logout', _logout);
+    router.get('/me', _me);
+    router.get('/users', _listUsers);
+    router.post('/users', _createZeichner);
+    router.patch('/users/<id>', _setUserActive);
+
+    // Nur für den Super-Admin-Dienst, per Shared Secret geschützt —
+    // bewusst kein öffentlich beworbener Pfad.
+    router.post('/internal/companies', _internalCreateCompany);
+    router.post('/internal/companies/<companyId>/admins', _internalCreateAdmin);
+
+    return router;
+  }
+
+  Future<Map<String, Object?>> _bodyJson(Request request) async {
+    final raw = await request.readAsString();
+    if (raw.isEmpty) return const {};
+    return jsonDecode(raw) as Map<String, Object?>;
+  }
+
+  // ---- Internal (Super-Admin-Dienst) ----------------------------------
+
+  bool _hasValidInternalToken(Request request) =>
+      request.headers['x-internal-token'] == internalToken && internalToken.isNotEmpty;
+
+  Future<Response> _internalCreateCompany(Request request) async {
+    if (!_hasValidInternalToken(request)) return jsonError('Nicht berechtigt.', status: 403);
+    final body = await _bodyJson(request);
+    final name = (body['name'] as String?)?.trim();
+    if (name == null || name.isEmpty) return jsonError('name ist Pflicht.');
+
+    final id = 'company-${DateTime.now().microsecondsSinceEpoch}';
+    final company = await repository.createCompany(id: id, name: name);
+    return jsonOk({'companyId': company.id, 'name': company.name}, status: 201);
+  }
+
+  Future<Response> _internalCreateAdmin(Request request, String companyId) async {
+    if (!_hasValidInternalToken(request)) return jsonError('Nicht berechtigt.', status: 403);
+    final company = await repository.findCompanyById(companyId);
+    if (company == null) return jsonError('Firma $companyId existiert nicht.', status: 404);
+
+    final body = await _bodyJson(request);
+    final username = (body['username'] as String?)?.trim();
+    if (username == null || username.isEmpty) return jsonError('username ist Pflicht.');
+    if (await repository.findUserByUsername(username) != null) {
+      return jsonError('Benutzername "$username" ist bereits vergeben.', status: 409);
+    }
+
+    final id = 'user-${DateTime.now().microsecondsSinceEpoch}';
+    final created = await repository.createUser(
+      id: id,
+      companyId: companyId,
+      username: username,
+      role: UserRole.admin,
+    );
+    return jsonOk({
+      'userId': created.user.id,
+      'username': created.user.username,
+      'activationToken': created.rawActivationToken,
+    }, status: 201);
+  }
+
+  // ---- Öffentlich -------------------------------------------------------
+
+  Future<Response> _activate(Request request) async {
+    final body = await _bodyJson(request);
+    final token = body['token'] as String?;
+    final password = body['password'] as String?;
+    if (token == null || password == null || password.length < 8) {
+      return jsonError('token und password (mind. 8 Zeichen) sind Pflicht.');
+    }
+    final ok = await repository.activateWithToken(
+      rawToken: token,
+      passwordHash: Passwords.hash(password),
+    );
+    if (!ok) return jsonError('Aktivierungstoken ungültig, abgelaufen oder bereits benutzt.', status: 400);
+    return jsonOk({'status': 'activated'});
+  }
+
+  Future<Response> _login(Request request) async {
+    final body = await _bodyJson(request);
+    final username = body['username'] as String?;
+    final password = body['password'] as String?;
+    if (username == null || password == null) return jsonError('username und password sind Pflicht.');
+
+    final user = await repository.findUserByUsername(username);
+    if (user == null || !user.isActivated || !Passwords.verify(password, user.passwordHash!)) {
+      return jsonError('Benutzername oder Passwort falsch.', status: 401);
+    }
+    if (!user.active) {
+      return jsonError('Dieser Zugang ist deaktiviert.', status: 403);
+    }
+    final company = await repository.findCompanyById(user.companyId);
+    if (company == null || !company.active) {
+      return jsonError('Dieses Firmen-Backend ist aktuell gesperrt.', status: 403);
+    }
+
+    final rawToken = SessionTokens.generate();
+    final now = DateTime.now().toUtc();
+    await repository.saveSession(
+      UserSession(
+        tokenHash: SessionTokens.hashOf(rawToken),
+        userId: user.id,
+        companyId: user.companyId,
+        createdAt: now,
+        expiresAt: now.add(sessionTtl),
+      ),
+    );
+    return jsonOk({
+      'token': rawToken,
+      'username': user.username,
+      'role': user.role.wireValue,
+      'companyName': company.name,
+    });
+  }
+
+  Future<Response> _logout(Request request) async {
+    final token = _bearerToken(request);
+    if (token != null) await repository.deleteSession(SessionTokens.hashOf(token));
+    return Response(204);
+  }
+
+  Future<Response> _me(Request request) async {
+    final auth = await _requireUser(request);
+    if (auth == null) return jsonError('Nicht angemeldet.', status: 401);
+    final company = await repository.findCompanyById(auth.user.companyId);
+    return jsonOk({
+      'username': auth.user.username,
+      'role': auth.user.role.wireValue,
+      'companyName': company?.name,
+    });
+  }
+
+  Future<Response> _listUsers(Request request) async {
+    final auth = await _requireAdmin(request);
+    if (auth == null) return jsonError('Nicht angemeldet oder keine Admin-Rechte.', status: 403);
+    final users = await repository.listUsersForCompany(auth.user.companyId);
+    return jsonOk({
+      'users': [
+        for (final u in users)
+          {'id': u.id, 'username': u.username, 'role': u.role.wireValue, 'active': u.active, 'activated': u.isActivated},
+      ],
+    });
+  }
+
+  Future<Response> _createZeichner(Request request) async {
+    final auth = await _requireAdmin(request);
+    if (auth == null) return jsonError('Nicht angemeldet oder keine Admin-Rechte.', status: 403);
+
+    final body = await _bodyJson(request);
+    final username = (body['username'] as String?)?.trim();
+    if (username == null || username.isEmpty) return jsonError('username ist Pflicht.');
+    if (await repository.findUserByUsername(username) != null) {
+      return jsonError('Benutzername "$username" ist bereits vergeben.', status: 409);
+    }
+
+    final id = 'user-${DateTime.now().microsecondsSinceEpoch}';
+    final created = await repository.createUser(
+      id: id,
+      companyId: auth.user.companyId,
+      username: username,
+      role: UserRole.zeichner,
+    );
+    return jsonOk({
+      'userId': created.user.id,
+      'username': created.user.username,
+      'activationToken': created.rawActivationToken,
+    }, status: 201);
+  }
+
+  Future<Response> _setUserActive(Request request, String id) async {
+    final auth = await _requireAdmin(request);
+    if (auth == null) return jsonError('Nicht angemeldet oder keine Admin-Rechte.', status: 403);
+
+    final target = await repository.findUserById(id);
+    if (target == null || target.companyId != auth.user.companyId) {
+      // Dieselbe Antwort für "existiert nicht" und "gehört zu
+      // fremder Firma" — kein Oracle für fremde User-IDs.
+      return jsonError('Nutzer nicht gefunden.', status: 404);
+    }
+
+    final body = await _bodyJson(request);
+    final active = body['active'] as bool?;
+    if (active == null) return jsonError('active (bool) ist Pflicht.');
+
+    if (!active && target.role == UserRole.admin) {
+      final activeAdmins = await repository.countActiveActivatedAdmins(auth.user.companyId);
+      final wouldBeLastAdmin = activeAdmins <= 1 && target.active && target.isActivated;
+      if (wouldBeLastAdmin) {
+        return jsonError(
+          'Letzten aktiven Admin der Firma kann niemand deaktivieren.',
+          status: 409,
+        );
+      }
+    }
+
+    await repository.setUserActive(id: id, active: active);
+    return jsonOk({'id': id, 'active': active});
+  }
+
+  // ---- Auth-Helfer --------------------------------------------------------
+
+  String? _bearerToken(Request request) {
+    final header = request.headers['authorization'];
+    if (header == null || !header.startsWith('Bearer ')) return null;
+    return header.substring('Bearer '.length);
+  }
+
+  Future<({AppUser user, UserSession session})?> _requireUser(Request request) async {
+    final token = _bearerToken(request);
+    if (token == null) return null;
+    final session = await repository.findSession(SessionTokens.hashOf(token));
+    if (session == null) return null;
+    if (session.isExpired(DateTime.now().toUtc())) {
+      await repository.deleteSession(session.tokenHash);
+      return null;
+    }
+    final user = await repository.findUserById(session.userId);
+    if (user == null || !user.active) return null;
+    return (user: user, session: session);
+  }
+
+  Future<({AppUser user, UserSession session})?> _requireAdmin(Request request) async {
+    final auth = await _requireUser(request);
+    if (auth == null || auth.user.role != UserRole.admin) return null;
+    return auth;
+  }
+}
