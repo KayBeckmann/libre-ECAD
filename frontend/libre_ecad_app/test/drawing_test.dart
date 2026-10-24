@@ -163,4 +163,61 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     available.close();
   });
+  testWidgets(
+    'connection recovery retains the draft and clears the outage message',
+    (tester) async {
+      tester.view.physicalSize = const Size(1440, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var available = true;
+      final api = WorkspaceApi(
+        session,
+        client: MockClient((r) async {
+          if (!available) throw Exception('TEST offline');
+          return http.Response(
+            jsonEncode({
+              'projectName': 'Connection',
+              'version': 1,
+              'drawing': null,
+            }),
+            200,
+          );
+        }),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DrawingScreen(session: session, projectId: 'p', api: api),
+        ),
+      );
+      await tester.pumpAndSettle();
+      available = false;
+      await tester.tap(find.byTooltip('Verbindung prüfen'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Backend nicht erreichbar'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Speichern'),
+            )
+            .onPressed,
+        isNull,
+      );
+      available = true;
+      await tester.tap(find.byTooltip('Verbindung prüfen'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Backend nicht erreichbar'), findsNothing);
+      expect(find.textContaining('ungespeichert'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Speichern'),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      await tester.pumpWidget(const SizedBox());
+      api.close();
+    },
+  );
 }

@@ -59,7 +59,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
     checking = true;
     try {
       await api.request('GET', path);
-      if (mounted) setState(() => online = true);
+      if (mounted) {
+        setState(() {
+          if (!online) error = null;
+          online = true;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
