@@ -6,6 +6,8 @@ import 'package:shelf_router/shelf_router.dart';
 
 import 'models.dart';
 import 'repository.dart';
+import 'workspace/router.dart';
+import 'workspace/store.dart';
 
 /// M1.3 Firmen-/Nutzerdienst. Siehe Roadmap-Abnahme: "Admin A erstellt/
 /// deaktiviert Zeichner in Firma A, kann keine Nutzer in Firma B
@@ -16,10 +18,12 @@ class CompanyUserRouter {
   CompanyUserRouter({
     required this.repository,
     required this.internalToken,
+    this.workspace,
     this.sessionTtl = const Duration(hours: 8),
   });
 
   final CompanyUserRepository repository;
+  final WorkspaceStore? workspace;
 
   /// Shared Secret für `/internal/*` — siehe `docs/architecture.md`.
   final String internalToken;
@@ -43,6 +47,10 @@ class CompanyUserRouter {
     router.post('/internal/companies', _internalCreateCompany);
     router.post('/internal/companies/<companyId>/admins', _internalCreateAdmin);
 
+    if (workspace != null) {
+      router.mount('/api/v1/', WorkspaceRouter(store: workspace!, users: repository,
+        authenticate: (request) async => (await _requireUser(request))?.user).handler.call);
+    }
     return router;
   }
 
@@ -250,7 +258,9 @@ class CompanyUserRouter {
       return null;
     }
     final user = await repository.findUserById(session.userId);
-    if (user == null || !user.active) return null;
+    if (user == null || !user.active || user.companyId != session.companyId) return null;
+    final company = await repository.findCompanyById(user.companyId);
+    if (company == null || !company.active) return null;
     return (user: user, session: session);
   }
 

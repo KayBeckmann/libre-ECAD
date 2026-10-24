@@ -7,6 +7,8 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:company_users_service/src/db/schema.dart';
 import 'package:company_users_service/src/repository_postgres.dart';
 import 'package:company_users_service/src/router.dart';
+import 'package:company_users_service/src/db/migrations.dart';
+import 'package:company_users_service/src/workspace/store.dart';
 
 Future<void> main() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8083');
@@ -22,6 +24,7 @@ Future<void> main() async {
     settings: ConnectionSettings(sslMode: SslMode.disable),
   );
   await ensureSchema(db);
+  await migrateWorkspace(db);
 
   final internalToken = Platform.environment['INTERNAL_SERVICE_TOKEN'] ?? '';
   if (internalToken.isEmpty) {
@@ -32,7 +35,7 @@ Future<void> main() async {
   }
 
   final repository = PostgresCompanyUserRepository(db);
-  final router = CompanyUserRouter(repository: repository, internalToken: internalToken);
+  final router = CompanyUserRouter(repository: repository, internalToken: internalToken, workspace: PostgresWorkspaceStore(db));
   final handler = const Pipeline().addMiddleware(logRequests()).addHandler(router.handler.call);
 
   final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);

@@ -112,3 +112,25 @@ Roadmap-Abnahmekriterien je Unterpunkt).
   vor Internet-Exposition nachziehen.
 - Kein TLS innerhalb des Docker-Netzes (Compose-intern); vor
   Produktionsbetrieb hinter einen Reverse Proxy mit TLS stellen.
+
+## M2.1 – Projekte und LAN-Vorschau
+
+SQL ist in M2 die kanonische Quelle für Projektmetadaten und Artikel.
+`schema_migrations` führt transaktionale Migrationen mit Advisory-Lock aus;
+M1-Bestandsdaten bleiben erhalten. Dokumente besitzen stabile zufällige IDs,
+Firma, Version und unveränderliche Historieneinträge. Updates prüfen die
+bekannte Version atomar (HTTP 409 bei Konflikten, keine automatische Auflösung).
+Git-basierte CAD-Projektstände und fachliche Freigaben folgen erst M4/M5.
+
+Firmenadmins erstellen Projekte und verwalten deren Mitglieder; sie sehen alle
+Projekte ihrer Firma. Zeichner sehen/bearbeiten ausschließlich zugewiesene
+Projekte. Mitgliedschaften sind nur für aktive, aktivierte Nutzer derselben
+Firma möglich. Unbekannte und unzugängliche Projekt-IDs liefern gleichermaßen
+404. Jeder Zugriff prüft Sitzung, aktiven Nutzer und aktive Firma.
+
+Die Web-App verwendet `/api/company/` und `/api/global/` am aktuellen Browserhost.
+nginx leitet diese Pfade an die Dienste weiter; damit funktioniert die LAN-URL
+ohne fest eingebaute Host-IP oder CORS-Freigabe. Native Clients verwenden weiter
+konfigurierbare Backend-Adressen. Ports 8181/8182/8183/8185 sind im LAN gebunden;
+die Datenbanken haben keine Host-Portfreigabe. Superadmin bleibt eine getrennte
+API (`/api/superadmin/` bzw. Port 8181); seine Verwaltungsoberfläche folgt M3.
