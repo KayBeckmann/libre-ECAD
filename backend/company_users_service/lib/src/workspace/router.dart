@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
+import 'pdf_output.dart';
+import 'git_archive.dart';
 import 'package:ecad_core/ecad_core.dart';
 import 'package:crypto/crypto.dart';
 import 'package:shared_server_kit/shared_server_kit.dart';
@@ -81,6 +84,18 @@ class WorkspaceRouter {
       (Request q, String id) =>
           _guard(q, (q, u) => _drawingExport(q, u, Uri.decodeComponent(id))),
     );
+    r.get(
+      '/projects/<id>/documents',
+      (Request q, String id) => _guard(q, (q, u) => _documents(q, u, id)),
+    );
+    r.get(
+      '/projects/<id>/releases',
+      (Request q, String id) => _guard(q, (q, u) => _releases(q, u, id)),
+    );
+    r.post(
+      '/projects/<id>/releases',
+      (Request q, String id) => _guard(q, (q, u) => _approve(q, u, id)),
+    );
     return r;
   }
 
@@ -96,6 +111,13 @@ class WorkspaceRouter {
       );
     try {
       return await action(request, user);
+    } on FileSystemException {
+      return jsonError(
+        'Projektarchiv nicht verfügbar. Freigabestatus neu laden; Arbeitsstände bleiben erhalten.',
+        status: 503,
+      );
+    } on ProcessException {
+      return jsonError('Git-Archiv nicht verfügbar.', status: 503);
     } on GlobalCatalogUnavailable {
       return jsonError(
         'Globaler Artikel-Dienst nicht verfügbar. Lokale Daten bleiben unverändert.',
@@ -166,7 +188,8 @@ class WorkspaceRouter {
     'updatedAt': DateTime.now().toUtc().toIso8601String(),
   };
   Document _revision(Document old, AppUser u) => {
-    ...old,
+    for (final e in old.entries)
+      if (e.key != 'release') e.key: e.value,
     'version': (old['version'] as int) + 1,
     'updatedBy': u.id,
     'updatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -191,6 +214,7 @@ class WorkspaceRouter {
       ..._newDocument(u),
       'name': _text(d, 'name'),
       'description': _text(d, 'description', max: 4000, optional: true),
+      'metadata': _metadata(d['metadata']),
       'memberIds': await _members(d, u),
     };
     await store.create(u.companyId, 'project', p);
@@ -211,6 +235,9 @@ class WorkspaceRouter {
       ..._revision(p, u),
       'name': _text(d, 'name'),
       'description': _text(d, 'description', max: 4000, optional: true),
+      'metadata': d.containsKey('metadata')
+          ? _metadata(d['metadata'])
+          : p['metadata'] ?? <String, dynamic>{},
       'memberIds': _admin(u) && d.containsKey('memberIds')
           ? await _members(d, u)
           : p['memberIds'],
@@ -218,6 +245,220 @@ class WorkspaceRouter {
     if (!await store.update(u.companyId, 'project', next, d['version'] as int))
       return _conflict();
     return jsonOk(next);
+  }
+
+  Document _metadata(Object? input) {
+    if (input == null) return {};
+    if (input is! Map<String, dynamic>)
+      throw FormatException('metadata muss ein Objekt sein.');
+    const allowed = [
+      'Kunde',
+      'Anlage',
+      'Auftrag',
+      'Baujahr',
+      'Standort',
+      'Verantwortlich',
+      'Dokumentnummer',
+    ];
+    if (input.keys.any((k) => !allowed.contains(k)))
+      throw FormatException('Unbekanntes Metadatenfeld.');
+    return {
+      for (final k in input.keys) k: _text(input, k, max: 160, optional: true),
+    };
+  }
+
+  GitArchive get _archive => GitArchive(
+    Platform.environment['PROJECT_ARCHIVE_DIR'] ??
+        '${Directory.systemTemp.path}/libre-ecad-archives',
+  );
+  Document _publicProject(Document p) => {
+    for (final key in [
+      'id',
+      'name',
+      'description',
+      'metadata',
+      'version',
+      'drawing',
+    ])
+      if (p.containsKey(key)) key: p[key],
+  };
+  Document _releaseSummary(Document packet) => {
+    for (final key in [
+      'id',
+      'version',
+      'at',
+      'username',
+      'reason',
+      'commit',
+      'sha256',
+    ])
+      key: packet[key],
+  };
+  Future<List<Document>> _packets(AppUser u, String id) async => [
+    for (final p in await store.history(u.companyId, 'project', id))
+      if (p['release'] is Map) Map<String, dynamic>.from(p['release']),
+  ];
+  Future<Response> _releases(Request q, AppUser u, String id) async {
+    if (await _drawingProject(id, u) == null)
+      return jsonError('Projekt nicht gefunden.', status: 404);
+    return jsonOk({
+      'releases': (await _packets(u, id)).map(_releaseSummary).toList(),
+    });
+  }
+
+  Future<Response> _documents(Request q, AppUser u, String id) async {
+    final current = await _drawingProject(id, u);
+    if (current == null)
+      return jsonError('Projekt nicht gefunden.', status: 404);
+    final query = q.url.queryParameters;
+    if (query['release'] != null) {
+      final packets = await _packets(u, id);
+      final packet = packets
+          .where((p) => p['id'] == query['release'])
+          .firstOrNull;
+      if (packet == null)
+        return jsonError(
+          'Festgeschriebener Stand nicht gefunden.',
+          status: 404,
+        );
+      for (final p in packets) {
+        await _archive.write(u.companyId, id, p);
+        if (p['id'] == packet['id']) break;
+      }
+      final files = packet['files'] as Map;
+      final project =
+          jsonDecode(utf8.decode(base64Decode(files['project.json'])))
+              as Document;
+      final data =
+          jsonDecode(utf8.decode(base64Decode(files['documents.json'])))
+              as Document;
+      return jsonOk({
+        'source': 'release',
+        'project': project,
+        'data': data,
+        'findings': drawingFindings(project['drawing']),
+        'approval': jsonDecode(
+          utf8.decode(base64Decode(files['approval.json'])),
+        ),
+        'release': _releaseSummary(packet),
+        'pdf': files['output.pdf'],
+      });
+    }
+    final version = int.tryParse(query['version'] ?? '');
+    if (version == null)
+      throw FormatException('Arbeitsversion ausdrücklich wählen.');
+    final selected = (await store.history(
+      u.companyId,
+      'project',
+      id,
+    )).where((p) => p['version'] == version).firstOrNull;
+    if (selected == null || selected['drawing'] == null)
+      return jsonError(
+        'Gespeicherte Zeichnungsversion nicht gefunden.',
+        status: 404,
+      );
+    final project = _publicProject(selected);
+    final data = documentData(project);
+    return jsonOk({
+      'source': 'working',
+      'project': project,
+      'data': data,
+      'findings': drawingFindings(project['drawing']),
+      'pdf': base64Encode(
+        await projectPdf(
+          project,
+          status: 'ARBEITSSTAND - NICHT FREIGEGEBEN',
+          stamp: 'V$version',
+        ),
+      ),
+    });
+  }
+
+  Future<Response> _approve(Request q, AppUser u, String id) async {
+    final project = await _drawingProject(id, u);
+    if (project == null)
+      return jsonError('Projekt nicht gefunden.', status: 404);
+    if (!_admin(u))
+      return jsonError(
+        'Nur Firmenadmins schreiben einen Stand fachlich fest.',
+        status: 403,
+      );
+    final body = await _body(q);
+    if (body['version'] is! int) throw FormatException('version ist Pflicht.');
+    if (body['version'] != project['version']) return _conflict();
+    if (body['confirmed'] != true)
+      throw FormatException('Explizite fachliche Bestätigung fehlt.');
+    final reason = _text(body, 'reason', max: 1000);
+    final findings = drawingFindings(project['drawing']);
+    if (findings.any((f) => f['severity'] == 'error'))
+      throw FormatException('Strukturfehler verhindern die Freigabe.');
+    final exceptions = body['exceptions'];
+    if (exceptions is! Map<String, dynamic>)
+      throw FormatException('Begründete Ausnahmen fehlen.');
+    final findingIds = findings.map((f) => f['id']).toSet();
+    if (exceptions.keys.any((k) => !findingIds.contains(k)))
+      throw FormatException('Ausnahmen gehören nicht zu dieser Version.');
+    for (final f in findings) {
+      _text(exceptions, f['id'], max: 1000);
+    }
+    final releaseId = SessionTokens.generate();
+    final at = DateTime.now().toUtc().toIso8601String();
+    final approval = {
+      'id': releaseId,
+      'at': at,
+      'username': u.username,
+      'userId': u.id,
+      'reason': reason,
+      'exceptions': exceptions,
+      'version': project['version'],
+    };
+    final public = _publicProject(project), data = documentData(public);
+    final pdf = await projectPdf(
+      public,
+      status: 'FACHLICH FESTGESCHRIEBEN',
+      stamp: releaseId.substring(0, 8),
+      approval: approval,
+    );
+    final files = <String, dynamic>{
+      'project.json': base64Encode(utf8.encode(canonicalJson(public))),
+      'documents.json': base64Encode(utf8.encode(canonicalJson(data))),
+      'library.json': base64Encode(utf8.encode(canonicalJson(pinnedLibrary()))),
+      'approval.json': base64Encode(utf8.encode(canonicalJson(approval))),
+      'output.pdf': base64Encode(pdf),
+      for (final sheet in objects(public['drawing'], 'sheets'))
+        'sheet-${sheet['number']}.svg': base64Encode(
+          utf8.encode(sheetSvg(public['drawing'], sheet['id'])),
+        ),
+    };
+    final hashes = {
+      for (final e in files.entries)
+        e.key: sha256.convert(base64Decode(e.value)).toString(),
+    };
+    files['manifest.json'] = base64Encode(
+      utf8.encode(
+        canonicalJson({'format': 'libre-ecad-release-v1', 'files': hashes}),
+      ),
+    );
+    final previous = await _packets(u, id);
+    // Rebuild missing Git objects after SQL-only recovery before parenting a commit.
+    for (final p in previous) {
+      await _archive.write(u.companyId, id, p);
+    }
+    final packet = <String, dynamic>{
+      ...approval,
+      'parent': previous.lastOrNull?['commit'],
+      'files': files,
+      'sha256': hashes['output.pdf'],
+    };
+    packet['commit'] = await _archive.write(u.companyId, id, packet);
+    final next = {..._revision(project, u), 'release': packet};
+    // Git candidates are not approvals. Only this atomic SQL history entry publishes one.
+    if (!await store.update(u.companyId, 'project', next, body['version']))
+      return _conflict();
+    return jsonOk({
+      'release': _releaseSummary(packet),
+      'version': next['version'],
+    }, status: 201);
   }
 
   Future<Document?> _drawingProject(String id, AppUser u) async {

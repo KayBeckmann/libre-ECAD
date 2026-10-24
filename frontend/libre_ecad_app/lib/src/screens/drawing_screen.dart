@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:ecad_core/ecad_core.dart';
 import 'package:flutter/material.dart';
 
+import 'documents_screen.dart';
+
 import '../api/company_users_api.dart';
 import '../api/workspace_api.dart';
 import '../drawing/drawing_canvas.dart';
@@ -69,8 +71,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       if (mounted) {
         setState(() {
           online = false;
-          error =
-              'Backend nicht erreichbar oder Zugriff entzogen. Entwurf bleibt im Fenster erhalten. Verbindung prüfen oder erneut anmelden.';
+          error = 'Backend nicht erreichbar oder Zugriff entzogen. Entwurf bleibt im Fenster erhalten. Verbindung prüfen oder erneut anmelden.';
         });
       }
     } finally {
@@ -177,6 +178,38 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
+  Future<void> documents() async {
+    final result = await Navigator.push<Json>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DocumentsScreen(
+          session: widget.session,
+          projectId: widget.projectId,
+          version: version,
+          hasDraft: controller!.dirty,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (result?['finding'] != null) {
+      final finding = result!['finding'] as Json;
+      if (result['version'] != version) {
+        setState(
+          () => error = 'Der Hinweis gehört zu einem anderen Arbeitsstand. Diesen zunächst über die Historie laden.',
+        );
+      } else if (objects(
+        d,
+        'sheets',
+      ).any((s) => s['id'] == finding['sheetId'])) {
+        setState(() {
+          sheetId = finding['sheetId'];
+          selected = finding['objectId'];
+        });
+      }
+    }
+    await check();
+  }
+
   Future<void> resolveConflict() async {
     try {
       final remote = await api.request('GET', path);
@@ -196,6 +229,24 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   'Lokal auf Stand $version · Serverstand ${remote['version']}. Es wird nichts automatisch zusammengeführt. Eine Übernahme ersetzt die gesamte Zeichnung; Projektmitglieder bleiben serverseitig erhalten.',
                 ),
                 const SizedBox(height: 16),
+                Text(
+                  '${drawingChanges(d, remote['drawing'] as Json? ?? emptyDrawing()).length} abweichende Objekte · Details je Seite unten',
+                ),
+                SizedBox(
+                  height: 110,
+                  child: ListView(
+                    children: [
+                      for (final change in drawingChanges(
+                        d,
+                        remote['drawing'] as Json? ?? emptyDrawing(),
+                      ))
+                        Text(
+                          '${change['kind']} · ${change['id']} · ${change['change']}\nLokal: ${change['before']?['bmk'] ?? change['before']?['title'] ?? change['before']?['label'] ?? '—'} / Server: ${change['after']?['bmk'] ?? change['after']?['title'] ?? change['after']?['label'] ?? '—'}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                    ],
+                  ),
+                ),
                 Expanded(
                   child: Row(
                     children: [
@@ -717,6 +768,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
           title: Text(ready ? '$name · Schaltplan' : 'Schaltplan laden'),
           actions: [
             if (ready)
+              IconButton(
+                tooltip: 'Dokumente und Freigabe',
+                onPressed: online && !busy ? documents : null,
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+              ),
+            if (ready)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Center(
@@ -779,7 +836,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       if (error != null)
                         Container(
                           width: double.infinity,
-                          color: const Color(0xffffebdf),
+                          color: Theme.of(context).colorScheme.errorContainer,
                           padding: const EdgeInsets.all(8),
                           child: Text(error!, maxLines: 3),
                         ),
@@ -1001,7 +1058,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Widget libraryPanel(bool enabled) => Material(
-    color: const Color(0xfff3f6f5),
+    color: Theme.of(context).colorScheme.surface,
     child: ListView(
       padding: const EdgeInsets.all(12),
       children: [
@@ -1054,7 +1111,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         const SizedBox(height: 16),
         const Text(
           'Eigene synthetische Glyphen\nMIT · keine Normsymbolbibliothek',
-          style: TextStyle(fontSize: 11, color: Colors.black54),
+          style: TextStyle(fontSize: 11, color: Color(0xffa8bec1)),
         ),
       ],
     ),
@@ -1079,7 +1136,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       'wires',
     ).where((w) => w['sheetId'] == sheetId);
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       child: ListView(
         padding: const EdgeInsets.all(14),
         children: [

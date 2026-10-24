@@ -44,6 +44,8 @@ dependencies:
   # Speicher (siehe docs/architecture.md: Session-Persistenz ist ein
   # späterer, mit Offline-Arbeit zusammenhängender Schritt).
   shared_preferences: ^2.5.6
+  web: ^1.1.1
+  printing: ^5.15.1
 
 dev_dependencies:
   flutter_test:

@@ -93,12 +93,15 @@ services:
         condition: service_healthy
     environment:
       PORT: "8083"
+      PROJECT_ARCHIVE_DIR: /var/lib/libre-ecad/archives
       DB_HOST: company-users-db
       DB_PORT: "5432"
       DB_NAME: company_users
       DB_USER: company_users
       DB_PASSWORD: ${COMPANY_USERS_DB_PASSWORD:-company_users}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+    volumes:
+      - project-archives:/var/lib/libre-ecad/archives
     ports:
       - "8183:8083"
 
@@ -129,3 +132,4 @@ volumes:
   super-admin-db-data:
   global-articles-db-data:
   company-users-db-data:
+  project-archives:

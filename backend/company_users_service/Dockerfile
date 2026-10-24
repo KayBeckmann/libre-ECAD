@@ -8,8 +8,10 @@ RUN dart pub get
 RUN dart compile exe bin/server.dart -o bin/server
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/company_users_service/bin/server /app/server
+COPY --from=build /app/company_users_service/assets /app/assets
+ENV PDF_FONT_DIR=/app/assets/fonts
 EXPOSE 8083
 ENTRYPOINT ["/app/server"]

@@ -123,6 +123,20 @@ class _ProjectEditorState extends State<ProjectEditor> {
   late final Set<String> members = Set<String>.from(
     widget.project?['memberIds'] as List? ?? [],
   );
+  late final metadata = {
+    for (final key in [
+      'Kunde',
+      'Anlage',
+      'Auftrag',
+      'Baujahr',
+      'Standort',
+      'Verantwortlich',
+      'Dokumentnummer',
+    ])
+      key: TextEditingController(
+        text: widget.project?['metadata']?[key] as String? ?? '',
+      ),
+  };
   late final api = WorkspaceApi(widget.session);
   late final Future<List<CompanyUserListEntry>> users =
       widget.session.role == UserRole.admin
@@ -135,6 +149,9 @@ class _ProjectEditorState extends State<ProjectEditor> {
   void dispose() {
     name.dispose();
     description.dispose();
+    for (final controller in metadata.values) {
+      controller.dispose();
+    }
     api.close();
     super.dispose();
   }
@@ -156,6 +173,10 @@ class _ProjectEditorState extends State<ProjectEditor> {
         {
           'name': name.text.trim(),
           'description': description.text.trim(),
+          'metadata': {
+            for (final entry in metadata.entries)
+              entry.key: entry.value.text.trim(),
+          },
           if (widget.session.role == UserRole.admin)
             'memberIds': members.toList(),
           if (widget.project != null) 'version': widget.project!['version'],
@@ -189,6 +210,26 @@ class _ProjectEditorState extends State<ProjectEditor> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              if (widget.project != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DrawingScreen(
+                                session: widget.session,
+                                projectId: widget.project!['id'],
+                              ),
+                            ),
+                          ),
+                    icon: const Icon(Icons.polyline_outlined),
+                    label: const Text('Schaltplan öffnen'),
+                  ),
+                ),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: name,
                 decoration: const InputDecoration(labelText: 'Projektname'),
@@ -206,6 +247,20 @@ class _ProjectEditorState extends State<ProjectEditor> {
                 maxLength: 4000,
               ),
               const SizedBox(height: 24),
+              ExpansionTile(
+                title: const Text('Deckblatt und Projektmetadaten'),
+                children: [
+                  for (final entry in metadata.entries)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TextFormField(
+                        controller: entry.value,
+                        maxLength: 160,
+                        decoration: InputDecoration(labelText: entry.key),
+                      ),
+                    ),
+                ],
+              ),
               if (widget.session.role == UserRole.admin) ...[
                 Text(
                   'Projektmitglieder',
@@ -252,25 +307,6 @@ class _ProjectEditorState extends State<ProjectEditor> {
               const Text(
                 'Projektstamm · Zeichnung und Metadaten teilen denselben Arbeitsstand. Keine fachliche Freigabe.',
               ),
-              if (widget.project != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: busy
-                        ? null
-                        : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DrawingScreen(
-                                session: widget.session,
-                                projectId: widget.project!['id'],
-                              ),
-                            ),
-                          ),
-                    icon: const Icon(Icons.polyline_outlined),
-                    label: const Text('Schaltplan öffnen'),
-                  ),
-                ),
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
