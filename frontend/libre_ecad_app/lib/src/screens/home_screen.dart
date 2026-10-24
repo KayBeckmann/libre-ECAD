@@ -81,9 +81,8 @@ class _ZeichnerPlaceholder extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Text(
-          'Der Schaltplaneditor kommt erst in einem späteren '
-          'Meilenstein. Dieser Zugang kann sich anmelden, hat aber keine '
-          'Administrationsrechte.',
+          'Der Schaltplaneditor ist über die zugewiesenen Projekte erreichbar. '
+          'Dieser Zugang hat keine Administrationsrechte.',
         ),
       ),
     );

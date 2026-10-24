@@ -72,7 +72,7 @@ void main() {
   );
 
   testWidgets(
-    'Zeichner meldet sich an und sieht nur den Hinweis auf den späteren Zeichenbereich, '
+    'Zeichner meldet sich an und sieht den Hinweis auf zugewiesene Projekte, '
     'keine Benutzerverwaltung',
     (tester) async {
       final client = MockClient((request) async {

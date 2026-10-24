@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/workspace_api.dart';
 import '../api/company_users_api.dart';
 import '../models.dart';
+import 'drawing_screen.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key, required this.session});
@@ -249,8 +250,27 @@ class _ProjectEditorState extends State<ProjectEditor> {
               ],
               const SizedBox(height: 24),
               const Text(
-                'Projektstamm · Der Schaltplaneditor folgt in Meilenstein 4. Dieser Arbeitsstand ist keine fachliche Freigabe.',
+                'Projektstamm · Zeichnung und Metadaten teilen denselben Arbeitsstand. Keine fachliche Freigabe.',
               ),
+              if (widget.project != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DrawingScreen(
+                                session: widget.session,
+                                projectId: widget.project!['id'],
+                              ),
+                            ),
+                          ),
+                    icon: const Icon(Icons.polyline_outlined),
+                    label: const Text('Schaltplan öffnen'),
+                  ),
+                ),
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),

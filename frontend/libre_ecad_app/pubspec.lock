@@ -57,6 +57,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.9"
+  ecad_core:
+    dependency: "direct main"
+    description:
+      path: "../../backend/ecad_core"
+      relative: true
+    source: path
+    version: "0.0.0"
   fake_async:
     dependency: transitive
     description:

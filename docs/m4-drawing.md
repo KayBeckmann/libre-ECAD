@@ -57,3 +57,33 @@ Git wird in M4 nicht parallel zur SQL-Transaktion beschrieben. Ein Git-Ausfall
 kann daher keinen halben Datenbankstand erzeugen. In M5 werden fachlich
 festgeschriebene, unveränderliche Pakete mit Git-Commit und Bibliotheksständen
 gebunden. Bis dahin sind weder SQL-Version noch Git-Commit eine Fachfreigabe.
+
+## M4.2 Bedienung
+
+Firmen-App → Projekte → Projekt öffnen → **Schaltplan öffnen**.
+
+- Links aufklappbare synthetische Bibliothek mit Suche. Symbol wählen und auf
+  dem Blatt platzieren; Ziehen verschiebt auf das 20er-Raster. „Ansicht bewegen“
+  schwenkt, die Schaltflächen unten rechts zoomen/passen das Blatt ein.
+- „Verbinden“ und zwei Anschlüsse wählen. Werkzeugwechsel bricht den ersten
+  Endpunkt ab. Verbindungen lassen sich rechts trennen, einer Kabelader zuordnen
+  oder ausdrücklich an einem neu angelegten Knoten aufteilen. Ein Knoten über
+  einer bestehenden Linie verbindet sie nicht automatisch.
+- Gerät wählen → Kennung/Anschlüsse bearbeiten. „Weitere Darstellung“ wählt
+  eine weitere Ansicht **desselben Geräts**, danach Blatt wählen und platzieren.
+  Querverweis-Schaltflächen springen zur jeweiligen Ansicht. Positionsänderungen
+  ändern Querverweise sofort, BMK nur nach bewusster Auswahl des Vorschlags.
+- Blätter anlegen/umbenennen/umnummerieren; paarige Fortsetzungen anlegen und
+  ihre Positionen/Beschriftung rechts bearbeiten. Fortsetzung verbinden wie einen
+  Anschluss. Kabel/BMK/Ader/Farbe sind strukturierte Daten; keine Farbnormprüfung.
+- Zwei gleichberechtigte Arbeitsproben: Verteilerabgang und Steuer-/Motorabgang,
+  jeweils zwei Blätter, Relaismehrfachansicht, Fortsetzung und Kabelader.
+- Rückgängig/Wiederholen (60 Bearbeitungsschritte), explizites Speichern,
+  Historie mit Wiederherstellung als Entwurf. Ein Versionskonflikt zeigt beide
+  vollständigen Zeichnungen; Nutzer kann abbrechen, die Serverzeichnung laden
+  oder bewusst die lokale Zeichnung speichern. Erneute Konkurrenz bleibt 409.
+- Backendzugriff wird beim Laden, Speichern und alle 15 Sekunden geprüft.
+  Erkannter Ausfall/Entzug sperrt Bearbeitungswerkzeuge und erhält den Entwurf
+  im Fenster. Keine zugesagte Offline-Funktion; Browserneuladen verwirft Entwürfe.
+  Kleine Zeichenfenster (unter 1000 px Breite oder 500 px verfügbarer Höhe)
+  zeigen einen Lesemodus. PDF und Fachfreigaben sind erst M5.
