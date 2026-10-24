@@ -83,6 +83,14 @@ Document articleFields(Document d) {
 Document withArticleWarnings(Document a) {
   final layers = a['layers'] as Map;
   final symbol = layers['symbol'] as Map;
+  const labels = {
+    'widthMm': 'Breite [mm]',
+    'heightMm': 'Höhe [mm]',
+    'depthMm': 'Tiefe [mm]',
+    'voltageV': 'Nennspannung [V]',
+    'currentA': 'Nennstrom [A]',
+    'powerLossW': 'Verlustleistung [W]',
+  };
   final missing = <String>[];
   if ((symbol['reference'] as String).isEmpty)
     missing.add('Schaltsymbol-Referenz fehlt');
@@ -97,7 +105,7 @@ Document withArticleWarnings(Document a) {
   }.entries) {
     for (final field in entry.value) {
       if ((layers[entry.key] as Map)[field] == null)
-        missing.add('$field fehlt');
+        missing.add('${labels[field]} fehlt');
     }
   }
   if (((layers['thermal'] as Map)['conditions'] as String).isEmpty)

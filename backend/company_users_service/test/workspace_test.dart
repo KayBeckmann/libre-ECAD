@@ -340,7 +340,7 @@ void main() {
       );
       expect(a['layers']['mechanical']['heightMm'], isNull);
       expect(a['layers']['thermal']['powerLossW'], 0);
-      expect(a['warnings'], contains('heightMm fehlt'));
+      expect(a['warnings'], contains('Höhe [mm] fehlt'));
       final invalid = article();
       invalid['layers']['symbol']['terminals'] = [
         {'id': '1', 'label': 'a'},

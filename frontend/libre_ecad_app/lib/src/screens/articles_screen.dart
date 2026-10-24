@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/workspace_api.dart';
 import '../models.dart';
+import '../article_presentation.dart';
 
 class ArticlesScreen extends StatefulWidget {
   const ArticlesScreen({super.key, required this.session});
@@ -400,7 +401,7 @@ class _ArticleEditorState extends State<ArticleEditor> {
                             style: Theme.of(ctx).textTheme.titleMedium,
                           ),
                           SelectableText(
-                            '${v['articleNumber']} · ${v['name']}\nHerkunft: ${v['origin']}\nLizenz: ${v['license']}\nKopierquelle: ${v['source'] ?? "Eigener Entwurf"}\nDatenebenen: ${v['layers']}',
+                            articleVersionText(v as Map<String, dynamic>),
                           ),
                         ],
                       ),
@@ -464,7 +465,7 @@ class _ArticleEditorState extends State<ArticleEditor> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: SelectableText(
-                    'Kopierquelle: ${widget.article!['source']}',
+                    articleSourceText(widget.article!['source']),
                   ),
                 ),
               section(
