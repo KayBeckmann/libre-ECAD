@@ -98,7 +98,18 @@ class EcadShell extends StatelessWidget {
                 ),
               ),
             ),
-            ...navigation,
+            ...navigation.map(
+              (tile) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Material(
+                  color: tile is ListTile && tile.selected
+                      ? const Color(0xff23434c)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  child: tile,
+                ),
+              ),
+            ),
             const Spacer(),
             const Divider(),
             const Text(
