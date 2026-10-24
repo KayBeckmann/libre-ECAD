@@ -66,7 +66,7 @@ class MemoryWorkspaceStore implements WorkspaceStore {
 
 class PostgresWorkspaceStore implements WorkspaceStore {
   PostgresWorkspaceStore(this.db);
-  final Connection db;
+  final Session db;
   Document _decode(Object? raw) => raw is String
       ? jsonDecode(raw) as Document
       : Map<String, dynamic>.from(raw as Map);

@@ -14,7 +14,7 @@ import 'package:global_articles_service/src/seed_data.dart';
 Future<void> main() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8082');
 
-  final db = await Connection.open(
+  final db = Pool<void>.withEndpoints([
     Endpoint(
       host: Platform.environment['DB_HOST'] ?? 'localhost',
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
@@ -22,7 +22,7 @@ Future<void> main() async {
       username: Platform.environment['DB_USER'] ?? 'global_articles',
       password: Platform.environment['DB_PASSWORD'] ?? 'global_articles',
     ),
-    settings: ConnectionSettings(sslMode: SslMode.disable),
+    ], settings: PoolSettings(sslMode: SslMode.disable, maxConnectionCount: 8),
   );
   await ensureSchema(db);
 

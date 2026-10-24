@@ -17,7 +17,7 @@ import 'package:super_admin_service/src/router.dart';
 Future<void> main() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8081');
 
-  final db = await Connection.open(
+  final db = Pool<void>.withEndpoints([
     Endpoint(
       host: Platform.environment['DB_HOST'] ?? 'localhost',
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
@@ -25,7 +25,7 @@ Future<void> main() async {
       username: Platform.environment['DB_USER'] ?? 'super_admin',
       password: Platform.environment['DB_PASSWORD'] ?? 'super_admin',
     ),
-    settings: ConnectionSettings(sslMode: SslMode.disable),
+    ], settings: PoolSettings(sslMode: SslMode.disable, maxConnectionCount: 8),
   );
   await ensureSchema(db);
 

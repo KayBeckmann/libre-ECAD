@@ -16,7 +16,7 @@ import 'package:company_users_service/src/workspace/global_catalog.dart';
 Future<void> main() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8083');
 
-  final db = await Connection.open(
+  final db = Pool<void>.withEndpoints([
     Endpoint(
       host: Platform.environment['DB_HOST'] ?? 'localhost',
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
@@ -24,7 +24,7 @@ Future<void> main() async {
       username: Platform.environment['DB_USER'] ?? 'company_users',
       password: Platform.environment['DB_PASSWORD'] ?? 'company_users',
     ),
-    settings: ConnectionSettings(sslMode: SslMode.disable),
+    ], settings: PoolSettings(sslMode: SslMode.disable, maxConnectionCount: 8),
   );
   await ensureSchema(db);
   await migrateWorkspace(db);

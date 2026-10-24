@@ -3,7 +3,7 @@ import 'package:postgres/postgres.dart';
 import 'package:shared_server_kit/shared_server_kit.dart';
 import 'package:shelf/shelf.dart';
 
-Future<void> migrateManagement(Connection db) async {
+Future<void> migrateManagement(SessionExecutor db) async {
   await db.runTx((tx) async {
     await tx.execute('SELECT pg_advisory_xact_lock(28471824)');
     await tx.execute(
@@ -62,7 +62,7 @@ Future<bool> safeUserActive(TxSession tx, String id, bool active) async {
 
 class ManagedCompanies {
   ManagedCompanies(this.db, this.internalToken);
-  final Connection db;
+  final SessionExecutor db;
   final String internalToken;
   Future<Response> handle(Request request) => apiGuard(() async {
     if (request.method != 'POST')

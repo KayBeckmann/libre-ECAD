@@ -5,7 +5,7 @@ import 'repository.dart';
 
 class PostgresArticleRepository implements ArticleRepository {
   PostgresArticleRepository(this._db);
-  final Connection _db;
+  final Session _db;
 
   @override
   Future<bool> isEmpty() async {

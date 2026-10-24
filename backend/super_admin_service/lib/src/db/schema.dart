@@ -3,7 +3,7 @@ import 'package:postgres/postgres.dart';
 /// Idempotentes Schema-Bootstrap statt eines eigenen Migrations-
 /// werkzeugs (siehe `docs/architecture.md`) — für M1 ohne
 /// Bestandsdaten ausreichend.
-Future<void> ensureSchema(Connection db) async {
+Future<void> ensureSchema(Session db) async {
   await db.execute('''
     CREATE TABLE IF NOT EXISTS super_admins (
       id TEXT PRIMARY KEY,

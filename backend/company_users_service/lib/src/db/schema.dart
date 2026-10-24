@@ -1,6 +1,6 @@
 import 'package:postgres/postgres.dart';
 
-Future<void> ensureSchema(Connection db) async {
+Future<void> ensureSchema(Session db) async {
   await db.execute('''
     CREATE TABLE IF NOT EXISTS companies (
       id TEXT PRIMARY KEY,

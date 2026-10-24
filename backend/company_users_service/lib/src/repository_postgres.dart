@@ -7,7 +7,7 @@ import 'operator/management.dart';
 
 class PostgresCompanyUserRepository implements CompanyUserRepository {
   PostgresCompanyUserRepository(this._db);
-  final Connection _db;
+  final Pool<void> _db;
 
   @override
   Future<Company> createCompany({

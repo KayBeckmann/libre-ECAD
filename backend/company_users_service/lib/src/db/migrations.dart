@@ -2,7 +2,7 @@ import 'package:postgres/postgres.dart';
 
 /// M1 schema remains the baseline. Each following migration runs once, in a
 /// transaction, with an advisory lock protecting concurrent service starts.
-Future<void> migrateWorkspace(Connection db) async {
+Future<void> migrateWorkspace(SessionExecutor db) async {
   await db.runTx((tx) async {
     await tx.execute('SELECT pg_advisory_xact_lock(28471822)');
     await tx.execute(

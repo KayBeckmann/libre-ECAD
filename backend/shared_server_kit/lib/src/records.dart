@@ -83,7 +83,7 @@ Json _revision(Json value, int expected, String actor, String reason) => {
 
 class PostgresRecords implements Records {
   PostgresRecords(this.db);
-  final Connection db;
+  final SessionExecutor db;
   Future<void> migrate() async {
     await db.runTx((tx) async {
       await tx.execute('SELECT pg_advisory_xact_lock(28471823)');
