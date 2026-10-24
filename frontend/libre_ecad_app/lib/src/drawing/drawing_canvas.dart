@@ -112,6 +112,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                             height: 48,
                             child: Semantics(
                               button: true,
+                              identifier: 'ecad-hit-symbol-${i['id']}',
                               label:
                                   'Symbol ${objectById(d, 'devices', i['deviceId'])['bmk']}',
                               child: GestureDetector(
@@ -227,6 +228,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         message: label,
         child: Semantics(
           button: true,
+          identifier:
+              'ecad-hit-port-${ref['kind']}-${ref['instanceId'] ?? ref['id']}-${ref['terminalId'] ?? ''}',
           label: 'Anschluss $label',
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -396,7 +399,7 @@ class SheetPainter extends CustomPainter {
           .map((r) => r['position'])
           .join(', ');
       if (refs.isNotEmpty) {
-        label(c, '↗ $refs', Offset(x + 32, y + 17), size: 10, color: accent);
+        label(c, 'Ref. $refs', Offset(x + 32, y + 17), size: 10, color: accent);
       }
       for (final p in symbol.ports) {
         final pos = endpointOffset(d, portRef(i['id'], p));
@@ -429,7 +432,7 @@ class SheetPainter extends CustomPainter {
       );
       label(
         c,
-        '${o['label']} → ${positionReference(d, other)}',
+        '${o['label']} -> ${positionReference(d, other)}',
         p + const Offset(16, -8),
         size: 11,
       );

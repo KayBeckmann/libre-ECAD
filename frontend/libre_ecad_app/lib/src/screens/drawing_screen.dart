@@ -470,9 +470,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   void connect(Json ref) {
     if (tool != 'connect') {
-      setState(
-        () => error = 'Zum Verbinden zuerst das Werkzeug „Verbinden“ wählen.',
-      );
+      if (tool == 'select' && ref['kind'] == 'port') {
+        setState(() {
+          selected = ref['instanceId'];
+          error = null;
+        });
+      } else {
+        setState(
+          () => error = 'Zum Verbinden zuerst das Werkzeug „Verbinden“ wählen.',
+        );
+      }
       return;
     }
     if (pendingPort == null) {
@@ -854,7 +861,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                 ],
                                 child: const Padding(
                                   padding: EdgeInsets.all(12),
-                                  child: Text('Arbeitsproben ▾'),
+                                  child: Text('Arbeitsproben'),
                                 ),
                               ),
                             ],
@@ -1117,7 +1124,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       );
                       if (await confirm(
                             'BMK-Vorschlag übernehmen?',
-                            '${device['bmk']} → $proposal. Alle Darstellungen erhalten dieselbe Kennung.',
+                            '${device['bmk']} -> $proposal. Alle Darstellungen erhalten dieselbe Kennung.',
                           ) &&
                           mounted) {
                         change(
@@ -1157,7 +1164,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   pendingPort = null;
                 }),
                 child: Text(
-                  '↗ ${ref['position']} · ${symbolByKey(ref['symbol']).name}',
+                  'Blatt ${ref['position']} · ${symbolByKey(ref['symbol']).name}',
                 ),
               ),
             TextButton.icon(
@@ -1191,7 +1198,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                   title: Text(
-                    '${endpointLabel(w['from'])} → ${endpointLabel(w['to'])}',
+                    '${endpointLabel(w['from'])} -> ${endpointLabel(w['to'])}',
                     style: const TextStyle(fontSize: 11),
                   ),
                   subtitle: w['cableId'] == null

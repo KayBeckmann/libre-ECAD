@@ -79,7 +79,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Arbeitsproben ▾'));
+    await tester.tap(find.text('Arbeitsproben'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('TEST · Steuer- / Motorabgang'));
     await tester.pumpAndSettle();
@@ -92,7 +92,7 @@ void main() {
     expect(puts, 1);
     expect(objects(saved!, 'sheets'), hasLength(2));
     conflict = true;
-    await tester.tap(find.text('Arbeitsproben ▾'));
+    await tester.tap(find.text('Arbeitsproben'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('TEST · Verteilerabgang'));
     await tester.pumpAndSettle();

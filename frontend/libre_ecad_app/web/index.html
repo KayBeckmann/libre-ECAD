@@ -31,6 +31,13 @@
 
   <title>LibreECAD</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* Canvas leaves only: invisible accessibility text must not extend their
+       pointer hit boxes into adjacent symbols. Keep the full accessible label. */
+    flt-semantics[flt-semantics-identifier^="ecad-hit-"] {
+      overflow: hidden !important;
+    }
+  </style>
 </head>
 <body>
   <!--
