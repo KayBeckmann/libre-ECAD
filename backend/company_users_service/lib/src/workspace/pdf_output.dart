@@ -149,6 +149,15 @@ Future<Uint8List> projectPdf(
         for (final e in (approval['exceptions'] as Map).entries)
           ['${e.key}', '${e.value}'],
       ],
+    'Plausibilitätsprüfung': [
+      ['Schweregrad', 'Objekt und Hinweis', 'Begründete Ausnahme'],
+      for (final f in drawingFindings(d))
+        [
+          '${f['severity']}',
+          '${f['id']}\n${f['message']}',
+          '${approval?['exceptions']?[f['id']] ?? 'Nicht freigegeben / offen'}',
+        ],
+    ],
     'Klemmenliste': [
       ['BMK', 'Anschluss', 'Verbindungen'],
       for (final t in data['terminals'])

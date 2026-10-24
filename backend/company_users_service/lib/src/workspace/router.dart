@@ -336,7 +336,11 @@ class WorkspaceRouter {
         'source': 'release',
         'project': project,
         'data': data,
-        'findings': drawingFindings(project['drawing']),
+        'findings': files['checks.json'] == null
+            ? drawingFindings(project['drawing'])
+            : jsonDecode(
+                utf8.decode(base64Decode(files['checks.json'])),
+              )['findings'],
         'approval': jsonDecode(
           utf8.decode(base64Decode(files['approval.json'])),
         ),
@@ -422,6 +426,14 @@ class WorkspaceRouter {
     final files = <String, dynamic>{
       'project.json': base64Encode(utf8.encode(canonicalJson(public))),
       'documents.json': base64Encode(utf8.encode(canonicalJson(data))),
+      'checks.json': base64Encode(
+        utf8.encode(
+          canonicalJson({
+            'rulesVersion': 'synthetic-checks-1',
+            'findings': findings,
+          }),
+        ),
+      ),
       'library.json': base64Encode(utf8.encode(canonicalJson(pinnedLibrary()))),
       'approval.json': base64Encode(utf8.encode(canonicalJson(approval))),
       'output.pdf': base64Encode(pdf),
