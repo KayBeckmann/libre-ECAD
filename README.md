@@ -4,7 +4,7 @@
 
 **LibreECAD** is a planned open-source tool for designing and documenting electrical installations, distribution boards, and control panels. The name is a **working title**; trademark and naming rights have not been fully checked.
 
-> **Project status:** **Milestones 1–4 are implemented for LAN testing:** company projects with memberships, personal/company article libraries, a metadata builder, version history, deliberate copies and separate global search. M3 adds moderated public contributions and a separate operator console. M4 adds a schematic editor with explicit electrical connections, multiple sheets and device cross-references. Its small symbol library is synthetic; a graphical symbol editor is still planned. Public commercial operation requires separate process approval.
+> **Project status:** **Milestones 1–5 are implemented for LAN testing:** company projects with memberships, personal/company article libraries, a metadata builder, version history, deliberate copies and separate global search. M3 adds moderated public contributions and a separate operator console. M4 adds a schematic editor with explicit electrical connections, multiple sheets and device cross-references. M5 adds derived lists, explicit PDF sources, plausibility findings and immutable approved Git packets. The interface follows the original [project mockups](docs/mockups/README.md). Its small symbol library is synthetic; a graphical symbol editor is still planned. Public commercial operation requires separate process approval.
 
 ## Vision
 
@@ -29,7 +29,9 @@ The three backend services each use a separate PostgreSQL instance; the web deli
 
 **Milestone 4:** Place and move symbols, connect/disconnect terminals, manage sheets, explicit junctions and continuations, cable cores, consistent device identifiers and cross-references. Atomic project versions, undo/redo, history and explicit conflict decisions. Open a project and choose **Schaltplan öffnen**. Details: [`docs/m4-drawing.md`](docs/m4-drawing.md).
 
-**Later milestones:** Documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
+**Milestone 5:** Derived lists and metadata cover sheets, version-selected PDF export, object-linked findings, justified exceptions and explicit admin approval. Approved packets retain exact PDFs and pinned library data in SQL history and real Git commits. Open **Dokumente und Freigabe** in the editor. Details: [`docs/m5-documents.md`](docs/m5-documents.md).
+
+**Later milestones:** Prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. These remain planned.
 
 ## Important boundaries
 
