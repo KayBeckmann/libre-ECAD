@@ -4,7 +4,7 @@
 
 **LibreECAD** is a planned open-source tool for designing and documenting electrical installations, distribution boards, and control panels. The name is a **working title**; trademark and naming rights have not been fully checked.
 
-> **Project status:** **Milestones 1–3 are implemented for LAN testing:** company projects with memberships, personal/company article libraries, a metadata builder, version history, deliberate copies and separate global search. M3 adds moderated public contributions and a separate operator console. There is still **no CAD editor or graphical symbol editor**. Public commercial operation requires separate process approval.
+> **Project status:** **Milestones 1–4 are implemented for LAN testing:** company projects with memberships, personal/company article libraries, a metadata builder, version history, deliberate copies and separate global search. M3 adds moderated public contributions and a separate operator console. M4 adds a schematic editor with explicit electrical connections, multiple sheets and device cross-references. Its small symbol library is synthetic; a graphical symbol editor is still planned. Public commercial operation requires separate process approval.
 
 ## Vision
 
@@ -27,7 +27,9 @@ The three backend services each use a separate PostgreSQL instance; the web deli
 
 **Milestone 3:** Deliberate public previews, moderation, immutable releases and withdrawals; assigned manufacturer identities; a separate operator console with audited company access, contracts and manual payment records. See [`docs/m3-operations.md`](docs/m3-operations.md).
 
-**Later milestones:** An electrical CAD editing core; documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
+**Milestone 4:** Place and move symbols, connect/disconnect terminals, manage sheets, explicit junctions and continuations, cable cores, consistent device identifiers and cross-references. Atomic project versions, undo/redo, history and explicit conflict decisions. Open a project and choose **Schaltplan öffnen**. Details: [`docs/m4-drawing.md`](docs/m4-drawing.md).
+
+**Later milestones:** Documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
 
 ## Important boundaries
 

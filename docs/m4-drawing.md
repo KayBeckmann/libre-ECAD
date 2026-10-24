@@ -87,3 +87,50 @@ Firmen-App → Projekte → Projekt öffnen → **Schaltplan öffnen**.
   im Fenster. Keine zugesagte Offline-Funktion; Browserneuladen verwirft Entwürfe.
   Kleine Zeichenfenster (unter 1000 px Breite oder 500 px verfügbarer Höhe)
   zeigen einen Lesemodus. PDF und Fachfreigaben sind erst M5.
+
+## M4.3 Reproduzierbare Abnahme
+
+```bash
+# Repository: ~/git/libre-ECAD
+cd backend/ecad_core && dart analyze && dart test
+cd ../company_users_service && dart analyze && dart test
+cd ../../frontend/libre_ecad_app && flutter analyze && flutter test
+cd ../.. && ./scripts/build-web.sh
+# Lokalen Stack starten; .env muss bereits lokale Betreiberzugänge enthalten.
+docker compose up -d --build
+python3 scripts/smoke-m4.py --recovery
+LIBRE_ECAD_URL=http://<LAN-Host>:8185 python3 scripts/browser-m4.py
+python3 scripts/smoke-m2.py
+```
+
+`smoke-m4.py` legt ausschließlich gekennzeichnete Testfirmen/-nutzer an. Mit
+`--recovery` wird die Firmen-Datenbank samt Dienst kurz neu gestartet; deshalb
+in einem Testfenster ausführen. Ein `pg_dump` wird nur in eine eigens erzeugte,
+anschließend entfernte Testdatenbank zurückgespielt. Keine Bestandsdatenbank
+wird überschrieben. Zeilenzahlen und Inhaltsprüfsummen **aller** Workspace-Dokumente
+und Historien müssen identisch sein. Die beiden M4-Projekte müssen nach Neustart
+byteidentische Exporte liefern. Git-Rundlauf in einem temporären Repository,
+SHA-256-Prüfung und Wiederherstellung als neue SQL-Version prüfen die Speichergrenze.
+Testzugänge liegen ausschließlich in `/tmp/libre-ecad-m4-state.json` (Modus 0600).
+
+Ausgeführt am 24.10.2026:
+
+- Statische Analyse aller fünf Dart-Pakete und der Flutter-App ohne Befunde.
+  58 Dart-Tests (inkl. sieben Topologietests) und zehn Flutter-Tests bestanden.
+- Live-API/PostgreSQL: beide Arbeitsproben, fremde direkte IDs, aktive/entzogene
+  Mitgliedschaften, deaktivierte Sitzungen, ungültige Graphen, konkurrierende
+  Speicherungen (genau einmal 200, einmal 409), unveränderte Historie,
+  deterministische Exporte, Git-Rundlauf, Backup/Restore und Neustart.
+- LAN-Browser: Platzieren, echtes Ziehen, Verbinden/Trennen, blattübergreifende
+  Geräteumbenennung, Querverweise, Konfliktabbruch/Serverübernahme und Historienauswahl.
+  Ausfall sperrt Werkzeuge, erhält den Entwurf und erlaubt nach Wiederverbindung
+  bewusstes Speichern. Kleine Ansicht ohne Überlauf. Keine externen Ressourcen
+  oder JavaScript-Fehler. Browserbilder unter `/tmp/libre-m4-*.png`.
+- Web-Release gebaut; M2-Live-Regression bestanden. Native Releases wurden für M4
+  nicht neu gebaut; Windows bleibt ohne Windows-Host/-Runner ungeprüft.
+
+Die Browserabnahme aktivierte Flutter-Semantics und fand dabei einen echten
+Trefferflächenfehler: lange unsichtbare Anschlussbeschriftungen ragten über die
+kleinen Canvas-Schaltflächen hinaus. Die Canvas-Blattknoten besitzen jetzt eigene
+Semantics-Identifier; nur deren DOM-Blätter werden auf ihre tatsächliche Fläche
+beschnitten, ohne die vollständige zugängliche Beschriftung zu entfernen.

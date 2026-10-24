@@ -2,7 +2,7 @@
 
 **LibreECAD** ist ein geplantes, quelloffenes Werkzeug zur Planung und Dokumentation von Elektroanlagen – für Verteilerbau und Schaltanlagen. Der Name ist ein **Arbeitsname**; Marken- und Namensrechte wurden nicht abschließend geprüft.
 
-> **Projektstatus:** **Meilenstein 1–3 sind für die LAN-Vorschau umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. M3 ergänzt moderierte Katalogbeiträge und eine getrennte Betreiberoberfläche. Es gibt weiterhin **keinen CAD-Editor oder grafischen Symboleditor**. Öffentlicher Upload-/Mietbetrieb benötigt eine eigene fachliche Freigabe.
+> **Projektstatus:** **Meilenstein 1–4 sind für die LAN-Vorschau umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. M3 ergänzt moderierte Katalogbeiträge und eine getrennte Betreiberoberfläche. M4 ergänzt einen Schaltplaneditor mit expliziten elektrischen Verbindungen, mehreren Blättern und Gerätequerverweisen. Die kleine Symbolbibliothek ist synthetisch; ein grafischer Symboleditor folgt später. Öffentlicher Upload-/Mietbetrieb benötigt eine eigene fachliche Freigabe.
 
 ## Zielbild
 
@@ -25,7 +25,9 @@ Die drei Backenddienste nutzen jeweils eine eigene PostgreSQL-Instanz; das Web-F
 
 **Meilenstein 3:** Bewusste öffentliche Vorschau, Moderation, Freigabe- und Rückzugshistorie, Herstellerzuordnung sowie eine getrennte Betreiberverwaltung für Zugänge, Verträge und manuelle Zahlungsbelege. Details: [`docs/m3-operations.md`](docs/m3-operations.md).
 
-**Spätere Meilensteine:** ECAD-Zeichenkern; Dokumentation, Plausibilitätsprüfung und unveränderliche freigegebene Projektstände; vorbereitete Offline-Arbeit in installierten Clients, Katalog-Ausfallsicherheit und fachliche API/MCP-Schnittstellen; weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt eine mehrsprachige Homepage und ein mehrsprachiges Wiki. Diese Reihenfolge ist ein Plan, keine Implementierungszusage.
+**Meilenstein 4:** Symbole platzieren/verschieben, Anschlüsse verbinden/trennen, Blätter, Knoten, Fortsetzungen und Kabeladern verwalten. Gerätekennungen und Querverweise bleiben konsistent. Atomare Projektversionen, Rückgängig/Wiederholen, Historie und bewusste Konfliktentscheidung. Einstieg: Projekt öffnen → **Schaltplan öffnen**. Details: [`docs/m4-drawing.md`](docs/m4-drawing.md).
+
+**Spätere Meilensteine:** Dokumentation, Plausibilitätsprüfung und unveränderliche freigegebene Projektstände; vorbereitete Offline-Arbeit in installierten Clients, Katalog-Ausfallsicherheit und fachliche API/MCP-Schnittstellen; weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt eine mehrsprachige Homepage und ein mehrsprachiges Wiki. Diese Reihenfolge ist ein Plan, keine Implementierungszusage.
 
 ## Wichtige Grenzen
 

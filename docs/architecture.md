@@ -164,3 +164,13 @@ Die aktuelle Implementierung, Transaktionsgrenzen, Zustände, manuellen Betriebs
 und offenen Produktionsfreigaben stehen in [m3-operations.md](m3-operations.md).
 M3-Migrationen ergänzen Tabellen und Sitzungsrevisionen transaktional unter Advisory-Locks;
 sie sind bei erneutem Start idempotent. Die drei Dienste verwenden jetzt Verbindungspools.
+
+## M4 – Zeichenkern
+
+Das gemeinsame Paket `backend/ecad_core` hält Zeichnungsschema, Validierung,
+synthetische Symboldefinitionen, Netztopologie und BMK-/Querverweisableitung.
+Der Flutter-Client und der Firmenbackenddienst verwenden denselben Vertrag.
+Die Zeichnung wird atomar im bestehenden Projektdokument gespeichert; SQL bleibt
+die einzige schreibbare Quelle. Deterministische Exporte sind für abgeleitete
+Git-Sicherungen geeignet, ohne zweite Schreibwahrheit oder Fachfreigabe.
+Bedienung, Speichergrenzen und Abnahme: [m4-drawing.md](m4-drawing.md).
