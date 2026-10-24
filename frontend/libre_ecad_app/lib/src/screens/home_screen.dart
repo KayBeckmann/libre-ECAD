@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../api/company_users_api.dart';
 import '../models.dart';
 import '../session_service.dart';
+import '../app_theme.dart';
 import 'article_search_demo.dart';
 import 'login_screen.dart';
 import 'projects_screen.dart';
@@ -29,33 +30,144 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionService>().session!;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(session.companyName),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Abmelden',
-            onPressed: () => _logout(context),
-          ),
-        ],
+    final navigation = <Widget>[
+      const ListTile(
+        selected: true,
+        leading: Icon(Icons.people_outline),
+        title: Text('Arbeitsplatz'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      ListTile(
+        leading: const Icon(Icons.folder_outlined),
+        title: const Text('Projekte'),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ProjectsScreen(session: session)),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.inventory_2_outlined),
+        title: const Text('Artikelbibliothek'),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ArticlesScreen(session: session)),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.public),
+        title: const Text('Meine Katalogbeiträge'),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ContributionsScreen(session: session),
+          ),
+        ),
+      ),
+    ];
+    return EcadShell(
+      title: session.companyName,
+      navigation: navigation,
+      actions: [
+        Chip(
+          label: Text(
+            session.role == UserRole.admin ? 'Firmenadmin' : 'Zeichner',
+          ),
+        ),
+        const SizedBox(width: 12),
+        IconButton(
+          icon: const Icon(Icons.logout),
+          tooltip: 'Abmelden',
+          onPressed: () => _logout(context),
+        ),
+      ],
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 30),
         children: [
+          const Text(
+            'FIRMENARBEITSPLATZ',
+            style: TextStyle(color: ecadGold, letterSpacing: 2, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            session.role == UserRole.admin
+                ? 'Team und Projekte im Blick.'
+                : 'Bereit für Ihren nächsten Plan.',
+            style: Theme.of(context).textTheme.headlineLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
           Text(
             'Angemeldet als ${session.username} (${session.role == UserRole.admin ? 'Admin' : 'Zeichner'})',
+            style: const TextStyle(color: ecadMuted),
           ),
-          const SizedBox(height: 16),
-          ListTile(leading: const Icon(Icons.folder_outlined), title: const Text('Projekte'),
-            subtitle: const Text('Firmenprojekte öffnen und verwalten'), trailing: const Icon(Icons.arrow_forward),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProjectsScreen(session: session)))),
-          ListTile(leading: const Icon(Icons.inventory_2_outlined), title: const Text('Artikelbibliothek'),
-            subtitle: const Text('Persönliche Artikel, Firmenstamm und Baukasten'), trailing: const Icon(Icons.arrow_forward),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ArticlesScreen(session: session)))),
-          ListTile(leading: const Icon(Icons.public), title: const Text('Meine Katalogbeiträge'), subtitle: const Text('Öffentliche Vorschau, Einreichung und Historie'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ContributionsScreen(session: session)))),
+          const SizedBox(height: 28),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              _OverviewCard(
+                label: 'FIRMA',
+                value: session.companyName,
+                icon: Icons.business_outlined,
+              ),
+              _OverviewCard(
+                label: 'ZUGANG',
+                value: session.role == UserRole.admin
+                    ? 'Firmenverwaltung'
+                    : 'Projektbearbeitung',
+                icon: Icons.badge_outlined,
+              ),
+              _OverviewCard(
+                label: 'BACKEND',
+                value: session.backendUrl.host,
+                icon: Icons.dns_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          if (MediaQuery.sizeOf(context).width < 980) ...navigation.skip(1),
           if (session.role == UserRole.admin)
-            const _AdminUserManagement()
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final backend = Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.dns_outlined, color: ecadGold),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Ihr Firmen-Backend',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 16),
+                        SelectableText(
+                          '${session.backendUrl}',
+                          style: const TextStyle(color: ecadMuted),
+                        ),
+                        const Divider(height: 32),
+                        const Text(
+                          'Anmeldung und Projektdaten laufen über diesen Server. Benutzerrechte gelten innerhalb Ihrer Firma.',
+                          style: TextStyle(height: 1.6, color: ecadMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+                if (constraints.maxWidth < 1000)
+                  return Column(
+                    children: [const _AdminUserManagement(), backend],
+                  );
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Expanded(flex: 2, child: _AdminUserManagement()),
+                    const SizedBox(width: 16),
+                    Expanded(child: backend),
+                  ],
+                );
+              },
+            )
           else
             const _ZeichnerPlaceholder(),
           const SizedBox(height: 16),
@@ -70,6 +182,47 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OverviewCard extends StatelessWidget {
+  const _OverviewCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+  final String label, value;
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 310,
+    child: Card(
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: ecadMuted,
+                      fontSize: 11,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                Icon(icon, color: ecadGold),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(value, style: Theme.of(context).textTheme.titleLarge),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _ZeichnerPlaceholder extends StatelessWidget {
@@ -197,16 +350,18 @@ class _AdminUserManagementState extends State<_AdminUserManagement> {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 24,
+              runSpacing: 12,
+              alignment: WrapAlignment.spaceBetween,
               children: [
                 Text(
                   'Benutzer dieser Firma',
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 FilledButton.icon(
                   onPressed: _createZeichner,
@@ -225,13 +380,31 @@ class _AdminUserManagementState extends State<_AdminUserManagement> {
                   );
                 }
                 if (snapshot.hasError) {
-                  return Text('Nutzer konnten nicht geladen werden: ${snapshot.error}');
+                  return Text(
+                    'Nutzer konnten nicht geladen werden: ${snapshot.error}',
+                  );
                 }
                 final users = snapshot.data!;
                 return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 20),
+                    Text(
+                      '${users.length} Zugänge · ${users.where((u) => u.active && u.activated).length} aktiv',
+                      style: const TextStyle(color: ecadMuted),
+                    ),
+                    const Divider(height: 28),
                     for (final user in users)
                       ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xff23434c),
+                          child: Text(
+                            user.username.isEmpty
+                                ? '?'
+                                : user.username[0].toUpperCase(),
+                            style: const TextStyle(color: ecadGold),
+                          ),
+                        ),
                         title: Text(user.username),
                         subtitle: Text(
                           '${user.role == UserRole.admin ? 'Admin' : 'Zeichner'}'

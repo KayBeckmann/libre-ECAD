@@ -24,7 +24,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// `backend/*/test/router_test.dart`) sowie manuell über
 /// `docker compose` + `curl` (siehe `docs/architecture.md`).
 void main() {
-  Future<void> pumpAppWithClient(WidgetTester tester, http.Client client) async {
+  Future<void> pumpAppWithClient(
+    WidgetTester tester,
+    http.Client client,
+  ) async {
     // `LoginScreen` lädt beim Start die zuletzt gewählte Backend-URL
     // über SharedPreferences — ohne Mock-Initialisierung hängt
     // `SharedPreferences.getInstance()` unter `flutter_test`
@@ -48,7 +51,12 @@ void main() {
           expect(body['username'], 'admin-a');
           expect(body['password'], 'geheim123');
           return http.Response(
-            jsonEncode({'token': 'tok-1', 'username': 'admin-a', 'role': 'admin', 'companyName': 'Firma A'}),
+            jsonEncode({
+              'token': 'tok-1',
+              'username': 'admin-a',
+              'role': 'admin',
+              'companyName': 'Firma A',
+            }),
             200,
           );
         }
@@ -60,14 +68,30 @@ void main() {
 
       await pumpAppWithClient(tester, client);
 
-      await tester.enterText(find.widgetWithText(TextField, 'Benutzername'), 'admin-a');
-      await tester.enterText(find.widgetWithText(TextField, 'Passwort'), 'geheim123');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Benutzername'),
+        'admin-a',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Passwort'),
+        'geheim123',
+      );
+      await tester.ensureVisible(find.text('Anmelden'));
       await tester.tap(find.text('Anmelden'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Firma A'), findsOneWidget);
+      expect(find.text('Firma A'), findsWidgets);
       expect(find.textContaining('Angemeldet als admin-a'), findsOneWidget);
-      expect(find.text('Zeichner anlegen'), findsOneWidget, reason: 'Admin sieht die Benutzerverwaltung');
+      await tester.scrollUntilVisible(
+        find.text('Zeichner anlegen'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        find.text('Zeichner anlegen'),
+        findsOneWidget,
+        reason: 'Admin sieht die Benutzerverwaltung',
+      );
     },
   );
 
@@ -92,28 +116,53 @@ void main() {
 
       await pumpAppWithClient(tester, client);
 
-      await tester.enterText(find.widgetWithText(TextField, 'Benutzername'), 'zeichner-a');
-      await tester.enterText(find.widgetWithText(TextField, 'Passwort'), 'geheim123');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Benutzername'),
+        'zeichner-a',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Passwort'),
+        'geheim123',
+      );
+      await tester.ensureVisible(find.text('Anmelden'));
       await tester.tap(find.text('Anmelden'));
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.textContaining('Schaltplaneditor'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.textContaining('Schaltplaneditor'), findsOneWidget);
       expect(find.text('Zeichner anlegen'), findsNothing);
     },
   );
 
-  testWidgets('Falsches Passwort zeigt die Serverfehlermeldung, kein stiller Fehlschlag', (tester) async {
-    final client = MockClient((request) async {
-      return http.Response(jsonEncode({'error': 'Benutzername oder Passwort falsch.'}), 401);
-    });
+  testWidgets(
+    'Falsches Passwort zeigt die Serverfehlermeldung, kein stiller Fehlschlag',
+    (tester) async {
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'error': 'Benutzername oder Passwort falsch.'}),
+          401,
+        );
+      });
 
-    await pumpAppWithClient(tester, client);
+      await pumpAppWithClient(tester, client);
 
-    await tester.enterText(find.widgetWithText(TextField, 'Benutzername'), 'admin-a');
-    await tester.enterText(find.widgetWithText(TextField, 'Passwort'), 'falsch');
-    await tester.tap(find.text('Anmelden'));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Benutzername'),
+        'admin-a',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Passwort'),
+        'falsch',
+      );
+      await tester.ensureVisible(find.text('Anmelden'));
+      await tester.tap(find.text('Anmelden'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Benutzername oder Passwort falsch.'), findsOneWidget);
-  });
+      expect(find.text('Benutzername oder Passwort falsch.'), findsOneWidget);
+    },
+  );
 }

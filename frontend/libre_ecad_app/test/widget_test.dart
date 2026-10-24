@@ -11,7 +11,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const LibreEcadApp());
     await tester.pump();
-    expect(find.text('LibreECAD'), findsOneWidget);
+    expect(find.text('Bei Ihrer Firma anmelden.'), findsOneWidget);
     expect(find.text('Anmelden'), findsOneWidget);
   });
 }

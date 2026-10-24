@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'src/screens/login_screen.dart';
 import 'src/session_service.dart';
+import 'src/app_theme.dart';
 
 void main() {
   runApp(const LibreEcadApp());
@@ -17,7 +18,7 @@ class LibreEcadApp extends StatelessWidget {
       create: (_) => SessionService(),
       child: MaterialApp(
         title: 'LibreECAD',
-        theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+        theme: ecadTheme(),
         home: const LoginScreen(),
       ),
     );

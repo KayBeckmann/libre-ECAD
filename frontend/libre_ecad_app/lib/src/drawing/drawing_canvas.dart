@@ -186,7 +186,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
             right: 12,
             bottom: 12,
             child: Material(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               elevation: 2,
               child: Row(
                 children: [
@@ -244,7 +244,11 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 width: active ? 12 : 7,
                 height: active ? 12 : 7,
                 decoration: BoxDecoration(
-                  color: active ? Colors.orange : ref['kind'] == 'node' ? accent : Colors.white,
+                  color: active
+                      ? Colors.orange
+                      : ref['kind'] == 'node'
+                      ? accent
+                      : Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(color: accent, width: 1.5),
                 ),
