@@ -38,15 +38,28 @@ void main() {
   setUp(
     () => c = ContributionCatalog(MemoryRecords(), InMemoryArticleRepository()),
   );
-  test('encoded catalog IDs resolve through router and public history', () async {
-    var d=await c.user(a,draft());d=await c.user(a,transition(d,'submit'));d=await c.operator(transition(d,'approve'));
-    final router=ArticleRouter(repository:InMemoryArticleRepository(),catalog:c).handler;
-    final path=Uri.encodeComponent(d['id'] as String);
-    final response=await router.call(Request('GET',Uri.parse('http://localhost/articles/$path')));
-    expect(response.statusCode,200);expect(jsonDecode(await response.readAsString())['id'],d['id']);
-    final history=await router.call(Request('GET',Uri.parse('http://localhost/articles/$path/history')));
-    expect(jsonDecode(await history.readAsString())['entries'].length,1);
-  });
+  test(
+    'encoded catalog IDs resolve through router and public history',
+    () async {
+      var d = await c.user(a, draft());
+      d = await c.user(a, transition(d, 'submit'));
+      d = await c.operator(transition(d, 'approve'));
+      final router = ArticleRouter(
+        repository: InMemoryArticleRepository(),
+        catalog: c,
+      ).handler;
+      final path = Uri.encodeComponent(d['id'] as String);
+      final response = await router.call(
+        Request('GET', Uri.parse('http://localhost/articles/$path')),
+      );
+      expect(response.statusCode, 200);
+      expect(jsonDecode(await response.readAsString())['id'], d['id']);
+      final history = await router.call(
+        Request('GET', Uri.parse('http://localhost/articles/$path/history')),
+      );
+      expect(jsonDecode(await history.readAsString())['entries'].length, 1);
+    },
+  );
   test(
     'only explicit public fields survive; draft invisible; rights required',
     () async {
@@ -121,6 +134,7 @@ void main() {
         'actor': 'kay',
       };
       await c.operator(grant);
+      await expectLater(c.user(a, draft()), throwsA(isA<ApiProblem>()));
       var d = await c.user(a, {
         ...draft(source: 'manufacturer'),
         'manufacturerName': 'Maker B',

@@ -59,6 +59,13 @@ class ContributionCatalog {
           400,
           'Nur User-Upload oder zugewiesener Herstellerbereich.',
         );
+      if (source == 'userUpload' &&
+          actor['role'] == 'admin' &&
+          grant?['active'] == true)
+        throw ApiProblem(
+          403,
+          'Aktive Herstellerzugänge veröffentlichen ausschließlich im zugewiesenen Herstellerbereich.',
+        );
       if (source == 'manufacturer') _requireGrant(actor, grant);
       final d = {
         'id': 'contrib-${SessionTokens.generate()}',
@@ -68,7 +75,7 @@ class ContributionCatalog {
         'manufacturerName': source == 'manufacturer' ? grant!['name'] : null,
         'state': 'draft',
         'payload': _payload(body),
-          'rightsConfirmed': true,
+        'rightsConfirmed': true,
         'published': null,
         'everPublished': false,
         'event': 'create',
@@ -94,12 +101,19 @@ class ContributionCatalog {
         if (d['state'] == 'review')
           throw ApiProblem(409, 'Eingereichten Beitrag zuerst zurückziehen.');
         d['payload'] = _payload(body);
-          d['rightsConfirmed'] = true;
+        d['rightsConfirmed'] = true;
         d['state'] = 'draft';
       case 'submit':
         confirmed(body);
         if (d['state'] != 'draft')
           throw ApiProblem(409, 'Nur Entwürfe können eingereicht werden.');
+        if (d['source'] == 'userUpload' &&
+            actor['role'] == 'admin' &&
+            grant?['active'] == true)
+          throw ApiProblem(
+            403,
+            'Aktive Herstellerzugänge reichen ausschließlich Herstellerbeiträge ein. Bestehende User-Uploads werden nicht umetikettiert.',
+          );
         if (d['source'] == 'manufacturer')
           _requireGrant(actor, grant, name: d['manufacturerName'] as String);
         d['state'] = 'review';

@@ -342,6 +342,11 @@ class _EditorState extends State<_ContributionEditor> {
   void initState() {
     super.initState();
     final d = widget.existing;
+    if (d == null &&
+        widget.session.role == UserRole.admin &&
+        widget.manufacturer?['active'] == true) {
+      source = 'manufacturer';
+    }
     if (d != null) {
       source = d['source'] as String;
       apply(d['payload'] as Map);
@@ -456,10 +461,12 @@ class _EditorState extends State<_ContributionEditor> {
                     labelText: 'Katalogbereich',
                   ),
                   items: [
-                    const DropdownMenuItem(
-                      value: 'userUpload',
-                      child: Text('User-Upload'),
-                    ),
+                    if (widget.session.role != UserRole.admin ||
+                        widget.manufacturer?['active'] != true)
+                      const DropdownMenuItem(
+                        value: 'userUpload',
+                        child: Text('User-Upload'),
+                      ),
                     if (widget.session.role == UserRole.admin &&
                         widget.manufacturer?['active'] == true)
                       DropdownMenuItem(
