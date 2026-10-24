@@ -1,7 +1,8 @@
 import 'dart:convert';
+import 'package:ecad_core/ecad_core.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
-import 'package:shared_server_kit/shared_server_kit.dart';
+import 'package:shared_server_kit/shared_server_kit.dart' hide cloneJson;
 import 'package:company_users_service/src/models.dart';
 import 'package:company_users_service/src/repository_memory.dart';
 import 'package:company_users_service/src/router.dart';
@@ -202,6 +203,113 @@ void main() {
     await users.setUserActive(id: 'drafter-a', active: false);
     expect((await call('drafter-a', 'GET', 'projects')).statusCode, 401);
   });
+  test(
+    'drawing revision, ACL, history, rejected conflicts and deterministic export',
+    () async {
+      final p = await json(
+        await call('admin-a', 'POST', 'projects', {
+          'name': 'CAD',
+          'memberIds': ['drafter-a'],
+        }),
+      );
+      final path = 'projects/${p['id']}/drawing';
+      final drawing = sampleDrawing('motor');
+      expect(
+        (await json(await call('drafter-a', 'GET', path)))['drawing'],
+        isNull,
+      );
+      expect(
+        (await call('drafter-a', 'PUT', path, {
+          'version': 1,
+          'drawing': drawing,
+        })).statusCode,
+        200,
+      );
+      for (final suffix in ['', '/history', '/export']) {
+        expect((await call('admin-b', 'GET', '$path$suffix')).statusCode, 404);
+      }
+      expect(
+        (await call('admin-b', 'PUT', path, {
+          'version': 2,
+          'drawing': drawing,
+        })).statusCode,
+        404,
+      );
+      expect(
+        (await call('admin-a', 'PUT', path, {
+          'version': 1,
+          'drawing': drawing,
+        })).statusCode,
+        409,
+      );
+      final invalid = cloneJson(drawing);
+      objects(invalid, 'instances').first['deviceId'] = 'missing';
+      expect(
+        (await call('admin-a', 'PUT', path, {
+          'version': 2,
+          'drawing': invalid,
+        })).statusCode,
+        400,
+      );
+      final saved = await json(await call('admin-a', 'GET', path));
+      expect(saved['drawing'], drawing);
+      expect(saved['version'], 2);
+      final snapshot = await json(await call('admin-a', 'GET', '$path/export'));
+      expect(
+        snapshot,
+        await json(await call('admin-a', 'GET', '$path/export')),
+      );
+      expect(
+        jsonDecode(snapshot['content'])['state'],
+        'unapproved-working-copy',
+      );
+      expect(
+        (await json(await call('admin-a', 'GET', '$path/history')))['versions'],
+        hasLength(1),
+      );
+      expect(
+        (await call('admin-a', 'PATCH', 'projects/${p['id']}', {
+          'name': 'CAD',
+          'memberIds': [],
+          'version': 2,
+        })).statusCode,
+        200,
+      );
+      expect(
+        (await call('drafter-a', 'PUT', path, {
+          'version': 3,
+          'drawing': drawing,
+        })).statusCode,
+        404,
+      );
+      expect((await call('drafter-a', 'GET', '$path/history')).statusCode, 404);
+      // Restoring content is an explicit new CAS revision, never rewriting history.
+      final next = cloneJson(drawing);
+      objects(next, 'devices').first['bmk'] = 'RENAMED';
+      expect(
+        (await call('admin-a', 'PUT', path, {
+          'version': 3,
+          'drawing': next,
+        })).statusCode,
+        200,
+      );
+      expect(
+        (await call('admin-a', 'PUT', path, {
+          'version': 4,
+          'drawing': drawing,
+        })).statusCode,
+        200,
+      );
+      final history =
+          (await json(
+                await call('admin-a', 'GET', '$path/history'),
+              ))['versions']
+              as List;
+      expect(history.map((v) => v['version']), [2, 3, 4, 5]);
+      expect(history.first['drawing'], drawing);
+      expect(history.last['drawing'], drawing);
+    },
+  );
   Map<String, dynamic> article({String scope = 'personal'}) => {
     'scope': scope,
     'articleNumber': 'TEST-16',

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:ecad_core/ecad_core.dart';
+import 'package:crypto/crypto.dart';
 import 'package:shared_server_kit/shared_server_kit.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
@@ -26,33 +28,58 @@ class WorkspaceRouter {
     r.post('/projects', (Request q) => _guard(q, _createProject));
     r.get(
       '/projects/<id>',
-      (Request q, String id) => _guard(q, (q, u) => _project(q, u, Uri.decodeComponent(id))),
+      (Request q, String id) =>
+          _guard(q, (q, u) => _project(q, u, Uri.decodeComponent(id))),
     );
     r.patch(
       '/projects/<id>',
-      (Request q, String id) => _guard(q, (q, u) => _project(q, u, Uri.decodeComponent(id))),
+      (Request q, String id) =>
+          _guard(q, (q, u) => _project(q, u, Uri.decodeComponent(id))),
     );
     r.post(
       '/global-articles/<id>/copy',
-      (Request q, String id) => _guard(q, (q, u) => _importGlobal(q, u, Uri.decodeComponent(id))),
+      (Request q, String id) =>
+          _guard(q, (q, u) => _importGlobal(q, u, Uri.decodeComponent(id))),
     );
     r.get('/articles', (Request q) => _guard(q, _listArticles));
     r.post('/articles', (Request q) => _guard(q, _createArticle));
     r.get(
       '/articles/<id>',
-      (Request q, String id) => _guard(q, (q, u) => _article(q, u, Uri.decodeComponent(id))),
+      (Request q, String id) =>
+          _guard(q, (q, u) => _article(q, u, Uri.decodeComponent(id))),
     );
     r.patch(
       '/articles/<id>',
-      (Request q, String id) => _guard(q, (q, u) => _article(q, u, Uri.decodeComponent(id))),
+      (Request q, String id) =>
+          _guard(q, (q, u) => _article(q, u, Uri.decodeComponent(id))),
     );
     r.get(
       '/articles/<id>/history',
-      (Request q, String id) => _guard(q, (q, u) => _articleHistory(q, u, Uri.decodeComponent(id))),
+      (Request q, String id) =>
+          _guard(q, (q, u) => _articleHistory(q, u, Uri.decodeComponent(id))),
     );
     r.post(
       '/articles/<id>/copy',
-      (Request q, String id) => _guard(q, (q, u) => _copyArticle(q, u, Uri.decodeComponent(id))),
+      (Request q, String id) =>
+          _guard(q, (q, u) => _copyArticle(q, u, Uri.decodeComponent(id))),
+    );
+    for (final method in ['GET', 'PUT']) {
+      r.add(
+        method,
+        '/projects/<id>/drawing',
+        (Request q, String id) =>
+            _guard(q, (q, u) => _drawing(q, u, Uri.decodeComponent(id))),
+      );
+    }
+    r.get(
+      '/projects/<id>/drawing/history',
+      (Request q, String id) =>
+          _guard(q, (q, u) => _drawingHistory(q, u, Uri.decodeComponent(id))),
+    );
+    r.get(
+      '/projects/<id>/drawing/export',
+      (Request q, String id) =>
+          _guard(q, (q, u) => _drawingExport(q, u, Uri.decodeComponent(id))),
     );
     return r;
   }
@@ -191,6 +218,75 @@ class WorkspaceRouter {
     if (!await store.update(u.companyId, 'project', next, d['version'] as int))
       return _conflict();
     return jsonOk(next);
+  }
+
+  Future<Document?> _drawingProject(String id, AppUser u) async {
+    final p = await store.get(u.companyId, 'project', id);
+    return p != null && _projectVisible(p, u) ? p : null;
+  }
+
+  Document _drawingResponse(Document p) {
+    final drawing = p['drawing'];
+    return {
+      'projectId': p['id'],
+      'projectName': p['name'],
+      'version': p['version'],
+      'drawing': drawing,
+      'nets': drawing == null ? <Document>[] : nets(drawing as Document),
+      'updatedAt': p['updatedAt'],
+      'updatedBy': p['updatedBy'],
+    };
+  }
+
+  Future<Response> _drawing(Request q, AppUser u, String id) async {
+    final p = await _drawingProject(id, u);
+    if (p == null) return jsonError('Projekt nicht gefunden.', status: 404);
+    if (q.method == 'GET') return jsonOk(_drawingResponse(p));
+    final body = await _body(q);
+    if (body['version'] is! int) throw FormatException('version ist Pflicht.');
+    if (body['version'] != p['version']) return _conflict();
+    final drawing = validateDrawing(body['drawing']);
+    final next = {..._revision(p, u), 'drawing': drawing};
+    if (!await store.update(
+      u.companyId,
+      'project',
+      next,
+      body['version'] as int,
+    ))
+      return _conflict();
+    return jsonOk(_drawingResponse(next));
+  }
+
+  Future<Response> _drawingHistory(Request q, AppUser u, String id) async {
+    if (await _drawingProject(id, u) == null)
+      return jsonError('Projekt nicht gefunden.', status: 404);
+    return jsonOk({
+      'versions': (await store.history(
+        u.companyId,
+        'project',
+        id,
+      )).where((p) => p['drawing'] != null).map(_drawingResponse).toList(),
+    });
+  }
+
+  Future<Response> _drawingExport(Request q, AppUser u, String id) async {
+    final p = await _drawingProject(id, u);
+    if (p == null) return jsonError('Projekt nicht gefunden.', status: 404);
+    final snapshot = <String, dynamic>{
+      'format': 'libre-ecad-workspace-v1',
+      'state': 'unapproved-working-copy',
+      'projectId': p['id'],
+      'name': p['name'],
+      'description': p['description'],
+      'version': p['version'],
+      'drawing': p['drawing'],
+    };
+    final content = canonicalJson(snapshot);
+    return jsonOk({
+      'content': content,
+      'sha256': sha256.convert(utf8.encode(content)).toString(),
+      'version': p['version'],
+    });
   }
 
   bool _articleVisible(Document a, AppUser u) =>
@@ -334,11 +430,14 @@ class WorkspaceRouter {
     final fields = articleFields({
       'articleNumber': source['articleNumber'],
       'name': source['name'],
-      'license': source['license'] ?? 'Ungeklärt – synthetische Katalog-Beispieldaten',
+      'license':
+          source['license'] ?? 'Ungeklärt – synthetische Katalog-Beispieldaten',
       'origin':
-          source['origin'] ?? 'Globaler Katalog / ${source['source']} / ${source['manufacturerName'] ?? "Allgemein"}',
-      'notes':
-          source['attribution'] == null ? 'Synthetische Katalogmetadaten; technische Ebenen fehlen. Keine Herstellerverifikation.' : 'Namensnennung: ${source['attribution']}. Technische Werte ungeprüft.',
+          source['origin'] ??
+          'Globaler Katalog / ${source['source']} / ${source['manufacturerName'] ?? "Allgemein"}',
+      'notes': source['attribution'] == null
+          ? 'Synthetische Katalogmetadaten; technische Ebenen fehlen. Keine Herstellerverifikation.'
+          : 'Namensnennung: ${source['attribution']}. Technische Werte ungeprüft.',
       'layers': source['layers'] ?? <String, dynamic>{},
     });
     final a = {

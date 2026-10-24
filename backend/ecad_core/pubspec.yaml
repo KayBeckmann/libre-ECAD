@@ -1,0 +1,7 @@
+name: ecad_core
+description: Shared, deterministic LibreECAD drawing model and topology.
+publish_to: none
+environment:
+  sdk: ^3.9.0
+dev_dependencies:
+  test: ^1.26.2
