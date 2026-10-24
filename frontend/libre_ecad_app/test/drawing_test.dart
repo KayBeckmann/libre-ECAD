@@ -127,6 +127,13 @@ void main() {
     expect(find.text('Speichern'), findsNothing);
     await tester.pumpWidget(const SizedBox());
     api.close();
+    final shortIds = sampleDrawing('motor');
+    (shortIds['nodes'] as List).add({
+      'id': 'n',
+      'sheetId': objects(shortIds, 'sheets').first['id'],
+      'x': 400,
+      'y': 400,
+    });
     final available = WorkspaceApi(
       session,
       client: MockClient(
@@ -134,7 +141,7 @@ void main() {
           jsonEncode({
             'projectName': 'Small',
             'version': 1,
-            'drawing': sampleDrawing('motor'),
+            'drawing': shortIds,
           }),
           200,
         ),

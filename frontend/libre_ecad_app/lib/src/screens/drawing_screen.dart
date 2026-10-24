@@ -1062,7 +1062,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (ref['kind'] == 'continuation') {
       return objectById(d, 'continuations', ref['id'])['label'];
     }
-    return 'Knoten ${ref['id'].toString().substring(0, 6)}';
+    return 'Knoten ${shortObjectId(ref['id'])}';
   }
 
   Widget inspector(bool enabled) {
@@ -1273,7 +1273,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     dense: true,
                     title: Text(
                       kind == 'nodes'
-                          ? 'Knoten ${o['id'].toString().substring(0, 6)}'
+                          ? 'Knoten ${shortObjectId(o['id'])}'
                           : o['label'],
                       style: const TextStyle(fontSize: 11),
                     ),
@@ -1315,7 +1315,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           if (s.first == 'port') {
                             return '${objectById(d, 'devices', s[1])['bmk']}:${s[2]}';
                           }
-                          return '${s.first} ${s[1].substring(0, 6)}';
+                          return '${s.first} ${shortObjectId(s[1])}';
                         })
                         .join(', '),
                     style: const TextStyle(fontSize: 10),

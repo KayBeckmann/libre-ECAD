@@ -3,6 +3,11 @@ import 'dart:math' as math;
 import 'package:ecad_core/ecad_core.dart';
 import 'package:flutter/material.dart';
 
+String shortObjectId(Object? value) {
+  final text = value.toString();
+  return text.length > 6 ? text.substring(0, 6) : text;
+}
+
 const ink = Color(0xff203d4c);
 const accent = Color(0xff137c76);
 Offset endpointOffset(Json d, Json ref) {
@@ -167,7 +172,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                                 o['id'],
                               ),
                               kind == 'nodes'
-                                  ? 'Knoten ${o['id'].toString().substring(0, 6)}'
+                                  ? 'Knoten ${shortObjectId(o['id'])}'
                                   : 'Fortsetzung ${o['label']}',
                             ),
                       ],
