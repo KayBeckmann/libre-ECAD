@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:shelf/shelf.dart';
+import 'package:global_articles_service/src/router.dart';
 import 'package:test/test.dart';
 import 'package:shared_server_kit/shared_server_kit.dart';
 import 'package:global_articles_service/src/contributions/catalog.dart';
@@ -35,6 +38,15 @@ void main() {
   setUp(
     () => c = ContributionCatalog(MemoryRecords(), InMemoryArticleRepository()),
   );
+  test('encoded catalog IDs resolve through router and public history', () async {
+    var d=await c.user(a,draft());d=await c.user(a,transition(d,'submit'));d=await c.operator(transition(d,'approve'));
+    final router=ArticleRouter(repository:InMemoryArticleRepository(),catalog:c).handler;
+    final path=Uri.encodeComponent(d['id'] as String);
+    final response=await router.call(Request('GET',Uri.parse('http://localhost/articles/$path')));
+    expect(response.statusCode,200);expect(jsonDecode(await response.readAsString())['id'],d['id']);
+    final history=await router.call(Request('GET',Uri.parse('http://localhost/articles/$path/history')));
+    expect(jsonDecode(await history.readAsString())['entries'].length,1);
+  });
   test(
     'only explicit public fields survive; draft invisible; rights required',
     () async {

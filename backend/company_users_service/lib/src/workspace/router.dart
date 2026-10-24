@@ -26,33 +26,33 @@ class WorkspaceRouter {
     r.post('/projects', (Request q) => _guard(q, _createProject));
     r.get(
       '/projects/<id>',
-      (Request q, String id) => _guard(q, (q, u) => _project(q, u, id)),
+      (Request q, String id) => _guard(q, (q, u) => _project(q, u, Uri.decodeComponent(id))),
     );
     r.patch(
       '/projects/<id>',
-      (Request q, String id) => _guard(q, (q, u) => _project(q, u, id)),
+      (Request q, String id) => _guard(q, (q, u) => _project(q, u, Uri.decodeComponent(id))),
     );
     r.post(
       '/global-articles/<id>/copy',
-      (Request q, String id) => _guard(q, (q, u) => _importGlobal(q, u, id)),
+      (Request q, String id) => _guard(q, (q, u) => _importGlobal(q, u, Uri.decodeComponent(id))),
     );
     r.get('/articles', (Request q) => _guard(q, _listArticles));
     r.post('/articles', (Request q) => _guard(q, _createArticle));
     r.get(
       '/articles/<id>',
-      (Request q, String id) => _guard(q, (q, u) => _article(q, u, id)),
+      (Request q, String id) => _guard(q, (q, u) => _article(q, u, Uri.decodeComponent(id))),
     );
     r.patch(
       '/articles/<id>',
-      (Request q, String id) => _guard(q, (q, u) => _article(q, u, id)),
+      (Request q, String id) => _guard(q, (q, u) => _article(q, u, Uri.decodeComponent(id))),
     );
     r.get(
       '/articles/<id>/history',
-      (Request q, String id) => _guard(q, (q, u) => _articleHistory(q, u, id)),
+      (Request q, String id) => _guard(q, (q, u) => _articleHistory(q, u, Uri.decodeComponent(id))),
     );
     r.post(
       '/articles/<id>/copy',
-      (Request q, String id) => _guard(q, (q, u) => _copyArticle(q, u, id)),
+      (Request q, String id) => _guard(q, (q, u) => _copyArticle(q, u, Uri.decodeComponent(id))),
     );
     return r;
   }

@@ -23,11 +23,11 @@ class ArticleRouter {
     final router = Router();
     router.get('/health', (Request request) => healthResponse());
     router.get('/articles', _search);
-    router.get('/articles/<id>', _findById);
+    router.get('/articles/<id>', (Request r,String id)=>apiGuard(()=>_findById(r,Uri.decodeComponent(id))));
     router.get(
       '/articles/<id>/history',
       (Request r, String id) => apiGuard(
-        () async => jsonOk({'entries': await catalog?.publicHistory(id) ?? []}),
+        () async => jsonOk({'entries': await catalog?.publicHistory(Uri.decodeComponent(id)) ?? []}),
       ),
     );
     router.post(
