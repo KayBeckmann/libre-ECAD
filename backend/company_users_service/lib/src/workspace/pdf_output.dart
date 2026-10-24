@@ -181,19 +181,30 @@ Future<Uint8List> projectPdf(
         ],
     ],
   };
-  // Fixed-size chunks make the contents page numbers known before rendering.
-  final chunks = <({String title, List<List<String>> rows})>[];
+  // Bound individual rows so they can split across pages without losing long text.
+  List<String> textParts(String text) {
+    final parts = <String>[];
+    var current = StringBuffer(), count = 0, lines = 0;
+    for (final rune in text.runes) {
+      current.writeCharCode(rune);
+      count++;
+      if (rune == 10) lines++;
+      if (count >= 180 || lines >= 4) {
+        parts.add(current.toString());
+        current = StringBuffer();
+        count = 0;
+        lines = 0;
+      }
+    }
+    if (current.isNotEmpty) parts.add(current.toString());
+    return parts;
+  }
+
+  final tables = <String, List<List<String>>>{};
   for (final entry in sections.entries) {
-    final rows = <List<String>>[];
+    final rows = <List<String>>[entry.value.first];
     for (final original in entry.value.skip(1)) {
-      final parts = original
-          .map(
-            (v) => [
-              for (var offset = 0; offset < v.length; offset += 350)
-                v.substring(offset, (offset + 350).clamp(0, v.length)),
-            ],
-          )
-          .toList();
+      final parts = original.map(textParts).toList();
       final count = parts.fold<int>(1, (n, p) => p.length > n ? p.length : n);
       for (var i = 0; i < count; i++) {
         rows.add([
@@ -201,29 +212,19 @@ Future<Uint8List> projectPdf(
             i < parts[c].length
                 ? parts[c][i]
                 : c == 0
-                ? '${original[c]} (Fortsetzung)'
+                ? '(Fortsetzung)'
                 : '',
         ]);
       }
     }
-    if (rows.isEmpty)
-      chunks.add((
-        title: entry.key,
-        rows: [
-          entry.value.first,
-          [
-            'Keine Einträge',
-            for (var i = 1; i < entry.value.first.length; i++) '',
-          ],
-        ],
-      ));
-    for (var offset = 0; offset < rows.length; offset += 4) {
-      chunks.add((
-        title: entry.key,
-        rows: [entry.value.first, ...rows.skip(offset).take(4)],
-      ));
-    }
+    if (rows.length == 1)
+      rows.add([
+        'Keine Einträge',
+        for (var i = 1; i < entry.value.first.length; i++) '',
+      ]);
+    tables[entry.key] = rows;
   }
+  String oneLine(Object? value) => '$value'.replaceAll(RegExp(r'\s+'), ' ');
   pw.Widget footer(pw.Context c) => pw.Column(
     children: [
       pw.Divider(),
@@ -263,7 +264,7 @@ Future<Uint8List> projectPdf(
     ),
     pw.SizedBox(height: 30),
     pw.Text(
-      '${project['name']}',
+      oneLine(project['name']),
       style: pw.TextStyle(fontSize: 30, fontWeight: pw.FontWeight.bold),
     ),
     pw.SizedBox(height: 18),
@@ -278,7 +279,7 @@ Future<Uint8List> projectPdf(
     for (final e in (data['metadata'] as Map).entries)
       pw.Padding(
         padding: const pw.EdgeInsets.only(bottom: 6),
-        child: pw.Text('${e.key}: ${e.value}'),
+        child: pw.Text('${e.key}: ${oneLine(e.value)}'),
       ),
     if (approval != null) ...[
       pw.SizedBox(height: 18),
@@ -292,31 +293,17 @@ Future<Uint8List> projectPdf(
     ],
   ]);
   final tocCount = (sheets.length + sections.length + 2 + 19) ~/ 20;
-  final entries = <String>[
-    '1   Deckblatt',
-    '2   Inhaltsverzeichnis',
-    for (var i = 0; i < sheets.length; i++)
-      '${2 + tocCount + i}   Blatt ${sheets[i]['number']} - ${sheets[i]['title']}',
-  ];
-  for (final title in sections.keys) {
-    final index = chunks.indexWhere((c) => c.title == title);
-    entries.add('${2 + tocCount + sheets.length + index}   $title');
-  }
-  for (var offset = 0; offset < entries.length; offset += 20) {
-    page([
-      pw.Text('Inhaltsverzeichnis', style: pw.TextStyle(fontSize: 24)),
-      pw.SizedBox(height: 20),
-      for (final entry in entries.skip(offset).take(20))
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(bottom: 8),
-          child: pw.Text(entry, style: const pw.TextStyle(fontSize: 11)),
-        ),
-    ]);
+  final entries = <String>['1   Deckblatt', '2   Inhaltsverzeichnis'];
+  for (var i = 0; i < tocCount; i++) {
+    page([]);
   }
   for (final sheet in sheets) {
+    entries.add(
+      '${doc.document.pdfPageList.pages.length + 1}   Blatt ${sheet['number']} - ${oneLine(sheet['title'])}',
+    );
     page([
       pw.Text(
-        'Blatt ${sheet['number']} - ${sheet['title']}',
+        'Blatt ${sheet['number']} - ${oneLine(sheet['title'])}',
         style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
       ),
       pw.SvgImage(
@@ -326,19 +313,54 @@ Future<Uint8List> projectPdf(
       ),
     ]);
   }
-  for (final chunk in chunks) {
-    page([
-      pw.Text(chunk.title, style: pw.TextStyle(fontSize: 24)),
-      pw.SizedBox(height: 18),
-      pw.TableHelper.fromTextArray(
-        data: chunk.rows,
-        cellStyle: const pw.TextStyle(fontSize: 9),
-        headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-        cellPadding: const pw.EdgeInsets.all(6),
-        cellHeight: 25,
-        defaultColumnWidth: const pw.FlexColumnWidth(),
+  for (final entry in tables.entries) {
+    entries.add('${doc.document.pdfPageList.pages.length + 1}   ${entry.key}');
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a3.landscape,
+        margin: const pw.EdgeInsets.all(30),
+        maxPages: 500,
+        header: (c) => pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 18),
+          child: pw.Text(entry.key, style: pw.TextStyle(fontSize: 24)),
+        ),
+        footer: footer,
+        build: (c) => [
+          pw.TableHelper.fromTextArray(
+            data: entry.value,
+            cellStyle: pw.TextStyle(font: regular, fontSize: 9),
+            headerStyle: pw.TextStyle(font: bold, fontSize: 10),
+            cellPadding: const pw.EdgeInsets.all(6),
+            cellHeight: 25,
+            defaultColumnWidth: const pw.FlexColumnWidth(),
+          ),
+        ],
       ),
-    ]);
+    );
+  }
+  for (var i = 0; i < tocCount; i++) {
+    final subset = entries.skip(i * 20).take(20).toList();
+    doc.editPage(
+      i + 1,
+      pw.Page(
+        pageFormat: PdfPageFormat.a3.landscape,
+        margin: const pw.EdgeInsets.all(30),
+        build: (c) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text('Inhaltsverzeichnis', style: pw.TextStyle(fontSize: 24)),
+            pw.SizedBox(height: 20),
+            for (final entry in subset)
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 8),
+                child: pw.Text(entry, style: const pw.TextStyle(fontSize: 11)),
+              ),
+            pw.Spacer(),
+            footer(c),
+          ],
+        ),
+      ),
+    );
   }
   return doc.save();
 }

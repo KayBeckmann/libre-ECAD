@@ -60,12 +60,14 @@ void main() {
       final changed = cloneJson(d);
       (changed['wires'] as List).first['to'] = portRef('missing', '1');
       expect(drawingFindings(changed).single['severity'], 'error');
+      expect(drawingFindings(changed).single['objectId'], 'w1');
       final duplicate = cloneJson(d);
       objects(duplicate, 'devices')[1]['bmk'] = objects(
         duplicate,
         'devices',
       )[0]['bmk'];
       expect(drawingFindings(duplicate).single['severity'], 'error');
+      expect(drawingFindings(duplicate).single['objectId'], b['id']);
       expect(drawingChanges(d, changed).single['kind'], 'wires');
     },
   );
