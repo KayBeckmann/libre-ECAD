@@ -57,6 +57,7 @@ class GlobalArticleSearchHit {
     required this.name,
     required this.source,
     this.manufacturerName,
+    this.license, this.origin, this.attribution, this.identityVerification,
   });
   final String id;
   final int version;
@@ -64,6 +65,7 @@ class GlobalArticleSearchHit {
   final String name;
   final String source;
   final String? manufacturerName;
+  final String? license, origin, attribution, identityVerification;
 
   factory GlobalArticleSearchHit.fromJson(Map<String, Object?> json) =>
       GlobalArticleSearchHit(
@@ -73,5 +75,6 @@ class GlobalArticleSearchHit {
         name: json['name'] as String,
         source: json['source'] as String,
         manufacturerName: json['manufacturerName'] as String?,
+        license: json['license'] as String?, origin: json['origin'] as String?, attribution: json['attribution'] as String?, identityVerification: json['identityVerification'] as String?,
       );
 }

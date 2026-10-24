@@ -334,12 +334,12 @@ class WorkspaceRouter {
     final fields = articleFields({
       'articleNumber': source['articleNumber'],
       'name': source['name'],
-      'license': 'Ungeklärt – synthetische Katalog-Beispieldaten',
+      'license': source['license'] ?? 'Ungeklärt – synthetische Katalog-Beispieldaten',
       'origin':
-          'Globaler Katalog / ${source['source']} / ${source['manufacturerName'] ?? "Allgemein"}',
+          source['origin'] ?? 'Globaler Katalog / ${source['source']} / ${source['manufacturerName'] ?? "Allgemein"}',
       'notes':
-          'Bewusste Kopie der Katalogmetadaten; technische Ebenen fehlen. Keine Herstellerverifikation.',
-      'layers': <String, dynamic>{},
+          source['attribution'] == null ? 'Synthetische Katalogmetadaten; technische Ebenen fehlen. Keine Herstellerverifikation.' : 'Namensnennung: ${source['attribution']}. Technische Werte ungeprüft.',
+      'layers': source['layers'] ?? <String, dynamic>{},
     });
     final a = {
       ..._newDocument(u),
@@ -354,6 +354,9 @@ class WorkspaceRouter {
         'version': source['version'],
         'area': source['source'],
         'manufacturerName': source['manufacturerName'],
+        'license': source['license'],
+        'attribution': source['attribution'],
+        'identityVerification': source['identityVerification'],
       },
     };
     await store.create(u.companyId, 'article', a);

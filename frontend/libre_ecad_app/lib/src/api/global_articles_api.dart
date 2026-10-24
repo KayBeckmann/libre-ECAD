@@ -16,6 +16,11 @@ class GlobalArticlesApi {
   Uri _endpoint(String path) =>
       Uri.parse('${baseUrl.toString().replaceFirst(RegExp(r"/+$"), "")}/$path');
 
+  Future<List<dynamic>> history(String id) async {
+    final response=await _http.get(_endpoint('articles/${Uri.encodeComponent(id)}/history')).timeout(const Duration(seconds:10));
+    if(response.statusCode!=200) throw Exception('Historie nicht verfügbar.');
+    return (jsonDecode(response.body) as Map)['entries'] as List;
+  }
   Future<List<GlobalArticleSearchHit>> search(
     String query, {
     String? source,

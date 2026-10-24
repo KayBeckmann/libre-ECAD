@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:shared_server_kit/shared_server_kit.dart';
 
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
@@ -39,6 +40,7 @@ Future<void> main() async {
   final router = CompanyUserRouter(
     repository: repository,
     internalToken: internalToken,
+    catalogApi: InternalApi(Uri.parse(Platform.environment['GLOBAL_ARTICLES_SERVICE_URL']??'http://global-articles-service:8082'), internalToken),
     workspace: PostgresWorkspaceStore(db),
     globalLookup: GlobalCatalog(
       Uri.parse(

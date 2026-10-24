@@ -19,12 +19,16 @@ class CompanyUserRouter {
     required this.repository,
     required this.internalToken,
     this.workspace,
+    this.catalogApi,
+    this.operatorHandler,
     this.globalLookup,
     this.sessionTtl = const Duration(hours: 8),
   });
 
   final CompanyUserRepository repository;
   final WorkspaceStore? workspace;
+  final InternalApi? catalogApi;
+  final Handler? operatorHandler;
   final Future<Document?> Function(String)? globalLookup;
 
   /// Shared Secret für `/internal/*` — siehe `docs/architecture.md`.
@@ -49,6 +53,17 @@ class CompanyUserRouter {
     router.post('/internal/companies', _internalCreateCompany);
     router.post('/internal/companies/<companyId>/admins', _internalCreateAdmin);
 
+    if(operatorHandler!=null) router.mount('/internal/operator/',operatorHandler!);
+    router.post('/api/v1/contributions', (Request request)=>apiGuard(() async {
+      final auth=await _requireUser(request);
+      if(auth==null) return jsonError('Nicht angemeldet oder Firmenzugang gesperrt.',status:401);
+      if(catalogApi==null) return jsonError('Katalog nicht verfügbar.',status:503);
+      final body=await readJson(request);
+      // All identity and privilege fields come from the local session.
+      body.remove('mode');
+      body['actor']={'companyId':auth.user.companyId,'userId':auth.user.id,'role':auth.user.role.wireValue};
+      return jsonOk(await catalogApi!.call('/internal/contributions',method:'POST',body:body));
+    }));
     if (workspace != null) {
       router.mount(
         '/api/v1/',

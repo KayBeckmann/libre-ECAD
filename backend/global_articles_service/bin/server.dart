@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:shared_server_kit/shared_server_kit.dart';
+import 'package:global_articles_service/src/contributions/catalog.dart';
 
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
@@ -30,7 +32,9 @@ Future<void> main() async {
     stdout.writeln('Testdaten (Beispielartikel) eingespielt.');
   }
 
-  final router = ArticleRouter(repository: repository);
+  final records=PostgresRecords(db);
+  await records.migrate();
+  final router = ArticleRouter(repository: repository, catalog: ContributionCatalog(records,repository),internalToken:Platform.environment['INTERNAL_SERVICE_TOKEN']??'');
   final handler = const Pipeline().addMiddleware(logRequests()).addHandler(router.handler.call);
 
   final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);

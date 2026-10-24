@@ -69,13 +69,25 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
     }
   }
 
+  Future<void> details(GlobalArticleSearchHit hit) async {
+    try {
+      final entries=await context.read<SessionService>().globalArticlesApiFor(Uri.parse(widget.globalArticlesUrl)).history(hit.id);
+      if(!mounted)return;
+      await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(title:Text(hit.name),content:SizedBox(width:600,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
+        SelectableText('Version ${hit.version}\nLizenz: ${hit.license??"Ungeklärte Beispieldaten"}\nHerkunft: ${hit.origin??"Synthetischer Katalog"}\nNamensnennung: ${hit.attribution??"–"}\n${hit.identityVerification=="identity-only"?"Herstelleridentität zum Freigabezeitpunkt geprüft.":"Keine Identitätsprüfung."} Technische Angaben ungeprüft.'),
+        const SizedBox(height:16),const Text('Öffentliche Historie'),
+        for(final e in entries)ListTile(title:Text(e['event']=='withdrawn'?'Zurückgezogen':'Version ${e['article']['version']} veröffentlicht'),subtitle:Text('${e['at']} · ${e['reason']??e['article']?['license']??""}')),
+        if(entries.isEmpty)const Text('Synthetischer Bestand ohne Beitragshistorie.'),
+      ]))),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Schließen'))]));
+    }catch(e){if(mounted){setState(()=>error=e.toString());}}
+  }
   Future<void> copy(GlobalArticleSearchHit hit) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Persönliche Artikelkopie'),
         content: Text(
-          '${hit.articleNumber} · ${hit.name}\nVersion ${hit.version}\n\nSynthetische Beispieldaten: Lizenz und technische Angaben sind ungeklärt. Die Kopie wird als ungeprüft angelegt und bleibt unabhängig vom globalen Original.',
+          '${hit.articleNumber} · ${hit.name}\nVersion ${hit.version}\n\n${hit.license==null?'Synthetische Beispieldaten: Lizenz ungeklärt.':'Lizenz: ${hit.license} · ${hit.attribution}'} Technische Angaben sind ungeprüft. Die Kopie bleibt unabhängig vom globalen Original.',
         ),
         actions: [
           TextButton(
@@ -127,7 +139,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const Text(
-            'Synthetische Beispieldaten · Herkunft ist keine Herstellerverifikation.',
+            'Beispieldaten und moderierte Beiträge · Identitätsprüfung ist keine technische Freigabe.',
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
@@ -185,6 +197,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
           if (results != null)
             for (final hit in results!)
               ListTile(
+                onTap:()=>details(hit),
                 title: Text('${hit.articleNumber} · ${hit.name}'),
                 subtitle: Text(
                   '${labels[hit.source]}${hit.manufacturerName == null ? '' : ' / ${hit.manufacturerName}'} · Version ${hit.version}',
