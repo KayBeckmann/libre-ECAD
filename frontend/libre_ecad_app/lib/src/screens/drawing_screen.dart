@@ -70,7 +70,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         setState(() {
           online = false;
           error =
-              'Backend nicht erreichbar oder Zugriff entzogen. Entwurf bleibt im Fenster erhalten. $e';
+              'Backend nicht erreichbar oder Zugriff entzogen. Entwurf bleibt im Fenster erhalten. Verbindung prüfen oder erneut anmelden.';
         });
       }
     } finally {
@@ -169,7 +169,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       if (mounted) {
         setState(() {
           online = false;
-          error = 'Speichern fehlgeschlagen; Entwurf erhalten. $e';
+          error = 'Speichern fehlgeschlagen. Entwurf bleibt im Fenster erhalten. Verbindung prüfen und erneut speichern.';
         });
       }
     } finally {
