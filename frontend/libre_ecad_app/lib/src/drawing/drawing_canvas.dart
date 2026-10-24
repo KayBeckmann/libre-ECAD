@@ -244,7 +244,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 width: active ? 12 : 7,
                 height: active ? 12 : 7,
                 decoration: BoxDecoration(
-                  color: active ? Colors.orange : Colors.white,
+                  color: active ? Colors.orange : ref['kind'] == 'node' ? accent : Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(color: accent, width: 1.5),
                 ),
