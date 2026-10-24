@@ -191,6 +191,7 @@ class CompanyUserRouter {
         companyId: user.companyId,
         createdAt: now,
         expiresAt: now.add(sessionTtl),
+        companyEpoch:company.authEpoch,userEpoch:user.authEpoch,
       ),
     );
     return jsonOk({
@@ -307,7 +308,7 @@ class CompanyUserRouter {
       }
     }
 
-    await repository.setUserActive(id: id, active: active);
+    if(!await repository.setUserActive(id: id, active: active)) return jsonError('Zugang wurde zwischenzeitlich geändert oder ist letzter Admin.',status:409);
     return jsonOk({'id': id, 'active': active});
   }
 
@@ -331,10 +332,10 @@ class CompanyUserRouter {
       return null;
     }
     final user = await repository.findUserById(session.userId);
-    if (user == null || !user.active || user.companyId != session.companyId)
+    if (user == null || !user.active || user.companyId != session.companyId || user.authEpoch != session.userEpoch)
       return null;
     final company = await repository.findCompanyById(user.companyId);
-    if (company == null || !company.active) return null;
+    if (company == null || !company.active || company.authEpoch != session.companyEpoch) return null;
     return (user: user, session: session);
   }
 

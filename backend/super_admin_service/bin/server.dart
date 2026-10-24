@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:super_admin_service/src/operator/console.dart';
 
 import 'package:postgres/postgres.dart';
 import 'package:shared_server_kit/shared_server_kit.dart';
@@ -54,7 +55,14 @@ Future<void> main() async {
     internalToken: Platform.environment['INTERNAL_SERVICE_TOKEN'] ?? '',
   );
 
-  final router = SuperAdminRouter(repository: repository, companyClient: companyClient);
+  final records=PostgresRecords(db);
+  await records.migrate();
+  final token=Platform.environment['INTERNAL_SERVICE_TOKEN']??'';
+  final router = SuperAdminRouter(repository: repository, companyClient: companyClient,
+    console:OperatorConsole(records:records,
+      companies:InternalApi(Uri.parse(Platform.environment['COMPANY_USERS_SERVICE_URL']??'http://company-users-service:8083'),token),
+      catalog:InternalApi(Uri.parse(Platform.environment['GLOBAL_ARTICLES_SERVICE_URL']??'http://global-articles-service:8082'),token)));
+
   final handler = const Pipeline().addMiddleware(logRequests()).addHandler(router.handler.call);
 
   final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);

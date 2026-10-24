@@ -117,6 +117,14 @@ services:
       - global-articles-service
       - company-users-service
 
+  operator-web:
+    build:
+      context: ./frontend/operator
+    ports:
+      - "8186:80"
+    depends_on:
+      - super-admin-service
+
 volumes:
   super-admin-db-data:
   global-articles-db-data:

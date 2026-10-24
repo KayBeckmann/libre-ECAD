@@ -68,6 +68,7 @@ class ContributionCatalog {
         'manufacturerName': source == 'manufacturer' ? grant!['name'] : null,
         'state': 'draft',
         'payload': _payload(body),
+          'rightsConfirmed': true,
         'published': null,
         'everPublished': false,
         'event': 'create',
@@ -93,6 +94,7 @@ class ContributionCatalog {
         if (d['state'] == 'review')
           throw ApiProblem(409, 'Eingereichten Beitrag zuerst zurückziehen.');
         d['payload'] = _payload(body);
+          d['rightsConfirmed'] = true;
         d['state'] = 'draft';
       case 'submit':
         confirmed(body);
@@ -138,6 +140,11 @@ class ContributionCatalog {
         'contributions': await tx.list('contribution'),
         'manufacturers': await tx.list('manufacturer'),
       };
+    if (action == 'inspect') {
+      final d = await tx.get('contribution', requiredText(body, 'id'));
+      if (d == null) throw ApiProblem(404, 'Beitrag nicht gefunden.');
+      return d;
+    }
     if (action == 'history')
       return {
         'entries': await tx.history('contribution', requiredText(body, 'id')),

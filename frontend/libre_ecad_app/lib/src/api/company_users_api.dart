@@ -55,6 +55,10 @@ class CompanyUsersApi {
     );
   }
 
+  Future<void> activate({required String token,required String password}) async {
+    final response=await _http.post(_endpoint('auth/activate'),headers:{'content-type':'application/json'},body:jsonEncode({'token':token,'password':password})).timeout(const Duration(seconds:15));
+    await _parse(response);
+  }
   Future<void> logout(String token) async {
     await _http.post(_endpoint('auth/logout'), headers: _authHeaders(token));
   }

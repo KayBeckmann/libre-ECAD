@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LibreECAD · Betreiber</title><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
+<body>
+<header><a class="brand" href="/">Libre<span>ECAD</span><small>BETREIBERVERWALTUNG</small></a><div id="identity"></div></header>
+<main>
+<section id="login" class="login"><p class="eyebrow">BETREIBERZUGANG</p><h1>Den Betrieb<br>im Blick.</h1><p>Firmen, Zugänge und öffentliche Katalogbeiträge verwalten.</p><form id="login-form"><label>Benutzername<input name="username" autocomplete="username" required></label><label>Passwort<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">Als Superadmin anmelden</button></form><p class="muted">Der Zugang ist vom Firmenkonto getrennt.</p></section>
+<div id="workspace" hidden><nav aria-label="Bereiche"><button data-view="companies" class="selected">Firmen & Zugänge</button><button data-view="catalog">Katalog & Moderation</button><button id="refresh">Neu laden</button><button id="logout">Abmelden</button></nav><div id="content"></div></div>
+<p id="error" role="alert" hidden></p><p id="status" role="status"></p>
+</main>
+<dialog id="dialog"><div id="dialog-content"></div></dialog>
+<footer>LibreECAD / Operator Console <span>Identitätsprüfung ist keine technische Artikelfreigabe.</span></footer>
+</body></html>

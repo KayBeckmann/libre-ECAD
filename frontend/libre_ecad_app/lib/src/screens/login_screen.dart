@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../api/company_users_api.dart';
 import '../session_service.dart';
 import 'home_screen.dart';
+import 'activation_screen.dart';
 
 /// M1.4 — "Web-/App-Anmeldeansicht mit vorbelegtem Kay-Managed-Backend
 /// und sichtbarer Möglichkeit, ein Self-hosted-/Dienstleister-Backend
@@ -110,6 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: true,
                   onSubmitted: (_) => _login(),
                 ),
+                TextButton(onPressed: _busy ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => ActivationScreen(backendUrl:_backendUrlCtrl.text.trim()))), child: const Text('Zugang aktivieren')),
                 const SizedBox(height: 16),
                 if (_error != null)
                   Padding(

@@ -7,6 +7,7 @@ import 'package:shelf_router/shelf_router.dart';
 import 'company_provisioning_client.dart';
 import 'models.dart';
 import 'repository.dart';
+import 'operator/console.dart';
 
 /// M1.1 Super-Admin-Backend — siehe Roadmap-Abnahme: "Kay legt zwei
 /// Testfirmen und deren initiale Admins an"; "ein normaler
@@ -16,11 +17,13 @@ class SuperAdminRouter {
   SuperAdminRouter({
     required this.repository,
     required this.companyClient,
+    this.console,
     this.sessionTtl = const Duration(hours: 8),
   });
 
   final SuperAdminRepository repository;
   final CompanyProvisioningClient companyClient;
+  final OperatorConsole? console;
   final Duration sessionTtl;
 
   Router get handler {
@@ -29,9 +32,15 @@ class SuperAdminRouter {
     router.post('/auth/login', _login);
     router.post('/auth/logout', _logout);
     router.get('/me', _me);
-    router.post('/companies', _createCompany);
-    router.post('/companies/<companyId>/admins', _createAdmin);
+    router.post('/companies', (Request r)=>console==null ? _createCompany(r) : Future.value(jsonError('Bitte /operator für atomare Firmenanlage mit Erstadmin verwenden.',status:410)));
+    router.post('/companies/<companyId>/admins', (Request r,String id)=>console==null ? _createAdmin(r,id) : Future.value(jsonError('Bitte /operator für protokollierte Zugangsverwaltung verwenden.',status:410)));
     router.get('/audit', _listAudit);
+    router.post('/operator', (Request request)=>apiGuard(() async {
+      final admin=await _requireSuperAdmin(request);
+      if(admin==null)return jsonError('Superadmin-Anmeldung erforderlich.',status:401);
+      if(console==null)return jsonError('Betreiberverwaltung nicht verfügbar.',status:503);
+      return jsonOk(await console!.execute(admin.username,await readJson(request)));
+    }));
     return router;
   }
 
