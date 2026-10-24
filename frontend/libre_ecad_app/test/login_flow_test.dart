@@ -97,7 +97,7 @@ void main() {
       await tester.tap(find.text('Anmelden'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Zeichenbereich'), findsOneWidget);
+      expect(find.textContaining('Schaltplaneditor'), findsOneWidget);
       expect(find.text('Zeichner anlegen'), findsNothing);
     },
   );

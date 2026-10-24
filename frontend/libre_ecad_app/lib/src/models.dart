@@ -2,10 +2,10 @@
 enum UserRole { admin, zeichner }
 
 UserRole userRoleFromWire(String value) => switch (value) {
-      'admin' => UserRole.admin,
-      'zeichner' => UserRole.zeichner,
-      _ => throw ArgumentError('Unbekannte Rolle: $value'),
-    };
+  'admin' => UserRole.admin,
+  'zeichner' => UserRole.zeichner,
+  _ => throw ArgumentError('Unbekannte Rolle: $value'),
+};
 
 /// Angemeldete Sitzung — bewusst nur im Speicher gehalten (siehe
 /// `docs/architecture.md`), geht bei App-Neustart verloren.
@@ -39,7 +39,8 @@ class CompanyUserListEntry {
   final bool active;
   final bool activated;
 
-  factory CompanyUserListEntry.fromJson(Map<String, Object?> json) => CompanyUserListEntry(
+  factory CompanyUserListEntry.fromJson(Map<String, Object?> json) =>
+      CompanyUserListEntry(
         id: json['id'] as String,
         username: json['username'] as String,
         role: userRoleFromWire(json['role'] as String),
@@ -50,17 +51,24 @@ class CompanyUserListEntry {
 
 class GlobalArticleSearchHit {
   const GlobalArticleSearchHit({
+    required this.id,
+    required this.version,
     required this.articleNumber,
     required this.name,
     required this.source,
     this.manufacturerName,
   });
+  final String id;
+  final int version;
   final String articleNumber;
   final String name;
   final String source;
   final String? manufacturerName;
 
-  factory GlobalArticleSearchHit.fromJson(Map<String, Object?> json) => GlobalArticleSearchHit(
+  factory GlobalArticleSearchHit.fromJson(Map<String, Object?> json) =>
+      GlobalArticleSearchHit(
+        id: json['id'] as String,
+        version: json['version'] as int,
         articleNumber: json['articleNumber'] as String,
         name: json['name'] as String,
         source: json['source'] as String,
