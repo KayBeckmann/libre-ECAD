@@ -10,12 +10,16 @@ import 'models.dart';
 /// für die lokale Entwicklung/Docker-Compose-Vorschau zeigt dieser
 /// Platzhalter auf den lokalen `company-users-service`. **Vor echtem
 /// Managed-Betrieb durch die reale Domain ersetzen.**
-const defaultManagedBackendUrl = 'http://localhost:8183';
+final defaultManagedBackendUrl = kIsWeb
+    ? Uri.base.resolve('/api/company/').toString()
+    : 'http://localhost:8183/';
 
 /// M1 hat noch keine Service-Discovery zwischen Frontend und dem
 /// globalen Artikel-Dienst — der wird separat konfiguriert (gleicher
 /// Platzhalter-Charakter wie [defaultManagedBackendUrl]).
-const defaultGlobalArticlesUrl = 'http://localhost:8182';
+final defaultGlobalArticlesUrl = kIsWeb
+    ? Uri.base.resolve('/api/global/').toString()
+    : 'http://localhost:8182/';
 
 const _prefsBackendUrlKey = 'libre_ecad.backend_url';
 const _prefsArticlesUrlKey = 'libre_ecad.global_articles_url';

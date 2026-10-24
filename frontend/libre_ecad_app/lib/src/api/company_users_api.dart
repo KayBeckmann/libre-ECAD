@@ -20,6 +20,9 @@ class CompanyUsersApi {
   final Uri baseUrl;
   final http.Client _http;
 
+  Uri _endpoint(String path) => Uri.parse(
+      '${baseUrl.toString().replaceFirst(RegExp(r"/+$"), "")}/$path');
+
   Map<String, String> _authHeaders(String token) => {
         'content-type': 'application/json',
         'authorization': 'Bearer $token',
@@ -38,7 +41,7 @@ class CompanyUsersApi {
 
   Future<Session> login({required String username, required String password}) async {
     final response = await _http.post(
-      baseUrl.resolve('/auth/login'),
+      _endpoint('auth/login'),
       headers: {'content-type': 'application/json'},
       body: jsonEncode({'username': username, 'password': password}),
     );
@@ -53,11 +56,11 @@ class CompanyUsersApi {
   }
 
   Future<void> logout(String token) async {
-    await _http.post(baseUrl.resolve('/auth/logout'), headers: _authHeaders(token));
+    await _http.post(_endpoint('auth/logout'), headers: _authHeaders(token));
   }
 
   Future<List<CompanyUserListEntry>> listUsers(String token) async {
-    final response = await _http.get(baseUrl.resolve('/users'), headers: _authHeaders(token));
+    final response = await _http.get(_endpoint('users'), headers: _authHeaders(token));
     final body = await _parse(response);
     final raw = body['users'] as List;
     return raw.map((e) => CompanyUserListEntry.fromJson(e as Map<String, Object?>)).toList();
@@ -68,7 +71,7 @@ class CompanyUsersApi {
   /// neuen Zeichner selbst mitteilen.
   Future<String> createZeichner(String token, {required String username}) async {
     final response = await _http.post(
-      baseUrl.resolve('/users'),
+      _endpoint('users'),
       headers: _authHeaders(token),
       body: jsonEncode({'username': username}),
     );
@@ -78,7 +81,7 @@ class CompanyUsersApi {
 
   Future<void> setUserActive(String token, {required String userId, required bool active}) async {
     final response = await _http.patch(
-      baseUrl.resolve('/users/$userId'),
+      _endpoint('users/$userId'),
       headers: _authHeaders(token),
       body: jsonEncode({'active': active}),
     );

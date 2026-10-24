@@ -11,9 +11,12 @@ class GlobalArticlesApi {
   final Uri baseUrl;
   final http.Client _http;
 
+  Uri _endpoint(String path) => Uri.parse(
+      '${baseUrl.toString().replaceFirst(RegExp(r"/+$"), "")}/$path');
+
   Future<List<GlobalArticleSearchHit>> search(String query) async {
     final response =
-        await _http.get(baseUrl.resolve('/articles?query=${Uri.encodeQueryComponent(query)}'));
+        await _http.get(_endpoint('articles?query=${Uri.encodeQueryComponent(query)}'));
     if (response.statusCode != 200) {
       throw Exception('Globaler Artikel-Dienst nicht erreichbar (HTTP ${response.statusCode}).');
     }
