@@ -18,6 +18,7 @@ ThemeData ecadTheme() {
       );
   return ThemeData(
     useMaterial3: true,
+    fontFamilyFallback: const ['EcadSymbols'],
     colorScheme: scheme,
     scaffoldBackgroundColor: const Color(0xff071923),
     appBarTheme: const AppBarTheme(

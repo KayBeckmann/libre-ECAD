@@ -154,10 +154,11 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 );
-                if (constraints.maxWidth < 1000)
+                if (constraints.maxWidth < 1000) {
                   return Column(
                     children: [const _AdminUserManagement(), backend],
                   );
+                }
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
