@@ -9,6 +9,7 @@ import 'package:company_users_service/src/repository_postgres.dart';
 import 'package:company_users_service/src/router.dart';
 import 'package:company_users_service/src/db/migrations.dart';
 import 'package:company_users_service/src/workspace/store.dart';
+import 'package:company_users_service/src/workspace/global_catalog.dart';
 
 Future<void> main() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8083');
@@ -35,8 +36,20 @@ Future<void> main() async {
   }
 
   final repository = PostgresCompanyUserRepository(db);
-  final router = CompanyUserRouter(repository: repository, internalToken: internalToken, workspace: PostgresWorkspaceStore(db));
-  final handler = const Pipeline().addMiddleware(logRequests()).addHandler(router.handler.call);
+  final router = CompanyUserRouter(
+    repository: repository,
+    internalToken: internalToken,
+    workspace: PostgresWorkspaceStore(db),
+    globalLookup: GlobalCatalog(
+      Uri.parse(
+        Platform.environment['GLOBAL_ARTICLES_SERVICE_URL'] ??
+            'http://global-articles-service:8082',
+      ),
+    ).find,
+  );
+  final handler = const Pipeline()
+      .addMiddleware(logRequests())
+      .addHandler(router.handler.call);
 
   final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
   stdout.writeln('company-users-service läuft auf Port ${server.port}');

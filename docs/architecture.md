@@ -134,3 +134,27 @@ ohne fest eingebaute Host-IP oder CORS-Freigabe. Native Clients verwenden weiter
 konfigurierbare Backend-Adressen. Ports 8181/8182/8183/8185 sind im LAN gebunden;
 die Datenbanken haben keine Host-Portfreigabe. Superadmin bleibt eine getrennte
 API (`/api/superadmin/` bzw. Port 8181); seine Verwaltungsoberfläche folgt M3.
+
+## M2.2 – Lokale Artikel und Kopien
+
+Persönliche Artikel sind ausschließlich für ihren Eigentümer sichtbar, auch
+Firmenadmins erhalten keinen Zugriff auf fremde persönliche Artikel. Firmenartikel
+sind firmenweit lesbar, nur Admins dürfen sie ändern. Artikelnummern sind keine IDs
+und dürfen mehrfach vorkommen. Jede Änderung erzeugt eine neue, dauerhaft lesbare
+Version mit Akteur/Zeitpunkt; das UI zeigt Konflikte statt erneut automatisch zu speichern.
+
+Vier getrennte Ebenen (`symbol`, `mechanical`, `electrical`, `thermal`) haben stabile
+IDs innerhalb eines Artikels. Maße in mm, Spannung in V, Strom in A, Verlustleistung
+in W; `null` bedeutet unbekannt. Anschluss-IDs müssen eindeutig sein. Daten bleiben
+`unverified`; Werte, Lizenzlücken und fehlende Bedingungen werden sichtbar angezeigt.
+Symbol- und Ansichtsreferenzen sind Metadaten, kein fertiger grafischer Symboleditor.
+Normberechnungen und Zeichenwerkzeuge sind nicht Bestandteil von M2.
+
+Kopieren erstellt eine neue ID/Version 1 mit Quell-ID, Quellversion, Bereich,
+Herkunft/Lizenz und vorhandener Herkunftskette. Original und Kopie entwickeln sich
+unabhängig. Personal → Firma ist eine bewusste Admin-Aktion, Firma → Personal für
+jeden berechtigten Nutzer möglich. Global → lokal liest die konfigurierte feste
+Katalogadresse serverseitig, prüft die angezeigte Version und kopiert die synthetischen
+Metadaten. Ungeklärte Lizenz und fehlende technische Daten bleiben ausdrücklich sichtbar.
+Bei Nichtverfügbarkeit entsteht keine lokale Kopie. Lokal → global bleibt bis zum
+Veröffentlichungs-/Moderationsprozess M3 gesperrt; keine öffentlichen Schreibendpunkte.

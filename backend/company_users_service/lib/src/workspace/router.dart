@@ -5,14 +5,18 @@ import 'package:shelf_router/shelf_router.dart';
 import '../models.dart';
 import '../repository.dart';
 import 'store.dart';
+import 'article_data.dart';
+import 'global_catalog.dart';
 
 class WorkspaceRouter {
   WorkspaceRouter({
     required this.store,
     required this.users,
     required this.authenticate,
+    this.globalLookup,
   });
   final WorkspaceStore store;
+  final Future<Document?> Function(String)? globalLookup;
   final CompanyUserRepository users;
   final Future<AppUser?> Function(Request) authenticate;
 
@@ -27,6 +31,28 @@ class WorkspaceRouter {
     r.patch(
       '/projects/<id>',
       (Request q, String id) => _guard(q, (q, u) => _project(q, u, id)),
+    );
+    r.post(
+      '/global-articles/<id>/copy',
+      (Request q, String id) => _guard(q, (q, u) => _importGlobal(q, u, id)),
+    );
+    r.get('/articles', (Request q) => _guard(q, _listArticles));
+    r.post('/articles', (Request q) => _guard(q, _createArticle));
+    r.get(
+      '/articles/<id>',
+      (Request q, String id) => _guard(q, (q, u) => _article(q, u, id)),
+    );
+    r.patch(
+      '/articles/<id>',
+      (Request q, String id) => _guard(q, (q, u) => _article(q, u, id)),
+    );
+    r.get(
+      '/articles/<id>/history',
+      (Request q, String id) => _guard(q, (q, u) => _articleHistory(q, u, id)),
+    );
+    r.post(
+      '/articles/<id>/copy',
+      (Request q, String id) => _guard(q, (q, u) => _copyArticle(q, u, id)),
     );
     return r;
   }
@@ -43,6 +69,11 @@ class WorkspaceRouter {
       );
     try {
       return await action(request, user);
+    } on GlobalCatalogUnavailable {
+      return jsonError(
+        'Globaler Artikel-Dienst nicht verfügbar. Lokale Daten bleiben unverändert.',
+        status: 503,
+      );
     } on FormatException catch (e) {
       return jsonError(e.message);
     }
@@ -160,5 +191,172 @@ class WorkspaceRouter {
     if (!await store.update(u.companyId, 'project', next, d['version'] as int))
       return _conflict();
     return jsonOk(next);
+  }
+
+  bool _articleVisible(Document a, AppUser u) =>
+      a['scope'] == 'company' || a['ownerId'] == u.id;
+  bool _articleWritable(Document a, AppUser u) =>
+      a['scope'] == 'personal' ? a['ownerId'] == u.id : _admin(u);
+  String _scope(Document d) {
+    final scope = d['scope'];
+    if (scope != 'personal' && scope != 'company')
+      throw FormatException('scope: personal oder company erwartet.');
+    return scope as String;
+  }
+
+  Document _layerIds(Document layers, {Document? previous}) => {
+    for (final name in layers.keys)
+      name: {
+        ...(layers[name] as Map),
+        'id': previous == null
+            ? SessionTokens.generate()
+            : (previous[name] as Map)['id'],
+      },
+  };
+  Future<Document?> _findArticle(String id, AppUser u) async {
+    final a = await store.get(u.companyId, 'article', id);
+    return a != null && _articleVisible(a, u) ? a : null;
+  }
+
+  Future<Response> _listArticles(Request q, AppUser u) async {
+    final scope = q.url.queryParameters['scope'];
+    if (scope != null && scope != 'personal' && scope != 'company')
+      throw FormatException('Unbekannter Artikelbereich.');
+    final query = (q.url.queryParameters['query'] ?? '').trim().toLowerCase();
+    final rows = (await store.list(u.companyId, 'article')).where(
+      (a) =>
+          _articleVisible(a, u) &&
+          (scope == null || a['scope'] == scope) &&
+          ('${a['articleNumber']} ${a['name']}'.toLowerCase().contains(query)),
+    );
+    return jsonOk({'articles': rows.map(withArticleWarnings).toList()});
+  }
+
+  Future<Response> _createArticle(Request q, AppUser u) async {
+    final d = await _body(q);
+    final scope = _scope(d);
+    if (scope == 'company' && !_admin(u))
+      return jsonError('Nur Firmenadmins ändern den Firmenstamm.', status: 403);
+    final fields = articleFields(d);
+    final a = {
+      ..._newDocument(u),
+      ...fields,
+      'layers': _layerIds(fields['layers'] as Document),
+      'scope': scope,
+      'ownerId': scope == 'personal' ? u.id : null,
+      'source': null,
+    };
+    await store.create(u.companyId, 'article', a);
+    return jsonOk(withArticleWarnings(a), status: 201);
+  }
+
+  Future<Response> _article(Request q, AppUser u, String id) async {
+    final a = await _findArticle(id, u);
+    if (a == null) return jsonError('Artikel nicht gefunden.', status: 404);
+    if (q.method == 'GET') return jsonOk(withArticleWarnings(a));
+    if (!_articleWritable(a, u))
+      return jsonError('Keine Schreibrechte für diesen Artikel.', status: 403);
+    final d = await _body(q);
+    if (d['version'] is! int) throw FormatException('version ist Pflicht.');
+    if (d['version'] != a['version']) return _conflict();
+    final fields = articleFields(d);
+    final next = {
+      ..._revision(a, u),
+      ...fields,
+      'layers': _layerIds(
+        fields['layers'] as Document,
+        previous: a['layers'] as Document,
+      ),
+    };
+    if (!await store.update(u.companyId, 'article', next, d['version'] as int))
+      return _conflict();
+    return jsonOk(withArticleWarnings(next));
+  }
+
+  Future<Response> _articleHistory(Request q, AppUser u, String id) async {
+    if (await _findArticle(id, u) == null)
+      return jsonError('Artikel nicht gefunden.', status: 404);
+    return jsonOk({
+      'versions': (await store.history(
+        u.companyId,
+        'article',
+        id,
+      )).map(withArticleWarnings).toList(),
+    });
+  }
+
+  Future<Response> _copyArticle(Request q, AppUser u, String id) async {
+    final a = await _findArticle(id, u);
+    if (a == null) return jsonError('Artikel nicht gefunden.', status: 404);
+    final d = await _body(q);
+    final scope = _scope(d);
+    if (scope == 'company' && !_admin(u))
+      return jsonError(
+        'Nur Firmenadmins übernehmen in den Firmenstamm.',
+        status: 403,
+      );
+    if (d['version'] != a['version']) return _conflict();
+    final copy = {
+      ...a,
+      ..._newDocument(u),
+      'scope': scope,
+      'ownerId': scope == 'personal' ? u.id : null,
+      'layers': _layerIds(a['layers'] as Document),
+      'source': {
+        'kind': 'local',
+        'articleId': a['id'],
+        'version': a['version'],
+        'scope': a['scope'],
+        'origin': a['origin'],
+        'license': a['license'],
+        'upstream': a['source'],
+      },
+    };
+    await store.create(u.companyId, 'article', copy);
+    return jsonOk(withArticleWarnings(copy), status: 201);
+  }
+
+  Future<Response> _importGlobal(Request q, AppUser u, String id) async {
+    final d = await _body(q);
+    final scope = _scope(d);
+    if (scope == 'company' && !_admin(u))
+      return jsonError(
+        'Nur Firmenadmins übernehmen in den Firmenstamm.',
+        status: 403,
+      );
+    if (globalLookup == null) throw GlobalCatalogUnavailable();
+    final source = await globalLookup!(id);
+    if (source == null)
+      return jsonError('Globaler Artikel nicht gefunden.', status: 404);
+    if (d['version'] != source['version']) return _conflict();
+    // M1 catalog exposes synthetic metadata, not licensed technical layers.
+    // Never infer license or verification from a manufacturer area label.
+    final fields = articleFields({
+      'articleNumber': source['articleNumber'],
+      'name': source['name'],
+      'license': 'Ungeklärt – synthetische Katalog-Beispieldaten',
+      'origin':
+          'Globaler Katalog / ${source['source']} / ${source['manufacturerName'] ?? "Allgemein"}',
+      'notes':
+          'Bewusste Kopie der Katalogmetadaten; technische Ebenen fehlen. Keine Herstellerverifikation.',
+      'layers': <String, dynamic>{},
+    });
+    final a = {
+      ..._newDocument(u),
+      ...fields,
+      'layers': _layerIds(fields['layers'] as Document),
+      'scope': scope,
+      'ownerId': scope == 'personal' ? u.id : null,
+      'source': {
+        'kind': 'global',
+        'catalog': 'libre-ecad-global',
+        'articleId': source['id'],
+        'version': source['version'],
+        'area': source['source'],
+        'manufacturerName': source['manufacturerName'],
+      },
+    };
+    await store.create(u.companyId, 'article', a);
+    return jsonOk(withArticleWarnings(a), status: 201);
   }
 }

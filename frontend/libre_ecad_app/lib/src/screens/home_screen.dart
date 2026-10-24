@@ -7,6 +7,7 @@ import '../session_service.dart';
 import 'article_search_demo.dart';
 import 'login_screen.dart';
 import 'projects_screen.dart';
+import 'articles_screen.dart';
 
 /// M1.4 — "Minimaler Startbildschirm mit Firmenname, Rolle und
 /// Abmelden." Admin sieht Benutzerübersicht + Anlegen/Deaktivieren;
@@ -48,6 +49,9 @@ class HomeScreen extends StatelessWidget {
           ListTile(leading: const Icon(Icons.folder_outlined), title: const Text('Projekte'),
             subtitle: const Text('Firmenprojekte öffnen und verwalten'), trailing: const Icon(Icons.arrow_forward),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProjectsScreen(session: session)))),
+          ListTile(leading: const Icon(Icons.inventory_2_outlined), title: const Text('Artikelbibliothek'),
+            subtitle: const Text('Persönliche Artikel, Firmenstamm und Baukasten'), trailing: const Icon(Icons.arrow_forward),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ArticlesScreen(session: session)))),
           if (session.role == UserRole.admin)
             const _AdminUserManagement()
           else
