@@ -2,7 +2,7 @@
 
 **LibreECAD** ist ein geplantes, quelloffenes Werkzeug zur Planung und Dokumentation von Elektroanlagen – für Verteilerbau und Schaltanlagen. Der Name ist ein **Arbeitsname**; Marken- und Namensrechte wurden nicht abschließend geprüft.
 
-> **Projektstatus:** Meilenstein 1 ("belastbares Grundgerüst") ist umgesetzt — siehe unten. Es gibt weiterhin **keinen CAD-Editor, kein Projektmodell und keine Artikel-Uploads**; das sind spätere Meilensteine.
+> **Projektstatus:** **Meilenstein 1 und 2 sind umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. Es gibt weiterhin **keinen CAD-Editor, grafischen Symboleditor oder öffentlichen Artikel-Upload**.
 
 ## Zielbild
 
@@ -19,9 +19,11 @@ Der **erste Meilenstein** ist bewusst auf ein Grundgerüst begrenzt und wird in 
 3. **Firmen-/Nutzerbackend:** Anmeldung und Benutzerverwaltung innerhalb der eigenen Firma. Zunächst nur **Admin** und **Zeichner**; kein firmenübergreifender Zugriff. — **Umgesetzt** (`backend/company_users_service`).
 4. **Flutter-Frontend:** Firmenbackend auswählen (Managed-Backend des Projektbetreibers als änderbare Voreinstellung), anmelden und die für die Rolle passende minimale Ansicht öffnen. Noch kein CAD-Editor. — **Umgesetzt** (`frontend/libre_ecad_app`; Web-, Linux- und Android-Build verifiziert, Windows-Build braucht einen Windows-Host/-Runner).
 
-Die M1-Dienste und die Auslieferung des Web-Frontends laufen als getrennte Docker-Container, jeder mit eigener PostgreSQL-Instanz. Installierte Flutter-Anwendungen sind keine Container. Details, Testkonzept und offene Punkte: [`docs/architecture.md`](docs/architecture.md).
+Die drei Backenddienste nutzen jeweils eine eigene PostgreSQL-Instanz; das Web-Frontend wird in einem separaten nginx-Container ausgeliefert. Installierte Flutter-Anwendungen sind keine Container. Details, Testkonzept und offene Punkte: [`docs/architecture.md`](docs/architecture.md).
 
-**Spätere Meilensteine:** Projekte und persönliche/Firmenartikel mit Artikel-Baukasten; berechtigte globale Beiträge und Herstellerverwaltung; ECAD-Zeichenkern; Dokumentation, Plausibilitätsprüfung und unveränderliche freigegebene Projektstände; vorbereitete Offline-Arbeit in installierten Clients, Katalog-Ausfallsicherheit und fachliche API/MCP-Schnittstellen; weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt eine mehrsprachige Homepage und ein mehrsprachiges Wiki. Diese Reihenfolge ist ein Plan, keine Implementierungszusage.
+**Meilenstein 2:** Projekte und Mitgliedschaften sind firmengetrennt. Persönliche Artikel bleiben privat; Firmenartikel sind firmenweit lesbar und durch Admins bearbeitbar. Änderungen prüfen die bekannte Version; Kopien behalten ihre Quellversion und entwickeln sich unabhängig weiter. Technische Ebenen unterscheiden fehlende Werte von null und bleiben ungeprüft. API und Betriebsdetails: [`docs/m2-api.md`](docs/m2-api.md).
+
+**Spätere Meilensteine:** Berechtigte globale Beiträge und Herstellerverwaltung; ECAD-Zeichenkern; Dokumentation, Plausibilitätsprüfung und unveränderliche freigegebene Projektstände; vorbereitete Offline-Arbeit in installierten Clients, Katalog-Ausfallsicherheit und fachliche API/MCP-Schnittstellen; weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt eine mehrsprachige Homepage und ein mehrsprachiges Wiki. Diese Reihenfolge ist ein Plan, keine Implementierungszusage.
 
 ## Wichtige Grenzen
 
@@ -31,15 +33,18 @@ Die M1-Dienste und die Auslieferung des Web-Frontends laufen als getrennte Docke
 - **DIN-VDE-Konformität wird nicht behauptet.** Normausgaben, Nutzungsrechte, Referenzfälle und fachliche Abnahme müssen vor belastbaren Berechnungs- oder Konformitätsaussagen geklärt werden.
 - Ein verteilter globaler Katalog mit Schreib-Leader und Lesereplikaten ist eine **zu prüfende Architekturidee**, kein implementiertes Hochverfügbarkeitssystem. Ein technisches Quorum prüft keine elektrotechnischen Artikeldaten fachlich.
 
-## Meilenstein 1 lokal starten
+## Web-Stack im LAN starten
 
 ```bash
 cp .env.example .env   # lokale Secrets eintragen, diese Datei nie committen
+./scripts/build-web.sh  # Flutter-Renderressourcen lokal, kein Render-CDN nötig
 docker compose up -d --build
 curl http://localhost:8181/health   # super-admin-service
 curl http://localhost:8182/health   # global-articles-service
 curl http://localhost:8183/health   # company-users-service
 ```
+
+Webzugriff: `http://<LAN-Host>:8185`. Backend und Katalog werden im Browser am selben Host angesprochen. Der Superadmin wird aus `.env` initialisiert; sein separates Verwaltungsfrontend folgt M3. Für die ECAD-Web-App ist ein Firmenkonto erforderlich.
 
 Backend-Tests (je Dienst, ohne laufende Datenbank):
 

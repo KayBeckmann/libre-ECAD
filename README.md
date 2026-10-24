@@ -4,7 +4,7 @@
 
 **LibreECAD** is a planned open-source tool for designing and documenting electrical installations, distribution boards, and control panels. The name is a **working title**; trademark and naming rights have not been fully checked.
 
-> **Project status:** Milestone 1 ("resilient foundation") is implemented — see below. There is still **no CAD editor, no project model, and no article upload**; those are later milestones.
+> **Project status:** **Milestones 1 and 2 are implemented:** company projects with memberships, personal/company article libraries, a metadata builder, version history, deliberate copies and separate global search. There is still **no CAD editor, graphical symbol editor or public article upload**.
 
 ## Vision
 
@@ -21,9 +21,11 @@ The **first milestone** is intentionally limited to a foundation, built in this 
 3. **Company/user backend:** Sign-in and user management within each company. Initially there are only two roles: **Admin** and **Drafter**; neither role grants access across companies. — **Implemented** (`backend/company_users_service`).
 4. **Flutter frontend:** Select a company backend (the project operator's managed backend is the editable default), sign in, and show a minimal role-appropriate screen. There is no CAD editor in this milestone. — **Implemented** (`frontend/libre_ecad_app`; web, Linux and Android builds verified, Windows build needs a Windows host/runner).
 
-The M1 services and web-frontend delivery run as separate Docker containers, each with its own PostgreSQL instance. Installed Flutter apps are not containers. Details, test strategy, and open follow-ups: [`docs/architecture.md`](docs/architecture.md).
+The three backend services each use a separate PostgreSQL instance; the web delivery runs in its own nginx container. Installed Flutter apps are not containers. Details, test strategy, and open follow-ups: [`docs/architecture.md`](docs/architecture.md).
 
-**Later milestones:** Projects and personal/company articles with an article builder; authorized global contributions and manufacturer management; an electrical CAD editing core; documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
+**Milestone 2:** Projects and memberships are isolated per company. Personal articles stay private; company articles are readable by company members and editable by admins. Changes use version checks; copies retain their source version and evolve independently. Technical layers distinguish missing values from zero and stay unverified. API and operational details: [`docs/m2-api.md`](docs/m2-api.md).
+
+**Later milestones:** Authorized global contributions and manufacturer management; an electrical CAD editing core; documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
 
 ## Important boundaries
 
@@ -33,15 +35,18 @@ The M1 services and web-frontend delivery run as separate Docker containers, eac
 - **No DIN VDE compliance is claimed.** Applicable standard editions, licensing, reference cases, and professional review must be resolved before making credible calculation or compliance claims.
 - A distributed global catalog with a write leader and read replicas is **an architecture idea to evaluate**, not an implemented high-availability system. A technical quorum cannot verify the engineering correctness of article data.
 
-## Running Milestone 1 locally
+## Running the local LAN stack
 
 ```bash
 cp .env.example .env   # fill in local secrets, never commit this file
+./scripts/build-web.sh  # local Flutter renderer assets; no render CDN needed
 docker compose up -d --build
 curl http://localhost:8181/health   # super-admin-service
 curl http://localhost:8182/health   # global-articles-service
 curl http://localhost:8183/health   # company-users-service
 ```
+
+Open `http://<LAN-host>:8185`. The browser uses the same host for its backend and catalog proxy. Super-admin credentials bootstrap from `.env`; the separate operator UI is planned for M3. The company app requires a company account.
 
 Backend tests (per service, no running database needed):
 

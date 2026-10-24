@@ -82,3 +82,29 @@ HTTP; der dokumentierte TLS-/Anmeldeschutz für Internetbetrieb ist weiterhin of
 - Granulare Projektrechte, freigebende Personen und Prüferrolle vor M5.
 - Seitengrößen, Suchpagination und Lastbudgets vor großen realen Katalogen.
 - Konkrete Normtexte, Symbollizenzen und fachliche Datenprüfung vor realer Nutzung.
+
+
+## Abnahme am 24.10.2026
+
+- Statische Analyse aller vier Dart-Pakete und des Flutter-Frontends ohne Befunde.
+- 40 Backend-Tests (5 gemeinsam, 7 Superadmin, 8 globaler Katalog, 20 Firmenbackend)
+  und 6 Flutter-Tests bestanden; Web-Release gebaut.
+- `python scripts/smoke-m2.py`: echte HTTP-/PostgreSQL-Prüfung mit zwei isolierten
+  synthetischen Firmen, identischen Projektnamen, Mitgliedschaftswechsel,
+  privaten/Firmenartikeln, Kopien, Historie, Konflikten und globalem Import.
+  Das Skript legt ausdrücklich Testfirmen an; keine Produktionsdaten verwenden.
+- Containerwechsel/Neustart: Projekt-/Artikelversionen, Datenebenen und Historien
+  unverändert; Migration 2 wird genau einmal geführt. Alle drei Dienste gesund.
+- Globalen Artikeldienst tatsächlich gestoppt: Import liefert 503; lokale
+  Projekte/Artikel bleiben verfügbar und unverändert. Dienst wieder gestartet.
+- Vollständiger `pg_dump` in eine eigens angelegte Restore-Testdatenbank eingespielt;
+  Dokumente und vollständige Versionhistorien mit Original verglichen, identisch.
+  Testdatenbank danach wieder entfernt; Originaldatenbank nicht überschrieben.
+- Browserprüfung über die LAN-Adresse mit blockierten externen Requests:
+  Anmeldung, Projektanlage, Artikelanlage, bewusste Firmenkopie, Bearbeiten und
+  Versionshistorie funktionieren.
+
+Windows ist weiterhin nicht auf diesem Linux-Host baubar/geprüft. Die M2-Abnahme
+betrifft Backend und Web; erneute native Release-Builds sind nicht Bestandteil
+dieses lokalen Vorschau-Deployments. Prüfungen ersetzen keine elektrotechnische
+Fachabnahme oder öffentliche Betriebsfreigabe.
