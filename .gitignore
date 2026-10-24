@@ -28,3 +28,7 @@ build/
 
 # Local preview credentials
 .local-access.json
+
+# Python test artifacts
+__pycache__/
+*.pyc

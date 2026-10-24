@@ -17,7 +17,7 @@ def request(path, body=None, token=None, method=None, expected=200):
     headers = {'Content-Type': 'application/json'}
     if token:
         headers['Authorization'] = 'Bearer ' + token
-    req = urllib.request.Request(BASE + path, data=json.dumps(body).encode() if body is not None else None, headers=headers, method=method)
+    req = urllib.request.Request((os.environ.get('LIBRE_ECAD_OPERATOR_URL','http://127.0.0.1:8186') + path.replace('/api/superadmin/','/api/',1)) if path.startswith('/api/superadmin/') else BASE + path, data=json.dumps(body).encode() if body is not None else None, headers=headers, method=method)
     try:
         response = urllib.request.urlopen(req, timeout=20)
     except urllib.error.HTTPError as error:
@@ -30,9 +30,9 @@ super_token = request('/api/superadmin/auth/login', {'username': config['SUPER_A
 stamp = datetime.now().strftime('%Y%m%d%H%M%S')
 
 def company(suffix):
-    company = request('/api/superadmin/companies', {'name': 'M2 Abnahme ' + stamp + ' ' + suffix}, super_token, expected=201)
     username = 'm2-' + stamp + '-' + suffix
-    admin = request('/api/superadmin/companies/' + company['companyId'] + '/admins', {'username': username}, super_token, expected=201)
+    admin = request('/api/superadmin/operator', {'action':'managed','operation':'create','requestId':username,'name':'M2 Abnahme '+stamp+' '+suffix,'username':username,'confirmed':True,'reason':'TEST: M2 regression'}, super_token)
+    company = {'companyId':admin['id'],'name':admin['name']}
     password = secrets.token_urlsafe(18)
     request('/api/company/auth/activate', {'token': admin['activationToken'], 'password': password})
     token = request('/api/company/auth/login', {'username': username, 'password': password})['token']

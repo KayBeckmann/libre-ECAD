@@ -2,7 +2,7 @@
 
 **LibreECAD** ist ein geplantes, quelloffenes Werkzeug zur Planung und Dokumentation von Elektroanlagen – für Verteilerbau und Schaltanlagen. Der Name ist ein **Arbeitsname**; Marken- und Namensrechte wurden nicht abschließend geprüft.
 
-> **Projektstatus:** **Meilenstein 1 und 2 sind umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. Es gibt weiterhin **keinen CAD-Editor, grafischen Symboleditor oder öffentlichen Artikel-Upload**.
+> **Projektstatus:** **Meilenstein 1–3 sind für die LAN-Vorschau umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. M3 ergänzt moderierte Katalogbeiträge und eine getrennte Betreiberoberfläche. Es gibt weiterhin **keinen CAD-Editor oder grafischen Symboleditor**. Öffentlicher Upload-/Mietbetrieb benötigt eine eigene fachliche Freigabe.
 
 ## Zielbild
 
@@ -15,7 +15,7 @@ Geplant sind ein gemeinsamer globaler Artikelstamm sowie getrennte persönliche 
 Der **erste Meilenstein** ist bewusst auf ein Grundgerüst begrenzt und wird in dieser Reihenfolge entwickelt:
 
 1. **Super-Admin-Backend:** Geschützter Zugang; Firmenzugang und erstes Firmen-Admin-Konto anlegen. — **Umgesetzt** (`backend/super_admin_service`).
-2. **Globales Artikelbackend:** Eigenständiger Dienst mit Artikel-Basismodell und Suche anhand gekennzeichneter Testdaten. Öffentliche Uploads folgen später. — **Umgesetzt** (`backend/global_articles_service`).
+2. **Globales Artikelbackend:** Eigenständiger Dienst mit Artikel-Basismodell und Suche anhand gekennzeichneter Testdaten. Moderierte Beiträge wurden in M3 ergänzt. — **Umgesetzt** (`backend/global_articles_service`).
 3. **Firmen-/Nutzerbackend:** Anmeldung und Benutzerverwaltung innerhalb der eigenen Firma. Zunächst nur **Admin** und **Zeichner**; kein firmenübergreifender Zugriff. — **Umgesetzt** (`backend/company_users_service`).
 4. **Flutter-Frontend:** Firmenbackend auswählen (Managed-Backend des Projektbetreibers als änderbare Voreinstellung), anmelden und die für die Rolle passende minimale Ansicht öffnen. Noch kein CAD-Editor. — **Umgesetzt** (`frontend/libre_ecad_app`; Web-, Linux- und Android-Build verifiziert, Windows-Build braucht einen Windows-Host/-Runner).
 
@@ -23,7 +23,9 @@ Die drei Backenddienste nutzen jeweils eine eigene PostgreSQL-Instanz; das Web-F
 
 **Meilenstein 2:** Projekte und Mitgliedschaften sind firmengetrennt. Persönliche Artikel bleiben privat; Firmenartikel sind firmenweit lesbar und durch Admins bearbeitbar. Änderungen prüfen die bekannte Version; Kopien behalten ihre Quellversion und entwickeln sich unabhängig weiter. Technische Ebenen unterscheiden fehlende Werte von null und bleiben ungeprüft. API und Betriebsdetails: [`docs/m2-api.md`](docs/m2-api.md).
 
-**Spätere Meilensteine:** Berechtigte globale Beiträge und Herstellerverwaltung; ECAD-Zeichenkern; Dokumentation, Plausibilitätsprüfung und unveränderliche freigegebene Projektstände; vorbereitete Offline-Arbeit in installierten Clients, Katalog-Ausfallsicherheit und fachliche API/MCP-Schnittstellen; weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt eine mehrsprachige Homepage und ein mehrsprachiges Wiki. Diese Reihenfolge ist ein Plan, keine Implementierungszusage.
+**Meilenstein 3:** Bewusste öffentliche Vorschau, Moderation, Freigabe- und Rückzugshistorie, Herstellerzuordnung sowie eine getrennte Betreiberverwaltung für Zugänge, Verträge und manuelle Zahlungsbelege. Details: [`docs/m3-operations.md`](docs/m3-operations.md).
+
+**Spätere Meilensteine:** ECAD-Zeichenkern; Dokumentation, Plausibilitätsprüfung und unveränderliche freigegebene Projektstände; vorbereitete Offline-Arbeit in installierten Clients, Katalog-Ausfallsicherheit und fachliche API/MCP-Schnittstellen; weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt eine mehrsprachige Homepage und ein mehrsprachiges Wiki. Diese Reihenfolge ist ein Plan, keine Implementierungszusage.
 
 ## Wichtige Grenzen
 
@@ -44,7 +46,7 @@ curl http://localhost:8182/health   # global-articles-service
 curl http://localhost:8183/health   # company-users-service
 ```
 
-Webzugriff: `http://<LAN-Host>:8185`. Backend und Katalog werden im Browser am selben Host angesprochen. Der Superadmin wird aus `.env` initialisiert; sein separates Verwaltungsfrontend folgt M3. Für die ECAD-Web-App ist ein Firmenkonto erforderlich.
+Webzugriff: `http://<LAN-Host>:8185`. Backend und Katalog werden im Browser am selben Host angesprochen. Der Superadmin wird aus `.env` initialisiert; sein separates Verwaltungsfrontend läuft auf `http://<LAN-Host>:8186`. Für die ECAD-Web-App ist ein Firmenkonto erforderlich.
 
 Backend-Tests (je Dienst, ohne laufende Datenbank):
 

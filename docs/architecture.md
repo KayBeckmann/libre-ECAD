@@ -131,9 +131,9 @@ Firma möglich. Unbekannte und unzugängliche Projekt-IDs liefern gleichermaßen
 Die Web-App verwendet `/api/company/` und `/api/global/` am aktuellen Browserhost.
 nginx leitet diese Pfade an die Dienste weiter; damit funktioniert die LAN-URL
 ohne fest eingebaute Host-IP oder CORS-Freigabe. Native Clients verwenden weiter
-konfigurierbare Backend-Adressen. Ports 8181/8182/8183/8185 sind im LAN gebunden;
+konfigurierbare Backend-Adressen. Ports 8181/8182/8183/8185/8186 sind im LAN gebunden;
 die Datenbanken haben keine Host-Portfreigabe. Superadmin bleibt eine getrennte
-API (`/api/superadmin/` bzw. Port 8181); seine Verwaltungsoberfläche folgt M3.
+API (Port 8181). Seit M3 hat sie eine eigene Oberfläche auf Port 8186; der frühere Superadmin-Proxy im Firmenfrontend ist geschlossen.
 
 ## M2.2 – Lokale Artikel und Kopien
 
@@ -156,5 +156,11 @@ unabhängig. Personal → Firma ist eine bewusste Admin-Aktion, Firma → Person
 jeden berechtigten Nutzer möglich. Global → lokal liest die konfigurierte feste
 Katalogadresse serverseitig, prüft die angezeigte Version und kopiert die synthetischen
 Metadaten. Ungeklärte Lizenz und fehlende technische Daten bleiben ausdrücklich sichtbar.
-Bei Nichtverfügbarkeit entsteht keine lokale Kopie. Lokal → global bleibt bis zum
-Veröffentlichungs-/Moderationsprozess M3 gesperrt; keine öffentlichen Schreibendpunkte.
+Bei Nichtverfügbarkeit entsteht keine lokale Kopie. Seit M3 gibt es einen getrennten, bewussten Beitragsprozess; private Artikel werden nicht automatisch veröffentlicht.
+
+## M3 – Betreiber und öffentliche Beiträge
+
+Die aktuelle Implementierung, Transaktionsgrenzen, Zustände, manuellen Betriebsprozesse
+und offenen Produktionsfreigaben stehen in [m3-operations.md](m3-operations.md).
+M3-Migrationen ergänzen Tabellen und Sitzungsrevisionen transaktional unter Advisory-Locks;
+sie sind bei erneutem Start idempotent. Die drei Dienste verwenden jetzt Verbindungspools.

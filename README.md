@@ -4,7 +4,7 @@
 
 **LibreECAD** is a planned open-source tool for designing and documenting electrical installations, distribution boards, and control panels. The name is a **working title**; trademark and naming rights have not been fully checked.
 
-> **Project status:** **Milestones 1 and 2 are implemented:** company projects with memberships, personal/company article libraries, a metadata builder, version history, deliberate copies and separate global search. There is still **no CAD editor, graphical symbol editor or public article upload**.
+> **Project status:** **Milestones 1–3 are implemented for LAN testing:** company projects with memberships, personal/company article libraries, a metadata builder, version history, deliberate copies and separate global search. M3 adds moderated public contributions and a separate operator console. There is still **no CAD editor or graphical symbol editor**. Public commercial operation requires separate process approval.
 
 ## Vision
 
@@ -17,7 +17,7 @@ A shared global article catalog and separate personal and company catalogs are p
 The **first milestone** is intentionally limited to a foundation, built in this order:
 
 1. **Super-admin backend:** Protected access for creating a company account and its first company admin. — **Implemented** (`backend/super_admin_service`).
-2. **Global article backend:** A separate service with a basic article model and search using clearly labeled sample data. Public uploads come later. — **Implemented** (`backend/global_articles_service`).
+2. **Global article backend:** A separate service with a basic article model and search using clearly labeled sample data. Moderated contributions were added in M3. — **Implemented** (`backend/global_articles_service`).
 3. **Company/user backend:** Sign-in and user management within each company. Initially there are only two roles: **Admin** and **Drafter**; neither role grants access across companies. — **Implemented** (`backend/company_users_service`).
 4. **Flutter frontend:** Select a company backend (the project operator's managed backend is the editable default), sign in, and show a minimal role-appropriate screen. There is no CAD editor in this milestone. — **Implemented** (`frontend/libre_ecad_app`; web, Linux and Android builds verified, Windows build needs a Windows host/runner).
 
@@ -25,7 +25,9 @@ The three backend services each use a separate PostgreSQL instance; the web deli
 
 **Milestone 2:** Projects and memberships are isolated per company. Personal articles stay private; company articles are readable by company members and editable by admins. Changes use version checks; copies retain their source version and evolve independently. Technical layers distinguish missing values from zero and stay unverified. API and operational details: [`docs/m2-api.md`](docs/m2-api.md).
 
-**Later milestones:** Authorized global contributions and manufacturer management; an electrical CAD editing core; documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
+**Milestone 3:** Deliberate public previews, moderation, immutable releases and withdrawals; assigned manufacturer identities; a separate operator console with audited company access, contracts and manual payment records. See [`docs/m3-operations.md`](docs/m3-operations.md).
+
+**Later milestones:** An electrical CAD editing core; documentation, consistency checks, and immutable approved project revisions; prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. This is a plan, not a claim that any of these features have been implemented.
 
 ## Important boundaries
 
@@ -46,7 +48,7 @@ curl http://localhost:8182/health   # global-articles-service
 curl http://localhost:8183/health   # company-users-service
 ```
 
-Open `http://<LAN-host>:8185`. The browser uses the same host for its backend and catalog proxy. Super-admin credentials bootstrap from `.env`; the separate operator UI is planned for M3. The company app requires a company account.
+Open `http://<LAN-host>:8185`. The browser uses the same host for its backend and catalog proxy. Super-admin credentials bootstrap from `.env`; the separate operator UI runs at `http://<LAN-host>:8186`. The company app requires a company account.
 
 Backend tests (per service, no running database needed):
 
