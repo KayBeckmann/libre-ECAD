@@ -37,7 +37,7 @@ const calculationResultLabels = {
   'dropV': 'Spannungsfall [V]',
   'dropPercent': 'Spannungsfall [%]',
   'withinEnteredLimit': 'Eingegebene Projektgrenze eingehalten',
-  'currentRelation': 'Ib ≤ In ≤ Iz nach Eingaben',
+  'currentRelation': 'Ib <= In <= Iz nach Eingaben',
   'minimumAreaVoltageMm2':
       'Rechnerischer Mindestquerschnitt nur für Spannungsfall [mm²]',
   'reactanceDropV': 'Spannungsfallanteil der Reaktanz [V]',

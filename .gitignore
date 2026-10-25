@@ -12,6 +12,7 @@ build/
 # Flutter platform build artifacts (Quellcode der Plattformordner
 # bleibt versioniert, nur Build-Output nicht).
 **/android/.gradle/
+**/android/.kotlin/
 **/android/app/build/
 **/ios/Pods/
 **/linux/flutter/ephemeral/
