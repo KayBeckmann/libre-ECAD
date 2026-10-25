@@ -35,7 +35,8 @@ browser-side same-host links with standard ports; configured origins also work
 without JavaScript. No backend service is a dependency. Either site can be built,
 started, stopped or replaced by naming just `homepage` or `wiki`.
 
-The Docker build context uses a Dockerfile-specific allowlist. Local `.env`,
+The Docker build context uses matching root and Dockerfile-specific allowlists
+(the root file also covers the classic builder). Local `.env`,
 credentials, Git history and application builds are not sent to this builder.
 The optional verified Linux artifact **is** included. Generated output is ignored.
 Nginx has a read-only root filesystem with ephemeral runtime directories; no
