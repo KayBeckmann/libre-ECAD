@@ -741,21 +741,62 @@ class _DrawingScreenState extends State<DrawingScreen> {
       );
       return;
     }
-    final values = await fields('Blattfortsetzung anlegen', {
-      'Signalname': 'Signal',
-      'Zielblattnummer': '${others.first['number']}',
-    });
-    if (values == null || !mounted) return;
-    final targets = others.where(
-      (s) => '${s['number']}' == values['Zielblattnummer'],
+    final signal = TextEditingController(text: 'Signal');
+    var target = others.first['id'] as String;
+    final values = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Blattfortsetzung anlegen'),
+        content: SizedBox(
+          width: 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: signal,
+                maxLength: 160,
+                decoration: const InputDecoration(labelText: 'Signalname'),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: target,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Zielblatt'),
+                items: [
+                  for (final sheet in others)
+                    DropdownMenuItem(
+                      value: sheet['id'] as String,
+                      child: Text('${sheet['number']} · ${sheet['title']}'),
+                    ),
+                ],
+                onChanged: (value) => target = value!,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Erzeugt zwei zusammengehörige Enden. Beide Enden anschließend mit dem Werkzeug Verbinden an die jeweiligen Anschlüsse anschließen.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, {
+              'Signalname': signal.text.trim(),
+              'target': target,
+            }),
+            child: const Text('Fortsetzung anlegen'),
+          ),
+        ],
+      ),
     );
-    if (targets.isEmpty) {
-      setState(() => error = 'Zielblatt nicht gefunden.');
-      return;
-    }
+    Future<void>.delayed(const Duration(seconds: 1), signal.dispose);
+    if (values == null || !mounted) return;
     final link = newId();
     change((d) {
-      for (final sid in [sheetId, targets.first['id']]) {
+      for (final sid in [sheetId, values['target']]) {
         (d['continuations'] as List).add({
           'id': newId(),
           'sheetId': sid,
