@@ -1,14 +1,14 @@
 # LibreECAD
 
-**LibreECAD** ist ein geplantes, quelloffenes Werkzeug zur Planung und Dokumentation von Elektroanlagen – für Verteilerbau und Schaltanlagen. Der Name ist ein **Arbeitsname**; Marken- und Namensrechte wurden nicht abschließend geprüft.
+**LibreECAD** ist ein quelloffenes Werkzeug in Entwicklung zur Planung und Dokumentation von Elektroanlagen – für Verteilerbau und Schaltanlagen. Der Name ist ein **Arbeitsname**; Marken- und Namensrechte wurden nicht abschließend geprüft.
 
-> **Projektstatus:** **Meilenstein 1–5 sind für die LAN-Vorschau umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. M3 ergänzt moderierte Katalogbeiträge und eine getrennte Betreiberoberfläche. M4 ergänzt einen Schaltplaneditor mit expliziten elektrischen Verbindungen, mehreren Blättern und Gerätequerverweisen. M5 ergänzt abgeleitete Listen, PDF-Ausgaben und unveränderliche Freigabepakete. Die Oberfläche folgt den Projektmockups. Der Artikel-Baukasten enthält einen grafischen Symboleditor. Drehstromdarstellung und mehrere Öffner/Schließer je Relaisspule sind verfügbar; die eingebaute Symbolbibliothek bleibt synthetisch. Öffentlicher Upload-/Mietbetrieb benötigt eine eigene fachliche Freigabe.
+> **Projektstatus:** Die Entwicklungsfunktionen aus M1–M8 sind für private LAN-Tests verfügbar: Firmenprojekte und Rollen, Artikel-/Symboldesigner, Drehstrompläne und verknüpfte Relaiskontakte, versionierte Dokumente, vorbereitete native Offline-Arbeit, API/MCP sowie Installations-/Aufbauplanung. M8 ergänzt eine deutsch-/englischsprachige Homepage und ein versioniertes Wiki in getrennten Containern sowie einen geprüften Linux-Entwicklungsdownload. Die Oberfläche folgt den [Projektmockups](docs/mockups/README.md). Fachabnahme, Windows-/Android-Geräteprüfung, produktives HA und öffentlicher kommerzieller Betrieb bleiben offen.
 
 ## Zielbild
 
 Schaltpläne, einpolige Übersichten, Klemmen- und Ansichtszeichnungen sowie Installationspläne sollen auf einem gemeinsamen fachlichen Datenmodell beruhen. Betriebsmittel, Anschlüsse und elektrische Verbindungen sind dabei strukturierte Objekte: Eine grafische Kreuzung ist nicht automatisch ein elektrischer Knoten. Listen, Querverweise und Exporte sollen aus demselben gewählten Projektstand entstehen.
 
-Geplant sind ein gemeinsamer globaler Artikelstamm sowie getrennte persönliche und firmeneigene Bestände. Der globale Stamm unterscheidet allgemeine Artikel, eindeutig zugeordnete Herstellerdaten und bewusst veröffentlichte Nutzerbeiträge. Herkunft, Version und Prüfstatus müssen sichtbar bleiben; ein Nutzerbeitrag wird nicht als verifizierter Herstellerdatensatz ausgegeben.
+Umgesetzt sind ein gemeinsamer globaler Artikelstamm sowie getrennte persönliche und firmeneigene Bestände. Der globale Stamm unterscheidet allgemeine Artikel, eindeutig zugeordnete Herstellerdaten und bewusst veröffentlichte Nutzerbeiträge. Herkunft, Version und Prüfstatus müssen sichtbar bleiben; ein Nutzerbeitrag wird nicht als verifizierter Herstellerdatensatz ausgegeben.
 
 ## Entwicklungsfolge
 
@@ -35,7 +35,7 @@ Die drei Backenddienste nutzen jeweils eine eigene PostgreSQL-Instanz; das Web-F
 
 **Meilenstein 7 – Entwicklungsstand:** Installationspläne mit Bildvorlage, Maßstab und Leitungswegen; Aufbauzeichnungen nach Artikelmaßen; versionierte Makros; nachvollziehbare Rechenvorschläge und Materialübergabe. [Bedienung und Abnahmegrenzen](docs/m7-planning.md). Die WerkkernERP-Vorschau liegt auf einem getrennten Integrationszweig. Fachliche Modell-/Rechenabnahme bleibt offen.
 
-**Danach:** Mehrsprachige Homepage und Wiki.
+**Meilenstein 8 – Entwicklungsstand:** Homepage und versioniertes Wiki auf Deutsch/Englisch in unabhängigen Containern, klarer Betriebs-/Buildstatus, lokale Suche und geprüfter Linux-Download. [Betrieb und ausgeführte Abnahme](docs/m8-sites.md); [Pflege der Seiten](sites/README.md). Öffentlicher Livegang benötigt weiterhin Kays Freigabe.
 
 ## Wichtige Grenzen
 
@@ -72,6 +72,14 @@ flutter run -d chrome   # oder -d linux / flutter build apk --debug
 ```
 
 Alle Details, die Port-Begründung und der Ablauf (Super-Admin legt Firma + Erst-Admin an, dieser aktiviert sich, meldet sich an und legt einen Zeichner an) stehen in [`docs/architecture.md`](docs/architecture.md). Bitte keine echten Projektdaten oder Zugangsdaten in Issues veröffentlichen.
+
+## Homepage und Wiki als Vorschau
+
+```bash
+docker compose -p libre-ecad-sites -f compose.sites.yml up -d --build
+```
+
+Einstieg: `http://127.0.0.1:8187/de/` und `http://127.0.0.1:8188/de/m8-dev/start/`; beide bieten Englisch. Die Container benötigen keine App-/Backenddienste. Private LAN-Bindung und feste Origins: siehe [M8](docs/m8-sites.md).
 
 ## Lizenz
 

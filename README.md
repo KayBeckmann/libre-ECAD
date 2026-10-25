@@ -2,15 +2,15 @@
 
 [Deutsch](Readme-de.md)
 
-**LibreECAD** is a planned open-source tool for designing and documenting electrical installations, distribution boards, and control panels. The name is a **working title**; trademark and naming rights have not been fully checked.
+**LibreECAD** is an open-source tool in development for designing and documenting electrical installations, distribution boards, and control panels. The name is a **working title**; trademark and naming rights have not been fully checked.
 
-> **Project status:** **Milestones 1–5 are implemented for LAN testing:** company projects with memberships, personal/company article libraries, a metadata builder, version history, deliberate copies and separate global search. M3 adds moderated public contributions and a separate operator console. M4 adds a schematic editor with explicit electrical connections, multiple sheets and device cross-references. M5 adds derived lists, explicit PDF sources, plausibility findings and immutable approved Git packets. The interface follows the original [project mockups](docs/mockups/README.md). The article builder includes a graphical symbol editor; three-phase drawings and multiple NO/NC contacts per relay are supported. The built-in symbol library remains synthetic. Public commercial operation requires separate process approval.
+> **Project status:** M1–M8 development features are available for private LAN testing: company projects and roles, article/symbol design, three-phase schematics and linked relay contacts, revisioned documents, prepared native offline work, API/MCP and installation/cabinet planning. M8 adds a German/English homepage and versioned wiki in separate containers, plus a verified Linux development download. The interface follows the [project mockups](docs/mockups/README.md). Professional engineering approval, Windows/Android device acceptance, production HA and public commercial launch remain open.
 
 ## Vision
 
 Schematics, single-line diagrams, terminal and assembly drawings, and installation plans should share one engineering data model. Devices, terminals, and electrical connections are structured objects: two lines crossing on a drawing do not automatically form an electrical junction. Lists, cross-references, and exports should all be generated from the same selected project revision.
 
-A shared global article catalog and separate personal and company catalogs are planned. The global catalog will distinguish general articles, data submitted by authorized manufacturers, and contributions deliberately published by users. Provenance, version, and verification status must remain visible; a user contribution must never be presented as verified manufacturer data.
+A shared global article catalog and separate personal and company catalogs are implemented. The global catalog distinguishes general articles, data submitted by authorized manufacturers, and contributions deliberately published by users. Provenance, version, and verification status must remain visible; a user contribution must never be presented as verified manufacturer data.
 
 ## Development sequence
 
@@ -37,7 +37,7 @@ The three backend services each use a separate PostgreSQL instance; the web deli
 
 **Milestone 7 development:** Raster installation plans, scale and routes, article-sized layouts, versioned macros, transparent calculation estimates and material exchange previews. See [M7 workflows and acceptance limits](docs/m7-planning.md). The WerkkernERP preview lives on a separate integration branch; professional model/calculation review remains open.
 
-**Later:** Multilingual website and wiki.
+**Milestone 8 development:** German/English homepage and versioned wiki in independent containers, honest operating-model/build status, local search and a verified Linux download. [Operation and completed acceptance](docs/m8-sites.md); [site maintenance](sites/README.md). Public publication still requires Kay’s approval.
 
 ## Important boundaries
 
@@ -74,6 +74,14 @@ flutter run -d chrome   # or -d linux / flutter build apk --debug
 ```
 
 Full details, port rationale, and the request flow (super-admin creates a company and its first admin, who activates their account, signs in, and creates a drafter) are in [`docs/architecture.md`](docs/architecture.md). Please do not post real project data or credentials in issues.
+
+## Homepage and wiki preview
+
+```bash
+docker compose -p libre-ecad-sites -f compose.sites.yml up -d --build
+```
+
+Open `http://127.0.0.1:8187/de/` and `http://127.0.0.1:8188/de/m8-dev/start/`; both provide English. These containers need no app/backend services. For private LAN binding and fixed origins, see [M8](docs/m8-sites.md).
 
 ## License
 
