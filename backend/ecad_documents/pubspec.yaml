@@ -1,0 +1,9 @@
+name: ecad_documents
+description: Shared deterministic project rendering for server and prepared native clients.
+publish_to: none
+environment:
+  sdk: ^3.9.0
+dependencies:
+  ecad_core:
+    path: ../ecad_core
+  pdf: 3.13.1

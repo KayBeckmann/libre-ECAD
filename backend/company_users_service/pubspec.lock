@@ -144,6 +144,13 @@ packages:
       relative: true
     source: path
     version: "0.0.0"
+  ecad_documents:
+    dependency: "direct main"
+    description:
+      path: "../ecad_documents"
+      relative: true
+    source: path
+    version: "0.0.0"
   ffi:
     dependency: transitive
     description:

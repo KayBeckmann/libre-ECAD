@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+
+import '../offline/offline_screen.dart';
+
 import 'package:provider/provider.dart';
 
 import '../api/company_users_api.dart';
@@ -36,6 +40,15 @@ class HomeScreen extends StatelessWidget {
         leading: Icon(Icons.people_outline),
         title: Text('Arbeitsplatz'),
       ),
+      if (!kIsWeb)
+        ListTile(
+          leading: const Icon(Icons.offline_bolt_outlined),
+          title: const Text('Offlineprojekte'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const OfflineScreen()),
+          ),
+        ),
       ListTile(
         leading: const Icon(Icons.folder_outlined),
         title: const Text('Projekte'),

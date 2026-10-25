@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+
+import '../offline/offline_screen.dart';
 
 import '../api/workspace_api.dart';
 import '../api/company_users_api.dart';
@@ -228,6 +231,18 @@ class _ProjectEditorState extends State<ProjectEditor> {
                     icon: const Icon(Icons.polyline_outlined),
                     label: const Text('Schaltplan öffnen'),
                   ),
+                ),
+              if (!kIsWeb && widget.project != null)
+                OutlinedButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => prepareOffline(
+                          context,
+                          widget.session,
+                          widget.project!['id'],
+                        ),
+                  icon: const Icon(Icons.download),
+                  label: const Text('Offline vorbereiten'),
                 ),
               const SizedBox(height: 20),
               TextFormField(

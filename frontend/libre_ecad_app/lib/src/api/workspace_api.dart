@@ -9,6 +9,7 @@ class WorkspaceApi {
   WorkspaceApi(this.session, {http.Client? client})
     : _http = client ?? http.Client();
   final Session session;
+  bool get isOffline => false;
   final http.Client _http;
   Future<Map<String, dynamic>> request(
     String method,

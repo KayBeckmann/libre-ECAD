@@ -1,6 +1,7 @@
 FROM dart:stable AS build
 WORKDIR /app
 COPY ecad_core /app/ecad_core
+COPY ecad_documents /app/ecad_documents
 COPY shared_server_kit /app/shared_server_kit
 COPY company_users_service /app/company_users_service
 WORKDIR /app/company_users_service

@@ -96,6 +96,14 @@ class WorkspaceRouter {
       '/projects/<id>/releases',
       (Request q, String id) => _guard(q, (q, u) => _approve(q, u, id)),
     );
+    r.post(
+      '/projects/<id>/offline',
+      (Request q, String id) => _guard(q, (q, u) => _offline(q, u, id)),
+    );
+    r.post(
+      '/projects/<id>/offline/upload',
+      (Request q, String id) => _guard(q, (q, u) => _offlineUpload(q, u, id)),
+    );
     return r;
   }
 
@@ -245,6 +253,70 @@ class WorkspaceRouter {
     if (!await store.update(u.companyId, 'project', next, d['version'] as int))
       return _conflict();
     return jsonOk(next);
+  }
+
+  Future<Response> _offline(Request q, AppUser u, String id) async {
+    final p = await _drawingProject(id, u);
+    if (p == null) return jsonError('Projekt nicht gefunden.', status: 404);
+    final body = await _body(q);
+    if (body['confirmed'] != true)
+      throw FormatException('Offline-Download bewusst bestätigen.');
+    if (p['drawing'] == null)
+      throw FormatException('Zuerst eine Zeichnung speichern.');
+    final hours =
+        int.tryParse(Platform.environment['OFFLINE_LEASE_HOURS'] ?? '24') ?? 24;
+    if (hours < 1 || hours > 168)
+      throw StateError('OFFLINE_LEASE_HOURS must be 1..168');
+    final now = DateTime.now().toUtc();
+    final company = await users.findCompanyById(u.companyId);
+    return jsonOk({
+      'format': 'libre-ecad-offline-v1',
+      'id': SessionTokens.generate(),
+      'userId': u.id,
+      'companyId': u.companyId,
+      'username': u.username,
+      'companyName': company!.name,
+      'issuedAt': now.toIso8601String(),
+      'expiresAt': now.add(Duration(hours: hours)).toIso8601String(),
+      'baseVersion': p['version'],
+      'project': _publicProject(p),
+      'library': pinnedLibrary(),
+      'localRevision': 0,
+    });
+  }
+
+  Future<Response> _offlineUpload(Request q, AppUser u, String id) async {
+    final p = await _drawingProject(id, u);
+    if (p == null) return jsonError('Projekt nicht gefunden.', status: 404);
+    final body = await _body(q);
+    if (body['confirmed'] != true)
+      throw FormatException('Upload bewusst bestätigen.');
+    if (body['userId'] != u.id || body['companyId'] != u.companyId)
+      return jsonError(
+        'Offline-Kopie gehört zu einem anderen Zugang.',
+        status: 403,
+      );
+    if (body['version'] is! int || body['version'] != p['version'])
+      return _conflict();
+    if (body['baseVersion'] is! int ||
+        body['baseVersion'] < 1 ||
+        body['baseVersion'] > body['version']) {
+      throw FormatException('Ungültiger Offline-Basisstand.');
+    }
+    final drawing = validateDrawing(body['drawing']);
+    final next = {
+      ..._revision(p, u),
+      'drawing': drawing,
+      'activity': {
+        'action': 'offline-upload',
+        'baseVersion': body['baseVersion'],
+        'expectedVersion': body['version'],
+        'confirmedBy': u.id,
+      },
+    };
+    if (!await store.update(u.companyId, 'project', next, body['version']))
+      return _conflict();
+    return jsonOk(_drawingResponse(next));
   }
 
   Document _metadata(Object? input) {

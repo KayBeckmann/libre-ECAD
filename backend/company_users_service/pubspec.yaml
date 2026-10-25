@@ -8,6 +8,8 @@ environment:
   sdk: ^3.9.0
 
 dependencies:
+  ecad_documents:
+    path: ../ecad_documents
   ecad_core:
     path: ../ecad_core
   crypto: ^3.0.6

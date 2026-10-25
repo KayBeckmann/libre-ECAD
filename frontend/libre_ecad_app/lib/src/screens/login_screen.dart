@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+
+import '../offline/offline_screen.dart';
+
 import 'package:provider/provider.dart';
 
 import '../api/company_users_api.dart';
@@ -109,6 +113,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Verbinden Sie sich mit Ihrem Firmen-Backend und öffnen Sie Ihren Arbeitsplatz.',
                     style: TextStyle(color: ecadMuted, height: 1.6),
                   ),
+                  if (!kIsWeb)
+                    TextButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const OfflineScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.offline_bolt_outlined),
+                      label: const Text('Offlineprojekte öffnen'),
+                    ),
                   const SizedBox(height: 32),
                   Card(
                     child: Padding(

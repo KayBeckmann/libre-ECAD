@@ -71,7 +71,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       if (mounted) {
         setState(() {
           online = false;
-          error = 'Backend nicht erreichbar oder Zugriff entzogen. Entwurf bleibt im Fenster erhalten. Verbindung prüfen oder erneut anmelden.';
+          error = api.isOffline ? '$e' : 'Backend nicht erreichbar oder Zugriff entzogen. Entwurf bleibt im Fenster erhalten. Verbindung prüfen oder erneut anmelden.';
         });
       }
     } finally {
@@ -187,6 +187,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           projectId: widget.projectId,
           version: version,
           hasDraft: controller!.dirty,
+          api: api,
         ),
       ),
     );
@@ -787,7 +788,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 ),
               ),
             IconButton(
-              tooltip: 'Verbindung prüfen',
+              tooltip: api.isOffline
+                  ? 'Offline-Berechtigung prüfen'
+                  : 'Verbindung prüfen',
               onPressed: busy ? null : () => ready ? check() : load(),
               icon: Icon(
                 online ? Icons.cloud_done_outlined : Icons.cloud_off,

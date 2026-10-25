@@ -14,7 +14,9 @@ class DocumentsScreen extends StatefulWidget {
     required this.projectId,
     required this.version,
     this.hasDraft = false,
+    this.api,
   });
+  final WorkspaceApi? api;
   final Session session;
   final String projectId;
   final int version;
@@ -24,7 +26,7 @@ class DocumentsScreen extends StatefulWidget {
 }
 
 class _DocumentsScreenState extends State<DocumentsScreen> {
-  late final api = WorkspaceApi(widget.session);
+  late final api = widget.api ?? WorkspaceApi(widget.session);
   late String source = 'version=${widget.version}';
   Json? result;
   List<Json> versions = [], releases = [];
@@ -39,7 +41,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
 
   @override
   void dispose() {
-    api.close();
+    if (widget.api == null) api.close();
     super.dispose();
   }
 
@@ -257,7 +259,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   DropdownMenuItem(
                     value: 'version=${p['version']}',
                     child: Text(
-                      'Arbeitsstand V${p['version']} · nicht freigegeben',
+                      '${api.isOffline ? 'Offline-Entwurf auf Basis' : 'Arbeitsstand'} V${p['version']} · nicht freigegeben',
                     ),
                   ),
                 for (final p in releases.reversed)
@@ -326,7 +328,9 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   icon: const Icon(Icons.download),
                   label: const Text('PDF herunterladen'),
                 ),
-                if (!released && widget.session.role == UserRole.admin)
+                if (!api.isOffline &&
+                    !released &&
+                    widget.session.role == UserRole.admin)
                   OutlinedButton.icon(
                     onPressed:
                         busy || findings.any((f) => f['severity'] == 'error')

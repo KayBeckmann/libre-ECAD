@@ -539,4 +539,93 @@ void main() {
       );
     },
   );
+  test(
+    'offline download and explicit CAS upload enforce membership and identity',
+    () async {
+      var p = await json(
+        await call('admin-a', 'POST', 'projects', {'name': 'Offline'}),
+      );
+      final id = p['id'];
+      await call('admin-a', 'PUT', 'projects/$id/drawing', {
+        'version': 1,
+        'drawing': sampleDrawing('motor'),
+      });
+      expect(
+        (await call('admin-a', 'POST', 'projects/$id/offline', {})).statusCode,
+        400,
+      );
+      expect(
+        (await call('admin-b', 'POST', 'projects/$id/offline', {
+          'confirmed': true,
+        })).statusCode,
+        404,
+      );
+      expect(
+        (await call('drafter-a', 'POST', 'projects/$id/offline', {
+          'confirmed': true,
+        })).statusCode,
+        404,
+      );
+      final packet = await json(
+        await call('admin-a', 'POST', 'projects/$id/offline', {
+          'confirmed': true,
+        }),
+      );
+      expect(packet['baseVersion'], 2);
+      expect(packet['library'], pinnedLibrary());
+      expect(packet.containsKey('token'), isFalse);
+      final upload = {
+        'confirmed': true,
+        'userId': 'admin-a',
+        'companyId': 'a',
+        'version': 2,
+        'baseVersion': 2,
+        'drawing': sampleDrawing('distribution'),
+      };
+      expect(
+        (await call('admin-a', 'POST', 'projects/$id/offline/upload', {
+          ...upload,
+          'confirmed': false,
+        })).statusCode,
+        400,
+      );
+      expect(
+        (await call('admin-a', 'POST', 'projects/$id/offline/upload', {
+          ...upload,
+          'userId': 'drafter-a',
+        })).statusCode,
+        403,
+      );
+      final responses = await Future.wait(
+        List.generate(
+          2,
+          (_) => call('admin-a', 'POST', 'projects/$id/offline/upload', upload),
+        ),
+      );
+      expect(responses.map((r) => r.statusCode).toList()..sort(), [200, 409]);
+      p = (await store.get('a', 'project', id))!;
+      expect(p['activity']['confirmedBy'], 'admin-a');
+      expect(p['version'], 3);
+      await call('admin-a', 'PATCH', 'projects/$id', {
+        ...p,
+        'memberIds': ['drafter-a'],
+      });
+      expect(
+        (await call('drafter-a', 'POST', 'projects/$id/offline', {
+          'confirmed': true,
+        })).statusCode,
+        200,
+      );
+      p = (await store.get('a', 'project', id))!;
+      await call('admin-a', 'PATCH', 'projects/$id', {...p, 'memberIds': []});
+      expect(
+        (await call('drafter-a', 'POST', 'projects/$id/offline/upload', {
+          ...upload,
+          'userId': 'drafter-a',
+          'version': 5,
+        })).statusCode,
+        404,
+      );
+    },
+  );
 }
