@@ -98,7 +98,7 @@ müssen vorher bestätigt werden. Rückzug entfernt öffentliche Sichtbarkeit,
 `libre-ecad.material.v1` enthält Backend-/Projekt-ID, Projektversion,
 Zeichnungs-SHA256, Paket-ID, Artikel-ID/-version, Variante, Stückeinheit, Mengen
 und Gerätekennungen. SHA256 ist eine Integritätsprüfung, keine Absendersignatur.
-Der WerkkernERP-Zweig `feat/libre-ecad-material-preview` liest dieses Format,
+Der [WerkkernERP-Integrationszweig](https://github.com/KayBeckmann/WerkkernERP/tree/feat/libre-ecad-material-preview) liest dieses Format,
 prüft Dubletten und lässt vorhandene ERP-Artikel ausdrücklich zuordnen. Er
 exportiert einen Zuordnungsentwurf. Wiederholtes Laden ersetzt die Vorschau.
 Es gibt keine Artikelanlage oder automatische Angebots-, Auftrags- oder
@@ -123,7 +123,9 @@ Lagerbuchung. Der getrennte ERP-Zweig ist nicht in die laufende ERP-Instanz
 - WerkkernERP: Analyse `lib test` ohne Befunde; 321 Tests einschließlich einer
   vom LibreECAD-Generator erzeugten Materialdatei und sichtbarem Zurücksetzen
   beim erneuten Laden. Web-Release auch nach Abgleich mit dem aktuellen
-  ERP-Hauptzweig gebaut.
+  ERP-Hauptzweig gebaut. Chromium prüft außerdem die tatsächlich in LibreECAD
+  heruntergeladene Datei, explizite Artikelwahl, wiederholtes Laden ohne
+  zusätzliche Zeilen und den exportierten Zuordnungsentwurf.
 
 Synthetischer Beispieldatensatz: `dart run bin/planning_sample.dart` im Core-Paket.
 Die Skripte nutzen ausschließlich isolierte TEST-Firmen. Zugangsdaten bleiben in
