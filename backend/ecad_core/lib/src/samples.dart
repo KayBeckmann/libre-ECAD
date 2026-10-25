@@ -123,9 +123,9 @@ Json threePhaseDrawing() {
   };
   (d['sheets'] as List).add(control);
   final a = sheet['id'] as String, b = control['id'] as String;
-  final supply = addSymbol(d, 'supply3', a, 300, 180),
+  final supply = addSymbol(d, 'supply3', a, 340, 180),
       breaker = addSymbol(d, 'breaker3', a, 300, 360),
-      motor = addSymbol(d, 'motor', a, 300, 580);
+      motor = addSymbol(d, 'motor', a, 320, 580);
   void wire(Json from, String f, Json to, String t, String conductor) =>
       (d['wires'] as List).add({
         'id': newId(),
