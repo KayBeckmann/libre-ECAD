@@ -33,3 +33,9 @@ build/
 # Python test artifacts
 __pycache__/
 *.pyc
+
+# M8 generated static sites and locally verified download artifacts
+/sites/build/
+/sites/artifacts/
+/.sites.env
+/backups/

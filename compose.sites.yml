@@ -1,0 +1,36 @@
+# Independent private preview. No backend, databases or app rebuild required.
+services:
+  homepage:
+    build:
+      context: .
+      dockerfile: sites/Dockerfile
+      args:
+        SITE: homepage
+        HOMEPAGE_ORIGIN: ${HOMEPAGE_ORIGIN:-}
+        WIKI_ORIGIN: ${WIKI_ORIGIN:-}
+        APP_ORIGIN: ${APP_ORIGIN:-}
+    ports:
+      - "${SITES_BIND_ADDRESS:-127.0.0.1}:8187:80"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+  wiki:
+    build:
+      context: .
+      dockerfile: sites/Dockerfile
+      args:
+        SITE: wiki
+        HOMEPAGE_ORIGIN: ${HOMEPAGE_ORIGIN:-}
+        WIKI_ORIGIN: ${WIKI_ORIGIN:-}
+        APP_ORIGIN: ${APP_ORIGIN:-}
+    ports:
+      - "${SITES_BIND_ADDRESS:-127.0.0.1}:8188:80"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp

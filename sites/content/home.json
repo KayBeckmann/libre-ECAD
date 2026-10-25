@@ -1,0 +1,100 @@
+{
+  "de": {
+    "title": "Elektroplanung. In eigener Hand.",
+    "description": "LibreECAD verbindet Schaltpläne, Artikel und Projektstände in einer selbst betreibbaren Entwicklungsbasis für die Elektroplanung.",
+    "eyebrow": "LibreECAD / Offene Elektroplanung",
+    "nav": ["Funktionen", "Betrieb", "Downloads"],
+    "app": "Werkbank öffnen", "wiki": "Dokumentation", "skip": "Zum Inhalt",
+    "preview": "Private Entwicklungsvorschau · M8 · Kein öffentlicher Produktstart",
+    "drawing_title": "DREIPHASEN / SYNTHETISCHES MUSTER",
+    "drawing_caption": "Originalausgabe des SVG-Zeichenkerns. Synthetisches Beispiel mit drei Phasen und Relaiszuordnung; keine freigegebene Planung.",
+    "rail": ["MIT · Quelloffen", "Eigene Server · Docker Compose", "Web · Linux-Entwicklungsbuild"],
+    "features_title": "Vom Artikel bis zum Plan.",
+    "features_intro": "Die Werkbank ist benutzbar. Die fachliche Abnahme für produktive Elektroplanung steht noch aus. Diese Funktionen sind im Entwicklungsstand umgesetzt:",
+    "features": [
+      ["Schaltpläne & Verbindungen", "Mehrere Blätter, Anschlussklemmen, Netze, Kabeladern und Querverweise. Eine Leitungskreuzung verbindet sich nur über einen ausdrücklich gesetzten Knoten."],
+      ["Artikel & eigene Symbole", "Eigene Artikel mit Anschlüssen und zeichnbaren Schaltsymbolen. Persönliche, Firmen- und globale Quellen bleiben getrennt; übernommene Versionen bleiben nachvollziehbar."],
+      ["Drei Phasen & Relais", "Dreiphasige Darstellung und verknüpfte Relaisspulen mit mehreren Kontakten. Öffner und Schließer gehören zum selben Betriebsmittel."],
+      ["Installation & Aufbau", "PNG-Grundriss, Kalibrierung über eine Referenzstrecke, Verlegewege und maßstäblicher Aufbau. Generische SPS-, FU- und Sicherheitsfunktionen; Berechnungen bleiben Schätzungen."],
+      ["Projektstände & Dokumente", "Explizites Speichern, Konfliktvergleich, Freigabestände, PDF und Materiallisten. SQL hält den Arbeitsstand; Git archiviert freigegebene Fassungen."],
+      ["Offline & Assistenz", "Installierte Clients können Projekte bewusst für die Offline-Arbeit vorbereiten. API/MCP erstellt prüfbare Vorschläge; die Übernahme bleibt eine bewusste Benutzerentscheidung."]
+    ],
+    "models_title": "Drei Wege zum Betrieb.",
+    "models_intro": "Die Daten liegen beim jeweiligen Backend-Betreiber. Die Wahl des Betriebsmodells ist keine Zusage für Verfügbarkeit, Support oder einen fertigen Mietdienst.",
+    "models": [
+      ["01 / VERFÜGBAR ALS ENTWICKLUNGSSTAND", "Selbst betreiben", "Compose stellt die getrennten Dienste und Datenbanken bereit. Du verantwortest Zugänge, TLS, Backups, Updates und Wiederherstellung.", "installation"],
+      ["02 / ANGEBOT NOCH NICHT FREIGEGEBEN", "Bei Kay mieten", "Der technische Betreiberzugang ist vorbereitet. Ein verwaltetes Mietangebot mit Preis, Vertrag, Datenschutz und Leistungsumfang ist noch nicht veröffentlicht.", "operations"],
+      ["03 / EIGENER VERANTWORTUNGSBEREICH", "Als Dienstleister betreiben", "Backend-Verzeichnis, Firmenbereitstellung und getrennte Mitgliedschaften bilden die Grundlage. Der Dienstleister klärt Betrieb, Verträge und Verantwortlichkeiten selbst.", "roles"]
+    ],
+    "read_more": "Im Wiki nachlesen →",
+    "downloads_title": "Ein Build. Ein prüfbarer Stand.",
+    "downloads_intro": "Entwicklungsartefakte, keine produktionsreifen Releases. Nur lokal geprüfte Pakete erscheinen als Download.",
+    "linux": "Linux x86_64 · Entwicklungsbuild",
+    "download": "Linux-Bundle laden", "checksum": "SHA-256", "source": "App-Quellstand", "evidence": "Prüfprotokoll", "size": "Größe",
+    "unavailable": "In dieser Installation ist noch kein geprüftes Linux-Paket hinterlegt. Der Betreiber kann es nach der dokumentierten Prüfung bereitstellen.",
+    "linux_note": "Geprüft auf diesem Linux-System mit virtuellem Display; keine allgemeine Distributionsfreigabe. Benötigt GTK 3 und eine grafische Sitzung. Das vollständige Archiv entpacken und libre_ecad_app starten.",
+    "platforms": [
+      ["Web / Werkbank", "Auf diesem privaten Server nutzbar. Benötigt Backend-Verbindung; keine Browser-Offline-Ablage."],
+      ["Android / Geräteprüfung offen", "APK-Build vorhanden. Release benötigt HTTPS; derzeit Debug-Signierung. Keine freigegebene Download-Version."],
+      ["Windows / Buildprüfung offen", "Windows-Projekt angelegt. Build- und Geräteabnahme stehen aus; kein Download."]
+    ],
+    "limits": "Offen bleiben die elektrotechnische Fachabnahme, normbezogene Validierung, Android-/Windows-Geräteabnahmen und produktiver Hochverfügbarkeitsbetrieb. Berechnungen sind keine DIN-/VDE-Nachweise. Die ERP-Anbindung ist eine getrennte Vorschau, ohne Bestands- oder Bestellschreibzugriff.",
+    "legal": "Veröffentlichungsstatus", "license": "MIT-Lizenz", "font_license": "Schriftlizenz", "repository": "Quellcode",
+    "legal_title": "Private Vorschau, klare Grenzen.",
+    "legal_sections": [
+      ["Noch keine Veröffentlichung", "Diese Seiten sind für die private Entwicklungsumgebung bestimmt. Vor einem öffentlichen Livegang muss Kay Produktname, Marken, Domain, Impressum, Datenschutzhinweise, eventuelle Mietbedingungen und die Veröffentlichung ausdrücklich freigeben. Diese Seite ersetzt keine Rechtstexte."],
+      ["Software und Inhalte", "Der Quellcode steht unter MIT. Externe Herstellerdaten, Normen, Artikelbilder und Dokumente benötigen eigene Nutzungsrechte. Die gezeigte Zeichnung ist synthetisch. Noto Sans wird lokal ausgeliefert; die Schriftlizenz ist verlinkt."],
+      ["Technik dieser Seiten", "Homepage und Wiki verwenden keine Analyse-Dienste, Cookies oder extern geladenen Schriftarten. Suche und Sprachwahl benötigen keinen persistenten Browserspeicher. Nginx-Zugriffsprotokolle sind hier abgeschaltet; Fehlerprotokolle und vorgeschaltete Infrastruktur können Verbindungsdaten enthalten. Für die Werkbank gelten deren getrennte Anmeldung und Datenverarbeitung."],
+      ["Sprachen und Pflege", "Deutsch und Englisch sind die Startsprachen dieser Dokumentation. Kay Beckmann verantwortet Prüfung und Veröffentlichung beider Sprachfassungen. Änderungen an Verhalten oder Betrieb aktualisieren beide Fassungen im selben Review. Die Sprache der Dokumentation ist keine Zusage, dass die gesamte App bereits zweisprachig ist."]
+    ]
+  },
+  "en": {
+    "title": "Electrical design. In your hands.",
+    "description": "LibreECAD brings schematics, articles and project revisions together in a self-hosted development foundation for electrical design.",
+    "eyebrow": "LibreECAD / Open electrical design",
+    "nav": ["Features", "Hosting", "Downloads"],
+    "app": "Open workbench", "wiki": "Documentation", "skip": "Skip to content",
+    "preview": "Private development preview · M8 · Not a public product launch",
+    "drawing_title": "THREE PHASES / SYNTHETIC SAMPLE",
+    "drawing_caption": "Actual SVG drawing-engine output. Synthetic three-phase sample with linked relay elements; not an approved design. Drawing labels retain their original German wording.",
+    "rail": ["MIT · Open source", "Your servers · Docker Compose", "Web · Linux development build"],
+    "features_title": "From article to drawing.",
+    "features_intro": "The workbench is usable. Professional approval for production electrical design is still pending. These capabilities are implemented in the development version:",
+    "features": [
+      ["Schematics & connections", "Multiple sheets, terminals, networks, cable cores and cross-references. A crossing only connects through an explicitly placed junction."],
+      ["Articles & custom symbols", "Create articles with terminals and editable schematic symbols. Personal, company and global sources stay separate; copied source versions remain traceable."],
+      ["Three phases & relays", "Three-phase representation and relay coils linked to multiple contacts. Normally open and normally closed contacts share the same physical device."],
+      ["Installation & layout", "PNG floor plans, reference-distance calibration, routes and scaled cabinet layout. Generic PLC, drive and safety functions; calculations remain estimates."],
+      ["Revisions & documents", "Explicit saves, conflict comparison, approved revisions, PDF and material lists. SQL stores the working copy; Git archives approved revisions."],
+      ["Offline & assistance", "Installed clients can explicitly prepare projects for offline work. API/MCP creates reviewable proposals; applying them remains a deliberate user action."]
+    ],
+    "models_title": "Three ways to operate.",
+    "models_intro": "Data stays with the selected backend operator. Choosing a hosting model does not promise availability, support or an already available managed service.",
+    "models": [
+      ["01 / AVAILABLE AS A DEVELOPMENT VERSION", "Self-host", "Compose provides separate services and databases. You are responsible for access, TLS, backups, updates and recovery.", "installation"],
+      ["02 / OFFER NOT YET APPROVED", "Rent from Kay", "The operator interface is prepared. A managed rental offer with pricing, contract, privacy terms and service scope has not been published.", "operations"],
+      ["03 / YOUR OPERATING RESPONSIBILITY", "Operate as a provider", "A backend directory, company provisioning and separate memberships provide the foundation. Providers establish their own operations, contracts and responsibilities.", "roles"]
+    ],
+    "read_more": "Read the guide →",
+    "downloads_title": "One build. A traceable revision.",
+    "downloads_intro": "Development artifacts, not production releases. Only locally verified packages appear as downloads.",
+    "linux": "Linux x86_64 · Development build",
+    "download": "Download Linux bundle", "checksum": "SHA-256", "source": "App source", "evidence": "Verification log", "size": "Size",
+    "unavailable": "This installation does not yet contain a verified Linux package. The operator can provide one after following the documented checks.",
+    "linux_note": "Checked on this Linux system with a virtual display; not a general distribution certification. Requires GTK 3 and a graphical session. Extract the entire archive and run libre_ecad_app.",
+    "platforms": [
+      ["Web / Workbench", "Available on this private server. Requires a backend connection; no browser offline vault."],
+      ["Android / Device acceptance pending", "APK build exists. Release requires HTTPS and currently uses debug signing. No approved download version."],
+      ["Windows / Build verification pending", "Windows project exists. Build and device acceptance are pending; no download."]
+    ],
+    "limits": "Electrical engineering acceptance, standards validation, Android/Windows device acceptance and production high availability remain open. Calculations are not DIN/VDE compliance evidence. ERP integration is a separate preview with no inventory or order writes.",
+    "legal": "Publication status", "license": "MIT license", "font_license": "Font license", "repository": "Source code",
+    "legal_title": "Private preview. Clear boundaries.",
+    "legal_sections": [
+      ["Not yet published", "These pages are intended for the private development environment. Before a public launch, Kay must explicitly approve the product name, trademarks, domain, legal notice, privacy notice, any rental terms and publication itself. This page does not replace legal documents."],
+      ["Software and content", "The source code is MIT licensed. External manufacturer data, standards, article images and documents require their own usage rights. The example drawing is synthetic. Noto Sans is served locally and its license is linked."],
+      ["How these pages work", "The homepage and wiki use no analytics services, cookies or externally loaded fonts. Search and language selection do not need persistent browser storage. Nginx access logs are disabled here; error logs and upstream infrastructure may contain connection data. The workbench has its own authentication and data processing."],
+      ["Languages and maintenance", "German and English are the initial documentation languages. Kay Beckmann owns review and publication of both translations. Changes to behavior or operations update both versions in the same review. Documentation language does not imply that the entire application is already bilingual."]
+    ]
+  }
+}
