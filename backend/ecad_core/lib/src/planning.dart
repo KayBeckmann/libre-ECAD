@@ -104,7 +104,8 @@ void validatePlanning(Json d) {
       if (size(16) < 1 || size(20) < 1 || size(16) > 2400 || size(20) > 2400)
         fail('Bildvorlage: maximal 2400 × 2400 Pixel.');
       try {
-        if (image.decodePng(bytes) == null) fail('PNG-Bilddaten fehlen.');
+        if (image.decodePng(bytes, frame: 0) == null)
+          fail('PNG-Bilddaten fehlen.');
       } catch (_) {
         fail('PNG-Bildvorlage beschädigt.');
       }

@@ -27,7 +27,7 @@ String sheetSvg(Json d, String sheetId) {
   if (background != null) {
     // pdf's SVG image path expects RGBA bytes, including for RGB source PNGs.
     final rgba = image
-        .decodePng(base64Decode(background['png']))!
+        .decodePng(base64Decode(background['png']), frame: 0)!
         .convert(numChannels: 4);
     final png = base64Encode(image.encodePng(rgba));
     out.write(
