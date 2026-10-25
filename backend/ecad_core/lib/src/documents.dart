@@ -11,6 +11,7 @@ Json documentData(Json project) {
         for (final w in objects(d, 'wires'))
           {
             'id': w['id'],
+            if (w['conductor'] != null) 'conductor': w['conductor'],
             'sheet': objectById(d, 'sheets', w['sheetId'])['number'],
             'from': endpointName(d, w['from']),
             'to': endpointName(d, w['to']),
@@ -183,7 +184,7 @@ List<Json> drawingFindings(Object? input) {
   final seen = <String>{};
   for (final i in objects(d, 'instances')) {
     final dev = objectById(d, 'devices', i['deviceId']);
-    for (final port in symbolByKey(i['symbol']).ports) {
+    for (final port in instancePorts(d, i)) {
       final key = endpointKey(d, portRef(i['id'], port));
       if (!seen.add(key)) continue;
       final count = usage[key] ?? 0;
@@ -203,6 +204,26 @@ List<Json> drawingFindings(Object? input) {
         );
     }
   }
+  for (final device in objects(
+    d,
+    'devices',
+  ).where((v) => v['type'] == 'relay')) {
+    final views = objects(
+      d,
+      'instances',
+    ).where((i) => i['deviceId'] == device['id']).toList();
+    final coils = views
+        .where((i) => symbolByKey(i['symbol'], d).role == 'coil')
+        .toList();
+    if (coils.length != 1 && views.isNotEmpty)
+      add(
+        'relay-coil',
+        coils.isEmpty
+            ? '${device['bmk']}: Kontakte ohne zugeordnete Spule.'
+            : '${device['bmk']}: Mehrere Spulendarstellungen prüfen.',
+        views.first,
+      );
+  }
   for (final kind in ['nodes', 'continuations']) {
     for (final o in objects(d, kind)) {
       // Continuations have one logical key for both ends: inspect local wires.
@@ -219,12 +240,25 @@ List<Json> drawingFindings(Object? input) {
         );
     }
   }
+  for (final net in nets(d)) {
+    final wires = objects(
+      d,
+      'wires',
+    ).where((w) => (net['wireIds'] as List).contains(w['id'])).toList();
+    final names = wires.map((w) => w['conductor']).whereType<String>().toSet();
+    if (names.length > 1)
+      add(
+        'conductor-conflict',
+        'Verschiedene Leiterkennzeichnungen im selben Netz: ${names.join(', ')}.',
+        wires.first,
+      );
+  }
   return result
     ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
 }
 
 Json pinnedLibrary() => {
-  'version': 'libre-ecad-synthetic-1',
+  'version': 'libre-ecad-synthetic-2',
   'license': 'MIT',
   'images': <String>[],
   'symbols': [
@@ -235,12 +269,46 @@ Json pinnedLibrary() => {
         'type': s.deviceType,
         'ports': s.ports,
         'allPorts': s.allPorts,
+        'role': s.role,
+        'pins': symbolPins(s),
+        'geometry': symbolGeometry(s),
       },
   ],
 };
 
+/// V1 has the same physical pins; the new library only extends its symbol set.
+bool supportsLibrary(Object? raw) {
+  if (raw is! Json) return false;
+  if (canonicalJson(raw) == canonicalJson(pinnedLibrary())) return true;
+  if (raw['version'] != 'libre-ecad-synthetic-1' || raw['symbols'] is! List)
+    return false;
+  const ids = {
+    'supply',
+    'breaker',
+    'terminal',
+    'switch',
+    'coil',
+    'contact',
+    'motor',
+  };
+  final entries = raw['symbols'] as List;
+  if (entries.length != ids.length ||
+      entries.any((e) => e is! Json || !ids.contains(e['id'])) ||
+      entries.map((e) => e['id']).toSet().length != ids.length)
+    return false;
+  for (final e in entries) {
+    final s = symbolByKey(e['id']);
+    if (e['type'] != s.deviceType ||
+        canonicalJson({'ports': e['ports'], 'allPorts': e['allPorts']}) !=
+            canonicalJson({'ports': s.ports, 'allPorts': s.allPorts}))
+      return false;
+  }
+  return true;
+}
+
 List<Json> drawingChanges(Json before, Json after) => [
   for (final kind in [
+    'symbols',
     'sheets',
     'devices',
     'instances',
@@ -250,12 +318,18 @@ List<Json> drawingChanges(Json before, Json after) => [
     'cables',
   ])
     for (final id in {
-      ...objects(before, kind).map((o) => o['id']),
-      ...objects(after, kind).map((o) => o['id']),
+      ...(before[kind] as List? ?? []).cast<Json>().map((o) => o['id']),
+      ...(after[kind] as List? ?? []).cast<Json>().map((o) => o['id']),
     })
       ...(() {
-        final a = objects(before, kind).where((o) => o['id'] == id).firstOrNull;
-        final b = objects(after, kind).where((o) => o['id'] == id).firstOrNull;
+        final a = (before[kind] as List? ?? [])
+            .cast<Json>()
+            .where((o) => o['id'] == id)
+            .firstOrNull;
+        final b = (after[kind] as List? ?? [])
+            .cast<Json>()
+            .where((o) => o['id'] == id)
+            .firstOrNull;
         if (a != null && b != null && canonicalJson(a) == canonicalJson(b))
           return <Json>[];
         return <Json>[

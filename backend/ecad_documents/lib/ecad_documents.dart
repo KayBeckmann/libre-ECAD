@@ -35,6 +35,8 @@ String sheetSvg(Json d, String sheetId) {
     line(a.x, a.y, a.x, mid);
     line(a.x, mid, b.x, mid);
     line(b.x, mid, b.x, b.y);
+    if (w['conductor'] != null)
+      label(w['conductor'], a.x + 6, mid - 20, size: 12);
     if (w['cableId'] != null) {
       final c = objectById(d, 'cables', w['cableId']);
       final core = (c['cores'] as List).firstWhere(
@@ -48,38 +50,37 @@ String sheetSvg(Json d, String sheetId) {
     'instances',
   ).where((i) => i['sheetId'] == sheetId)) {
     final num x = i['x'], y = i['y'];
-    final s = symbolByKey(i['symbol']);
+    final s = symbolByKey(i['symbol'], d);
     final dev = objectById(d, 'devices', i['deviceId']);
-    if (s.key == 'terminal') {
-      circle(x, y, 8);
-      line(x - 5, y, x + 5, y);
-    } else if (s.key == 'motor') {
-      circle(x, y, 24);
-      label('M', x - 8, y + 6, size: 20);
-      for (final p in s.ports) {
-        final pos = endpointPosition(d, portRef(i['id'], p));
-        line(pos.x, pos.y, pos.x, y - 24);
-      }
-    } else {
-      line(x, y - 40, x, y - 18);
-      line(x, y + 18, x, y + 40);
-      if (s.key == 'switch' || s.key == 'contact') {
-        line(x, y + 18, x + 20, y - 18);
-        circle(x, y - 18, 2);
-        circle(x, y + 18, 2);
-      } else {
-        rect(x - 22, y - 18, 44, 36);
-        label(s.code, x - 7, y + 5, size: 14);
+    for (final shape in symbolGeometry(s)) {
+      final a = x + (shape['x'] as num), b = y + (shape['y'] as num);
+      switch (shape['kind']) {
+        case 'line':
+          line(a, b, x + shape['x2'], y + shape['y2']);
+        case 'rect':
+          final x2 = x + (shape['x2'] as num), y2 = y + (shape['y2'] as num);
+          rect(
+            a < x2 ? a : x2,
+            b < y2 ? b : y2,
+            (a - x2).abs(),
+            (b - y2).abs(),
+          );
+        case 'circle':
+          circle(a, b, shape['radius']);
+        case 'text':
+          label(shape['text'], a, b + 10, size: 12);
       }
     }
-    label(dev['bmk'], x + 32, y - 8, size: 14);
-    label(dev['label'], x + 32, y + 10, size: 10);
+    final labelX =
+        x + (s.definition != null || s.group == 'Drehstrom' ? 140 : 32);
+    label(dev['bmk'], labelX, y - 8, size: 14);
+    label(dev['label'], labelX, y + 10, size: 10);
     final refs = crossReferences(d, dev['id'])
         .where((v) => v['instanceId'] != i['id'])
         .map((v) => v['position'])
         .join(', ');
-    if (refs.isNotEmpty) label('Ref. $refs', x + 32, y + 27, size: 10);
-    for (final p in s.ports) {
+    if (refs.isNotEmpty) label('Ref. $refs', labelX, y + 27, size: 10);
+    for (final p in instancePorts(d, i)) {
       final pos = endpointPosition(d, portRef(i['id'], p));
       final t = (dev['terminals'] as List).firstWhere((t) => t['id'] == p);
       label(t['label'], pos.x - 26, pos.y - 2, size: 10);
@@ -125,10 +126,20 @@ Future<Uint8List> projectPdf(
     theme: pw.ThemeData.withFont(base: regular, bold: bold),
     title: '${project['name']} - V${project['version']}',
     author: 'LibreECAD',
-    creator: 'LibreECAD M5',
+    creator: 'LibreECAD',
   );
   final sheets = (data['sheets'] as List).cast<Json>();
   final sections = <String, List<List<String>>>{
+    if (objects(d, 'symbols').isNotEmpty)
+      'Artikelsymbole': [
+        ['Symbol', 'Artikel / Version', 'Herkunft / Lizenz'],
+        for (final s in objects(d, 'symbols'))
+          [
+            '${s['name']}',
+            '${s['source']?['articleId'] ?? 'Eigener Entwurf'} / ${s['source']?['version'] ?? '-'}',
+            '${s['source']?['origin'] ?? ''} / ${s['source']?['license'] ?? 'Nicht angegeben'}',
+          ],
+      ],
     'Projektbeschreibung': [
       ['Feld', 'Inhalt'],
       ['Beschreibung', '${project['description'] ?? ''}'],
@@ -157,10 +168,11 @@ Future<Uint8List> projectPdf(
         ['${t['bmk']}', '${t['terminal']}', '${t['connections']}'],
     ],
     'Verbindungsliste': [
-      ['Blatt', 'Von', 'Nach', 'Kabel / Ader'],
+      ['Blatt', 'Leiter', 'Von', 'Nach', 'Kabel / Ader'],
       for (final w in data['connections'])
         [
           '${w['sheet']}',
+          '${w['conductor'] ?? ''}',
           '${w['from']}',
           '${w['to']}',
           '${w['cable']} / ${w['core']}',
@@ -244,7 +256,7 @@ Future<Uint8List> projectPdf(
         ],
       ),
       pw.Text(
-        'Synthetische Symbole. Keine Normprüfung oder Konformitätsaussage.',
+        'Symbolherkunft siehe Projektstand. Keine Normprüfung oder Konformitätsaussage.',
         style: const pw.TextStyle(fontSize: 8),
       ),
     ],

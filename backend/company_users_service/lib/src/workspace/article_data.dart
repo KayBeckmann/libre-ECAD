@@ -1,4 +1,5 @@
 import 'store.dart';
+import 'package:ecad_core/ecad_core.dart' show validateSymbol, cloneJson;
 
 /// Explicit units and nullable values; zero is data, never a stand-in for missing.
 Document articleFields(Document d) {
@@ -68,6 +69,19 @@ Document articleFields(Document d) {
         (clean['terminals'] as List).add({'id': t['id'], 'label': t['label']});
       }
     }
+    if (name == 'symbol' && layer['definition'] != null) {
+      final definition = cloneJson(validateSymbol(layer['definition']));
+      definition.remove('source');
+      final pins = (definition['ports'] as List).map((p) => p['id']).toSet();
+      final terminals = (clean['terminals'] as List)
+          .map((p) => p['id'])
+          .toSet();
+      if (pins.length != terminals.length || !pins.containsAll(terminals))
+        throw FormatException(
+          'Symbolanschlüsse und Artikelanschlüsse müssen dieselben IDs besitzen.',
+        );
+      clean['definition'] = definition;
+    }
     layers[name] = clean;
   }
   return {
@@ -92,7 +106,7 @@ Document withArticleWarnings(Document a) {
     'powerLossW': 'Verlustleistung [W]',
   };
   final missing = <String>[];
-  if ((symbol['reference'] as String).isEmpty)
+  if ((symbol['reference'] as String).isEmpty && symbol['definition'] == null)
     missing.add('Schaltsymbol-Referenz fehlt');
   if ((symbol['license'] as String).isEmpty)
     missing.add('Symbollizenz ungeklärt');

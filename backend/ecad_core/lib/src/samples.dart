@@ -2,6 +2,7 @@ import 'drawing.dart';
 
 /// Synthetic working examples, not installation plans.
 Json sampleDrawing(String kind) {
+  if (kind == 'three-phase') return threePhaseDrawing();
   if (kind != 'distribution' && kind != 'motor')
     throw FormatException('Unbekannte Arbeitsprobe.');
   final d = emptyDrawing();
@@ -108,5 +109,39 @@ Json sampleDrawing(String kind) {
       portRef(output['id'], '1'),
     );
   }
+  return validateDrawing(d);
+}
+
+Json threePhaseDrawing() {
+  final d = emptyDrawing(), sheet = objects(emptyDrawing(), 'sheets').first;
+  sheet['title'] = 'TEST · Dreiphasiger Motorabgang';
+  d['sheets'] = [sheet];
+  final control = {
+    'id': newId(),
+    'number': 2,
+    'title': 'TEST · Spule und zugeordnete Kontakte',
+  };
+  (d['sheets'] as List).add(control);
+  final a = sheet['id'] as String, b = control['id'] as String;
+  final supply = addSymbol(d, 'supply3', a, 300, 180),
+      breaker = addSymbol(d, 'breaker3', a, 300, 360),
+      motor = addSymbol(d, 'motor', a, 300, 580);
+  void wire(Json from, String f, Json to, String t, String conductor) =>
+      (d['wires'] as List).add({
+        'id': newId(),
+        'sheetId': a,
+        'from': portRef(from['id'], f),
+        'to': portRef(to['id'], t),
+        'conductor': conductor,
+      });
+  for (var n = 0; n < 3; n++) {
+    wire(supply, 'L${n + 1}', breaker, '${n * 2 + 1}', 'L${n + 1}');
+    wire(breaker, '${n * 2 + 2}', motor, ['U', 'V', 'W'][n], 'L${n + 1}');
+  }
+  wire(supply, 'PE', motor, 'PE', 'PE');
+  final coil = addSymbol(d, 'coil', b, 200, 300);
+  addSymbol(d, 'contact', b, 460, 300, deviceId: coil['deviceId']);
+  addSymbol(d, 'contact_nc', b, 720, 300, deviceId: coil['deviceId']);
+  addSymbol(d, 'contact', a, 760, 380, deviceId: coil['deviceId']);
   return validateDrawing(d);
 }

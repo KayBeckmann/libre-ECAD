@@ -330,6 +330,60 @@ void main() {
       'thermal': {'powerLossW': 0},
     },
   };
+  test('article symbol geometry is versioned, copied and validated', () async {
+    final body = article();
+    final symbol = symbolTemplate('contact_nc', 'test-symbol');
+    body['layers']['symbol']['definition'] = symbol;
+    body['layers']['symbol']['terminals'] = [
+      for (final p in symbol['ports']) {'id': p['id'], 'label': p['label']},
+    ];
+    final created = await call('admin-a', 'POST', 'articles', body);
+    expect(created.statusCode, 201);
+    final a = await json(created);
+    expect(a['layers']['symbol']['definition'], symbol);
+    final copy = await json(
+      await call('admin-a', 'POST', 'articles/${a['id']}/copy', {
+        'scope': 'company',
+        'version': 1,
+      }),
+    );
+    symbol['name'] = 'Geänderter Öffner';
+    final updated = await call('admin-a', 'PATCH', 'articles/${a['id']}', {
+      ...body,
+      'version': 1,
+    });
+    expect(updated.statusCode, 200);
+    expect((await json(updated))['version'], 2);
+    expect(
+      copy['layers']['symbol']['definition']['name'],
+      isNot(symbol['name']),
+    );
+    expect(
+      (await call('admin-b', 'GET', 'articles/${a['id']}')).statusCode,
+      404,
+    );
+    body['layers']['symbol']['terminals'] = [
+      {'id': 'wrong', 'label': 'wrong'},
+    ];
+    expect(
+      (await call('admin-a', 'PATCH', 'articles/${a['id']}', {
+        ...body,
+        'version': 2,
+      })).statusCode,
+      400,
+    );
+    body['layers']['symbol']['terminals'] = [
+      for (final p in symbol['ports']) {'id': p['id'], 'label': p['label']},
+    ];
+    symbol['primitives'].add({'kind': 'svg', 'url': 'https://invalid'});
+    expect(
+      (await call('admin-a', 'PATCH', 'articles/${a['id']}', {
+        ...body,
+        'version': 2,
+      })).statusCode,
+      400,
+    );
+  });
   test(
     'personal articles are private even from another admin; cross-company IDs remain hidden',
     () async {

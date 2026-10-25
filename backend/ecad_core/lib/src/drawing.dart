@@ -26,7 +26,9 @@ Json emptyDrawing() => {
   'cables': <Json>[],
 };
 
-List<Json> objects(Json d, String key) => (d[key] as List).cast<Json>();
+List<Json> objects(Json d, String key) =>
+    ((key == 'symbols' ? d[key] ?? const <Json>[] : d[key]) as List)
+        .cast<Json>();
 Json objectById(Json d, String kind, String id) => objects(d, kind).firstWhere(
   (o) => o['id'] == id,
   orElse: () => throw FormatException('$kind: Referenz $id fehlt.'),
@@ -88,7 +90,7 @@ Json addSymbol(
   num y, {
   String? deviceId,
 }) {
-  final symbol = symbolByKey(key);
+  final symbol = symbolByKey(key, d);
   Json device;
   if (deviceId == null) {
     device = {
@@ -97,7 +99,16 @@ Json addSymbol(
       'label': symbol.name,
       'type': symbol.deviceType,
       'terminals': [
-        for (final p in symbol.allPorts) {'id': p, 'label': p},
+        for (final p
+            in symbol.deviceType == 'relay' ? ['A1', 'A2'] : symbol.allPorts)
+          {
+            'id': p,
+            'label':
+                symbolPins(
+                  symbol,
+                ).where((pin) => pin['id'] == p).firstOrNull?['label'] ??
+                p,
+          },
       ],
     };
     (d['devices'] as List).add(device);
@@ -106,16 +117,108 @@ Json addSymbol(
     if (device['type'] != symbol.deviceType)
       throw FormatException('Darstellung passt nicht zum Gerät.');
   }
+  final mapping = symbol.isContact
+      ? allocateContact(d, device, symbol)
+      : <String, String>{};
   final instance = <String, dynamic>{
     'id': newId(),
     'deviceId': device['id'],
     'sheetId': sheetId,
     'symbol': key,
+    if (mapping.isNotEmpty) 'portMap': mapping,
     'x': x,
     'y': y,
   };
   (d['instances'] as List).add(instance);
   return instance;
+}
+
+List<String> instancePorts(Json d, Json i) => [
+  for (final p in symbolByKey(i['symbol'], d).ports)
+    (i['portMap'] as Map?)?[p] as String? ?? p,
+];
+
+Map<String, String> allocateContact(
+  Json d,
+  Json device,
+  SymbolDefinition symbol,
+) {
+  final used = objects(d, 'instances')
+      .where(
+        (i) =>
+            i['deviceId'] == device['id'] &&
+            symbolByKey(i['symbol'], d).isContact,
+      )
+      .expand((i) => instancePorts(d, i))
+      .toSet();
+  var n = 1;
+  while (used.any((p) => RegExp('^$n[1-4]\$').hasMatch(p))) {
+    n++;
+  }
+  final suffix = symbol.role == 'no' ? ['3', '4'] : ['1', '2'];
+  final mapping = {
+    for (final digit in suffix)
+      '${symbol.role == 'no' ? 1 : 2}$digit': '$n$digit',
+  };
+  final terminals = device['terminals'] as List;
+  for (final id in mapping.values) {
+    if (!terminals.any((t) => t['id'] == id))
+      terminals.add({'id': id, 'label': id});
+  }
+  return mapping;
+}
+
+/// Reassign a physical contact, retaining its view and wire IDs. Its poles get
+/// fresh terminal identities on the target relay; no two contacts are shorted.
+void assignContact(Json d, String instanceId, String targetDeviceId) {
+  final i = objectById(d, 'instances', instanceId),
+      target = objectById(d, 'devices', targetDeviceId);
+  final symbol = symbolByKey(i['symbol'], d);
+  if (!symbol.isContact ||
+      target['type'] != 'relay' ||
+      !objects(d, 'instances').any(
+        (v) =>
+            v['deviceId'] == targetDeviceId &&
+            symbolByKey(v['symbol'], d).role == 'coil',
+      ))
+    throw FormatException('Einen Kontakt und ein Relais mit Spule auswählen.');
+  if (i['deviceId'] == targetDeviceId) return;
+  final oldDevice = i['deviceId'],
+      oldPorts = instancePorts(d, i),
+      mapping = allocateContact(d, target, symbol);
+  final nextPorts = symbol.ports.map((p) => mapping[p]!).toList();
+  for (final w in objects(d, 'wires')) {
+    for (final side in ['from', 'to']) {
+      final ref = w[side] as Json;
+      if (ref['kind'] == 'port' && ref['instanceId'] == instanceId)
+        ref['terminalId'] = nextPorts[oldPorts.indexOf(ref['terminalId'])];
+    }
+  }
+  i['deviceId'] = targetDeviceId;
+  i['portMap'] = mapping;
+  if (!objects(d, 'instances').any((v) => v['deviceId'] == oldDevice))
+    (d['devices'] as List).removeWhere((v) => v['id'] == oldDevice);
+}
+
+String pinArticleSymbol(Json d, Json article) {
+  final original = cloneJson(
+    validateSymbol(article['layers']?['symbol']?['definition']),
+  );
+  final existing = (d['symbols'] as List? ?? []).cast<Json>().where(
+    (v) =>
+        v['source']?['articleId'] == article['id'] &&
+        v['source']?['version'] == article['version'],
+  );
+  if (existing.isNotEmpty) return 'custom_${existing.first['id']}';
+  original['id'] = newId();
+  original['source'] = {
+    'articleId': article['id'],
+    'version': article['version'],
+    'license': article['layers']['symbol']['license'],
+    'origin': article['origin'],
+  };
+  (d.putIfAbsent('symbols', () => <Json>[]) as List).add(original);
+  return 'custom_${original['id']}';
 }
 
 Json portRef(String instanceId, String terminalId) => {
@@ -130,13 +233,13 @@ Json pointRef(String kind, String id) => {'kind': kind, 'id': id};
 Point<double> endpointPosition(Json d, Json ref) {
   if (ref['kind'] == 'port') {
     final i = objectById(d, 'instances', ref['instanceId']);
-    final ports = symbolByKey(i['symbol']).ports;
-    final index = ports.indexOf(ref['terminalId']);
+    final ports = instancePorts(d, i), index = ports.indexOf(ref['terminalId']);
     if (index < 0) throw FormatException('Anschluss fehlt in der Darstellung.');
-    final x = (i['x'] as num).toDouble(), y = (i['y'] as num).toDouble();
-    if (ports.length == 1) return Point(x, y);
-    if (ports.length == 2) return Point(x, y + (index == 0 ? -40 : 40));
-    return Point(x - 60 + index * 40, y - 40);
+    final pin = symbolPins(symbolByKey(i['symbol'], d))[index];
+    return Point(
+      (i['x'] as num).toDouble() + (pin['x'] as num).toDouble(),
+      (i['y'] as num).toDouble() + (pin['y'] as num).toDouble(),
+    );
   }
   final o = objectById(
     d,
@@ -169,7 +272,7 @@ List<Json> nets(Json d) {
   }
 
   for (final i in objects(d, 'instances')) {
-    for (final p in symbolByKey(i['symbol']).ports) {
+    for (final p in instancePorts(d, i)) {
       root(endpointKey(d, portRef(i['id'], p)));
     }
   }
@@ -274,6 +377,7 @@ Json validateDrawing(Object? input) {
 
   final d = map(input, {
     'schemaVersion',
+    'symbols',
     'sheets',
     'devices',
     'instances',
@@ -283,6 +387,15 @@ Json validateDrawing(Object? input) {
     'cables',
   });
   if (d['schemaVersion'] != 1) fail('Unbekannte Zeichnungsversion.');
+  if (d.containsKey('symbols')) {
+    final raw = d['symbols'];
+    if (raw is! List || raw.length > 100) fail('Maximal 100 Artikelsymbole.');
+    final ids = <String>{};
+    for (final v in raw) {
+      final sym = validateSymbol(v);
+      if (!ids.add(sym['id'])) fail('Doppelte Symbol-ID.');
+    }
+  }
   final sheets = list(d, 'sheets', 50, {'id', 'number', 'title'});
   if (sheets.isEmpty) fail('Mindestens ein Blatt erforderlich.');
   final sheetIds = sheets.map((s) => s['id']).toSet(), numbers = <int>{};
@@ -306,15 +419,17 @@ Json validateDrawing(Object? input) {
       fail('BMK ist doppelt oder enthält Rand-Leerzeichen: $bmk');
     text(o, 'label');
     final type = text(o, 'type');
-    final defs = symbolLibrary.where((s) => s.deviceType == type);
+    final defs = drawingSymbols(d).where((s) => s.deviceType == type);
     if (defs.isEmpty) fail('Unbekannter Gerätetyp.');
-    final terminals = list(o, 'terminals', 32, {'id', 'label'});
+    final terminals = list(o, 'terminals', 128, {'id', 'label'});
     for (final t in terminals) {
       text(t, 'label', max: 40);
     }
     final required = defs.first.allPorts.toSet();
-    if (terminals.length != required.length ||
-        !terminals.every((t) => required.contains(t['id'])))
+    if (type == 'relay'
+        ? !terminals.map((t) => t['id']).toSet().containsAll({'A1', 'A2'})
+        : terminals.length != required.length ||
+              !terminals.every((t) => required.contains(t['id'])))
       fail('Geräteanschlüsse passen nicht zum Typ.');
   }
   final instances = list(d, 'instances', 1000, {
@@ -322,6 +437,7 @@ Json validateDrawing(Object? input) {
     'deviceId',
     'sheetId',
     'symbol',
+    'portMap',
     'x',
     'y',
   });
@@ -333,8 +449,46 @@ Json validateDrawing(Object? input) {
   for (final i in instances) {
     onSheet(i);
     final device = objectById(d, 'devices', text(i, 'deviceId'));
-    if (symbolByKey(text(i, 'symbol')).deviceType != device['type'])
+    if (symbolByKey(text(i, 'symbol'), d).deviceType != device['type'])
       fail('Symbol passt nicht zum Gerät.');
+    final symbol = symbolByKey(i['symbol'], d), mapping = i['portMap'];
+    if (mapping != null &&
+        (mapping is! Json ||
+            !symbol.isContact ||
+            mapping.length != symbol.ports.length ||
+            !mapping.keys.every(symbol.ports.contains) ||
+            mapping.values.any((p) => p is! String) ||
+            mapping.values.toSet().length != mapping.length))
+      fail('Ungültige Kontaktanschluss-Zuordnung.');
+    final ports = instancePorts(d, i),
+        terminals = (device['terminals'] as List).map((t) => t['id']).toSet();
+    if (!ports.every(terminals.contains))
+      fail('Symbolanschluss fehlt am Gerät.');
+    if (symbol.isContact && mapping != null) {
+      final suffix = symbol.role == 'no' ? ['3', '4'] : ['1', '2'];
+      final first =
+          mapping['${symbol.role == 'no' ? 1 : 2}${suffix[0]}'] as String;
+      final last =
+          mapping['${symbol.role == 'no' ? 1 : 2}${suffix[1]}'] as String;
+      if (!RegExp(r'^[1-9][0-9]*[1-4]$').hasMatch(first) ||
+          first.substring(0, first.length - 1) !=
+              last.substring(0, last.length - 1) ||
+          !first.endsWith(suffix[0]) ||
+          !last.endsWith(suffix[1]))
+        fail('Kontaktart und Anschlussbelegung widersprechen sich.');
+    }
+  }
+  final contactPins = <String, bool>{};
+  for (final i in instances.where(
+    (i) => symbolByKey(i['symbol'], d).isContact,
+  )) {
+    for (final p in instancePorts(d, i)) {
+      final key = '${i['deviceId']}:$p';
+      if (contactPins.containsKey(key) &&
+          (contactPins[key]! || i['portMap'] != null))
+        fail('Kontaktanschluss bereits einem anderen Kontakt zugeordnet.');
+      contactPins[key] = i['portMap'] != null;
+    }
   }
   for (final n in list(d, 'nodes', 1000, {'id', 'sheetId', 'x', 'y'})) {
     onSheet(n);
@@ -381,7 +535,7 @@ Json validateDrawing(Object? input) {
       map(ref, {'kind', 'instanceId', 'terminalId'});
       final i = objectById(d, 'instances', text(ref, 'instanceId'));
       if (i['sheetId'] != sheetId ||
-          !symbolByKey(i['symbol']).ports.contains(ref['terminalId']))
+          !instancePorts(d, i).contains(ref['terminalId']))
         fail('Anschlussreferenz ungültig oder auf anderem Blatt.');
     } else if (kind == 'node' || kind == 'continuation') {
       map(ref, {'kind', 'id'});
@@ -406,7 +560,11 @@ Json validateDrawing(Object? input) {
     'to',
     'cableId',
     'coreId',
+    'conductor',
   })) {
+    if (w['conductor'] != null &&
+        !{'L1', 'L2', 'L3', 'N', 'PE'}.contains(w['conductor']))
+      fail('Unbekannter Leiter.');
     final sheet = text(w, 'sheetId');
     if (!sheetIds.contains(sheet)) fail('Leitungsblatt fehlt.');
     final from = w['from'], to = w['to'];

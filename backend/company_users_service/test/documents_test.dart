@@ -7,6 +7,40 @@ import 'package:company_users_service/src/workspace/git_archive.dart';
 
 void main() {
   test(
+    'three-phase and custom symbols render into SVG and PDF with provenance',
+    () async {
+      final d = threePhaseDrawing();
+      final symbol = symbolTemplate('contact_nc', 'custom-test');
+      symbol['primitives'].add({
+        'kind': 'text',
+        'x': 40,
+        'y': 40,
+        'text': 'CUSTOM<&>',
+      });
+      final key = pinArticleSymbol(d, {
+        'id': 'article-test',
+        'version': 2,
+        'origin': 'Eigener Test',
+        'layers': {
+          'symbol': {'definition': symbol, 'license': 'CC0'},
+        },
+      });
+      final sid = objects(d, 'sheets').first['id'];
+      addSymbol(d, key, sid, 900, 500);
+      final svg = sheetSvg(d, sid);
+      expect(svg, contains('CUSTOM&lt;&amp;&gt;'));
+      expect(svg, contains('L1'));
+      expect(svg, contains('PE'));
+      final pdf = await projectPdf(
+        {'id': 'symbols', 'name': 'Symbole', 'version': 2, 'drawing': d},
+        status: 'TEST',
+        stamp: 'V2',
+      );
+      expect(ascii.decode(pdf.take(4).toList()), '%PDF');
+      await File('/tmp/libre-symbols-test.pdf').writeAsBytes(pdf);
+    },
+  );
+  test(
     'PDF sheets and derived lists; archive reconstructs exact commit',
     () async {
       final project = <String, dynamic>{
