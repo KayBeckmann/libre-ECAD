@@ -7,3 +7,4 @@ dependencies:
   ecad_core:
     path: ../ecad_core
   pdf: 3.13.1
+  image: ^4.12.0

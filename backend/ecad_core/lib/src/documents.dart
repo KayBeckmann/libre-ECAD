@@ -1,3 +1,5 @@
+import 'calculations.dart';
+import 'planning.dart';
 import 'drawing.dart';
 import 'library.dart';
 
@@ -36,6 +38,7 @@ Json documentData(Json project) {
         'label': device['label'],
         'type': device['type'],
         'quantity': 1,
+        if (device['article'] != null) 'article': device['article'],
         'positions': objects(d, 'instances')
             .where((i) => i['deviceId'] == device['id'])
             .map((i) => positionReference(d, i))
@@ -48,6 +51,10 @@ Json documentData(Json project) {
     'name': project['name'],
     'description': project['description'],
     'metadata': project['metadata'] ?? <String, dynamic>{},
+    'calculations': [
+      for (final c in (d['calculations'] as List? ?? []).cast<Json>())
+        calculate(d, c),
+    ],
     'sheets': sheets,
     'connections': connections,
     'material': material,
@@ -253,12 +260,65 @@ List<Json> drawingFindings(Object? input) {
         wires.first,
       );
   }
+  for (final c in (d['calculations'] as List? ?? []).cast<Json>()) {
+    final value = calculate(d, c);
+    add(
+      'calculation',
+      '${c['name']}: ${value['status'] == 'incomplete' ? 'Rechenfall unvollständig' : 'Rechenvorschlag ungeprüft'}. ${(value['messages'] as List).join(' ')}',
+      c,
+    );
+  }
+  for (final p in (d['plans'] as List? ?? []).cast<Json>()) {
+    final sheet = {'id': p['id'], 'sheetId': p['id']};
+    if (p['kind'] == 'installation' &&
+        (p['calibration'] == null ||
+            p['calibration']['perspectiveConfirmed'] != true))
+      add(
+        'scale',
+        'Maßstab oder Perspektivprüfung fehlt; keine belastbare Leitungslänge.',
+        sheet,
+      );
+    if (p['background']?['locked'] == false)
+      add('background', 'Bildvorlage ist zum Ausrichten entsperrt.', sheet);
+    if (p['kind'] == 'layout') {
+      final views = objects(
+        d,
+        'instances',
+      ).where((i) => i['sheetId'] == p['id']).toList();
+      for (var n = 0; n < views.length; n++) {
+        final i = views[n], r = layoutRectangle(d, p, i);
+        if (r == null) {
+          add('dimensions', 'Artikelmaße für Aufbauzeichnung fehlen.', i);
+          continue;
+        }
+        if (r['x'] < 40 ||
+            r['y'] < 60 ||
+            r['x'] + r['width'] > 1160 ||
+            r['y'] + r['height'] > 700)
+          add('layout-bounds', 'Gerät ragt über die Zeichenfläche.', i);
+        for (final other in views.take(n)) {
+          final q = layoutRectangle(d, p, other);
+          if (q != null &&
+              r['x'] < q['x'] + q['width'] &&
+              r['x'] + r['width'] > q['x'] &&
+              r['y'] < q['y'] + q['height'] &&
+              r['y'] + r['height'] > q['y'])
+            add(
+              'layout-overlap',
+              'Geräteflächen überlappen.',
+              i,
+              suffix: other['id'],
+            );
+        }
+      }
+    }
+  }
   return result
     ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
 }
 
 Json pinnedLibrary() => {
-  'version': 'libre-ecad-synthetic-2',
+  'version': 'libre-ecad-synthetic-3',
   'license': 'MIT',
   'images': <String>[],
   'symbols': [
@@ -280,9 +340,13 @@ Json pinnedLibrary() => {
 bool supportsLibrary(Object? raw) {
   if (raw is! Json) return false;
   if (canonicalJson(raw) == canonicalJson(pinnedLibrary())) return true;
-  if (raw['version'] != 'libre-ecad-synthetic-1' || raw['symbols'] is! List)
+  if (![
+        'libre-ecad-synthetic-1',
+        'libre-ecad-synthetic-2',
+      ].contains(raw['version']) ||
+      raw['symbols'] is! List)
     return false;
-  const ids = {
+  final ids = {
     'supply',
     'breaker',
     'terminal',
@@ -290,6 +354,11 @@ bool supportsLibrary(Object? raw) {
     'coil',
     'contact',
     'motor',
+    if (raw['version'] == 'libre-ecad-synthetic-2') ...[
+      'contact_nc',
+      'supply3',
+      'breaker3',
+    ],
   };
   final entries = raw['symbols'] as List;
   if (entries.length != ids.length ||
@@ -309,6 +378,9 @@ bool supportsLibrary(Object? raw) {
 List<Json> drawingChanges(Json before, Json after) => [
   for (final kind in [
     'symbols',
+    'plans',
+    'macroSources',
+    'calculations',
     'sheets',
     'devices',
     'instances',

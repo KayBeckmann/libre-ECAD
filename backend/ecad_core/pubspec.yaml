@@ -3,5 +3,8 @@ description: Shared, deterministic LibreECAD drawing model and topology.
 publish_to: none
 environment:
   sdk: ^3.9.0
+dependencies:
+  crypto: ^3.0.7
+  image: ^4.12.0
 dev_dependencies:
   test: ^1.26.2

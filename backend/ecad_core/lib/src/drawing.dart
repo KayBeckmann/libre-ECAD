@@ -1,3 +1,5 @@
+import 'calculations.dart';
+import 'planning.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'library.dart';
@@ -378,6 +380,9 @@ Json validateDrawing(Object? input) {
   final d = map(input, {
     'schemaVersion',
     'symbols',
+    'plans',
+    'macroSources',
+    'calculations',
     'sheets',
     'devices',
     'instances',
@@ -411,6 +416,8 @@ Json validateDrawing(Object? input) {
     'label',
     'type',
     'terminals',
+    'article',
+    'channels',
   });
   final bmks = <String>{};
   for (final o in devices) {
@@ -582,5 +589,7 @@ Json validateDrawing(Object? input) {
         fail('Kabelader mehrfach belegt.');
     }
   }
+  validatePlanning(d);
+  validateCalculations(d);
   return cloneJson(d);
 }

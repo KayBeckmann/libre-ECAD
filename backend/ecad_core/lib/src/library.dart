@@ -116,6 +116,59 @@ const symbolLibrary = <SymbolDefinition>[
     ['1', '3', '5', '2', '4', '6'],
     ['1', '3', '5', '2', '4', '6'],
   ),
+  SymbolDefinition(
+    'plc',
+    'SPS · I/O-Modul',
+    'Automatisierung',
+    'plc',
+    'A',
+    ['V', 'M', 'I0', 'I1', 'Q0', 'Q1', 'COM', 'ETH'],
+    ['V', 'M', 'I0', 'I1', 'Q0', 'Q1', 'COM', 'ETH'],
+  ),
+  SymbolDefinition(
+    'drive',
+    'Frequenzumrichter · Block',
+    'Automatisierung',
+    'drive',
+    'T',
+    [
+      'L1',
+      'L2',
+      'L3',
+      'PE',
+      'DI1',
+      'DI2',
+      'U',
+      'V',
+      'W',
+      'PE_OUT',
+      'DO1',
+      'ETH',
+    ],
+    [
+      'L1',
+      'L2',
+      'L3',
+      'PE',
+      'DI1',
+      'DI2',
+      'U',
+      'V',
+      'W',
+      'PE_OUT',
+      'DO1',
+      'ETH',
+    ],
+  ),
+  SymbolDefinition(
+    'safety',
+    'Sicherheitsmodul · Block',
+    'Automatisierung',
+    'safety',
+    'K',
+    ['A1', 'A2', 'S11', 'S12', 'S21', 'S22', '13', '14'],
+    ['A1', 'A2', 'S11', 'S12', 'S21', 'S22', '13', '14'],
+  ),
 ];
 
 Iterable<SymbolDefinition> drawingSymbols(Map<String, dynamic> d) sync* {
@@ -260,6 +313,18 @@ Map<String, dynamic> validateSymbol(Object? input) {
 List<Map<String, dynamic>> symbolPins(SymbolDefinition s) {
   if (s.definition != null)
     return (s.definition!['ports'] as List).cast<Map<String, dynamic>>();
+  if (s.group == 'Automatisierung') {
+    final half = s.ports.length ~/ 2;
+    return [
+      for (var n = 0; n < s.ports.length; n++)
+        {
+          'id': s.ports[n],
+          'label': s.ports[n],
+          'x': n < half ? -80 : 80,
+          'y': (n % half) * 40 - (half - 1) * 20,
+        },
+    ];
+  }
   return [
     for (var index = 0; index < s.ports.length; index++)
       {
@@ -314,6 +379,18 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
     'y': y,
     'text': t,
   };
+  if (s.group == 'Automatisierung')
+    return [
+      rect(
+        -60,
+        -(s.ports.length ~/ 2 - 1) * 20 - 10,
+        60,
+        (s.ports.length ~/ 2 - 1) * 20 + 10,
+      ),
+      text(s.key.toUpperCase(), -20, -10),
+      for (final p in symbolPins(s))
+        line(p['x'], p['y'], (p['x'] as num) < 0 ? -60 : 60, p['y']),
+    ];
   if (s.key == 'terminal') return [circle(0, 0, 8), line(-5, 0, 5, 0)];
   if (s.key == 'motor')
     return [

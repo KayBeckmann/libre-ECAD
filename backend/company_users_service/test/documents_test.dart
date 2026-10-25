@@ -2,10 +2,27 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
+import '../../ecad_core/bin/planning_sample.dart';
 import 'package:company_users_service/src/workspace/pdf_output.dart';
 import 'package:company_users_service/src/workspace/git_archive.dart';
 
 void main() {
+  test(
+    'installation PNG, scale, circuits and calculation evidence render in PDF',
+    () async {
+      final d = planningSample();
+      final svg = sheetSvg(d, objects(d, 'sheets').first['id']);
+      expect(svg, contains('data:image/png;base64,'));
+      expect(svg, contains('12.00 m'));
+      final pdf = await projectPdf(
+        {'id': 'm7', 'name': 'TEST M7', 'version': 1, 'drawing': d},
+        status: 'TEST NICHT FREIGEGEBEN',
+        stamp: 'V1',
+      );
+      expect(pdf.length, greaterThan(10000));
+      await File('/tmp/libre-m7-render.pdf').writeAsBytes(pdf);
+    },
+  );
   test(
     'three-phase and custom symbols render into SVG and PDF with provenance',
     () async {

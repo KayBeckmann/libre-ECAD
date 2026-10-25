@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:ecad_core/ecad_core.dart';
 import 'package:pdf/pdf.dart';
+import 'package:image/image.dart' as image;
 import 'package:pdf/widgets.dart' as pw;
 
 String sheetSvg(Json d, String sheetId) {
@@ -22,14 +23,57 @@ String sheetSvg(Json d, String sheetId) {
   void circle(num x, num y, num radius, {bool fill = false}) => out.write(
     '<circle cx="$x" cy="$y" r="$radius" stroke="#203d4c" fill="${fill ? '#203d4c' : 'none'}"/>',
   );
+  final plan = planFor(d, sheetId), background = plan?['background'];
+  if (background != null) {
+    // pdf's SVG image path expects RGBA bytes, including for RGB source PNGs.
+    final rgba = image
+        .decodePng(base64Decode(background['png']))!
+        .convert(numChannels: 4);
+    final png = base64Encode(image.encodePng(rgba));
+    out.write(
+      '<image x="${background['x']}" y="${background['y']}" width="${background['width']}" height="${background['height']}" preserveAspectRatio="none" href="data:image/png;base64,$png"/>',
+    );
+  }
   rect(40, 60, 1120, 640);
+  if (plan != null) {
+    label(
+      '${planKinds[plan['kind']]} · ${plan['kind'] == 'layout'
+          ? '${plan['mmPerUnit']} mm/Einheit'
+          : plan['calibration'] == null
+          ? 'Maßstab fehlt'
+          : 'Maßstab aus Referenzstrecke'}',
+      56,
+      680,
+      size: 11,
+    );
+    for (final route in (plan['routes'] as List? ?? []).cast<Json>()) {
+      final points = routePoints(d, route);
+      for (var n = 1; n < points.length; n++)
+        line(
+          points[n - 1]['x'],
+          points[n - 1]['y'],
+          points[n]['x'],
+          points[n]['y'],
+        );
+      final length = routeLength(d, plan, route)['metres'];
+      label(
+        '${route['name']} · ${length == null ? 'Maßstab prüfen' : '${(length as num).toStringAsFixed(2)} m'}',
+        points.first['x'] + 10,
+        points.first['y'] + 20,
+        size: 11,
+      );
+    }
+  }
   for (var c = 0; c < 10; c++) {
     label(c + 1, 88 + c * 112, 45);
   }
   for (var r = 0; r < 6; r++) {
     label(String.fromCharCode(65 + r), 18, 110 + r * 100);
   }
-  for (final w in objects(d, 'wires').where((w) => w['sheetId'] == sheetId)) {
+  for (final w in objects(
+    d,
+    'wires',
+  ).where((w) => w['sheetId'] == sheetId && plan?['kind'] != 'layout')) {
     final a = endpointPosition(d, w['from']), b = endpointPosition(d, w['to']);
     final mid = ((a.y + b.y) / 40).round() * 20;
     line(a.x, a.y, a.x, mid);
@@ -52,6 +96,21 @@ String sheetSvg(Json d, String sheetId) {
     final num x = i['x'], y = i['y'];
     final s = symbolByKey(i['symbol'], d);
     final dev = objectById(d, 'devices', i['deviceId']);
+    if (plan?['kind'] == 'layout') {
+      final box = layoutRectangle(d, plan!, i);
+      if (box == null) {
+        label('${dev['bmk']} · Maße fehlen', x, y);
+      } else {
+        rect(box['x'], box['y'], box['width'], box['height']);
+        label(
+          '${dev['bmk']} · ${dev['article']['widthMm']} × ${dev['article']['heightMm']} mm',
+          x,
+          y,
+          size: 10,
+        );
+      }
+      continue;
+    }
     for (final shape in symbolGeometry(s)) {
       final a = x + (shape['x'] as num), b = y + (shape['y'] as num);
       switch (shape['kind']) {
@@ -72,7 +131,11 @@ String sheetSvg(Json d, String sheetId) {
       }
     }
     final labelX =
-        x + (s.definition != null || s.group == 'Drehstrom' ? 140 : 32);
+        x +
+        (s.definition != null ||
+                ['Drehstrom', 'Automatisierung'].contains(s.group)
+            ? 140
+            : 32);
     label(dev['bmk'], labelX, y - 8, size: 14);
     label(dev['label'], labelX, y + 10, size: 10);
     final refs = crossReferences(d, dev['id'])
@@ -138,6 +201,35 @@ Future<Uint8List> projectPdf(
             '${s['name']}',
             '${s['source']?['articleId'] ?? 'Eigener Entwurf'} / ${s['source']?['version'] ?? '-'}',
             '${s['source']?['origin'] ?? ''} / ${s['source']?['license'] ?? 'Nicht angegeben'}',
+          ],
+      ],
+    if ((d['plans'] as List? ?? []).isNotEmpty)
+      'Planungsgrundlagen': [
+        ['Blatt / Planart', 'Quelle / Maßstab', 'Stromkreise / Leitungswege'],
+        for (final p in (d['plans'] as List).cast<Json>())
+          [
+            '${objectById(d, 'sheets', p['id'])['number']} / ${planKinds[p['kind']]}',
+            '${p['background']?['origin'] ?? ''} / ${p['background']?['revision'] ?? ''}\n${p['calibration']?['source'] ?? 'Keine Referenzstrecke'}',
+            [
+              for (final c in p['circuits'] ?? [])
+                '${c['distribution']} / ${c['name']}',
+              for (final r in p['routes'] ?? [])
+                '${r['name']}: ${routeLength(d, p, r)['metres'] ?? 'Maßstab fehlt'} m',
+            ].join('\n'),
+          ],
+      ],
+    if ((data['calculations'] as List).isNotEmpty)
+      'Rechenvorschläge': [
+        [
+          'Fall / Status',
+          'Eingaben / Herkunft',
+          'Zwischenergebnisse / Grenzen',
+        ],
+        for (final c in data['calculations'])
+          [
+            '${c['name']} / ${c['status']}',
+            '${(c['inputs'] as Map).entries.map((e) => '${calculationFields[c['kind']]?[e.key] ?? e.key}: ${e.value}').join('\n')}\n${c['source']}\n${c['conditions']}',
+            '${(c['results'] as Map).entries.map((e) => '${calculationResultLabels[e.key] ?? e.key}: ${e.value}').join('\n')}\n${(c['messages'] as List).join('\n')}\n${c['reference']}',
           ],
       ],
     'Projektbeschreibung': [
