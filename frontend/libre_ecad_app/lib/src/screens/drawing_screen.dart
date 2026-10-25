@@ -142,8 +142,15 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
+  bool get hasEditingSpace =>
+      MediaQuery.sizeOf(context).width >= 1000 &&
+      MediaQuery.sizeOf(context).height -
+              kToolbarHeight -
+              MediaQuery.paddingOf(context).vertical >=
+          500;
+
   Future<void> save() async {
-    if (!online || busy) return;
+    if (!online || busy || !hasEditingSpace) return;
     setState(() => busy = true);
     try {
       final r = await api.request('PUT', path, {
@@ -807,7 +814,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: FilledButton.icon(
-                  onPressed: online && !busy && controller!.dirty ? save : null,
+                  onPressed:
+                      online && !busy && hasEditingSpace && controller!.dirty
+                      ? save
+                      : null,
                   icon: const Icon(Icons.save_outlined),
                   label: const Text('Speichern'),
                 ),

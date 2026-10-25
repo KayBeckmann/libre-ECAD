@@ -216,6 +216,17 @@ void main() {
             .onPressed,
         isNotNull,
       );
+      tester.view.physicalSize = const Size(780, 850);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Speichern'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(find.textContaining('ungespeichert'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       api.close();
     },
