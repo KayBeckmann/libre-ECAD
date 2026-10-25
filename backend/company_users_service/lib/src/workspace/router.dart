@@ -10,6 +10,7 @@ import 'package:shelf_router/shelf_router.dart';
 import '../models.dart';
 import '../repository.dart';
 import 'store.dart';
+import 'project_access.dart';
 import 'article_data.dart';
 import 'global_catalog.dart';
 
@@ -27,6 +28,16 @@ class WorkspaceRouter {
 
   Router get handler {
     final r = Router();
+    r.get('/project-groups', (Request q) => _guard(q, _listGroups));
+    r.post(
+      '/project-groups',
+      (Request q) => _guard(q, (q, u) => _saveGroup(q, u)),
+    );
+    r.patch(
+      '/project-groups/<id>',
+      (Request q, String id) => _guard(q, (q, u) => _saveGroup(q, u, id)),
+    );
+
     r.get('/projects', (Request q) => _guard(q, _listProjects));
     r.post('/projects', (Request q) => _guard(q, _createProject));
     r.get(
@@ -163,8 +174,8 @@ class WorkspaceRouter {
   }
 
   bool _admin(AppUser u) => u.role == UserRole.admin;
-  bool _projectVisible(Document p, AppUser u) =>
-      _admin(u) || (p['memberIds'] as List).contains(u.id);
+  Future<bool> _projectVisible(Document p, AppUser u) =>
+      projectVisible(store, p, u);
   Future<List<String>> _members(Document d, AppUser u) async {
     final values = d['memberIds'] ?? <String>[];
     if (values is! List ||
@@ -207,11 +218,69 @@ class WorkspaceRouter {
     status: 409,
   );
 
-  Future<Response> _listProjects(Request q, AppUser u) async => jsonOk({
-    'projects': (await store.list(
+  Future<Response> _listGroups(Request q, AppUser u) async => jsonOk({
+    'groups': [
+      for (final g in await store.list(u.companyId, 'projectGroup'))
+        if (_admin(u) || (g['memberIds'] as List).contains(u.id))
+          {
+            for (final e in g.entries)
+              if (_admin(u) || e.key != 'memberIds') e.key: e.value,
+          },
+    ],
+  });
+
+  Future<Response> _saveGroup(Request q, AppUser u, [String? id]) async {
+    if (!_admin(u))
+      return jsonError(
+        'Nur Firmenadmins verwalten Projektgruppen.',
+        status: 403,
+      );
+    final body = await _body(q);
+    final old = id == null
+        ? null
+        : await store.get(u.companyId, 'projectGroup', id);
+    if (id != null && old == null)
+      return jsonError('Gruppe nicht gefunden.', status: 404);
+    if (old != null && body['version'] != old['version']) return _conflict();
+    final group = {
+      ...old == null ? _newDocument(u) : _revision(old, u),
+      'name': _text(body, 'name'),
+      'description': _text(body, 'description', max: 4000, optional: true),
+      'memberIds': await _members(body, u),
+    };
+    if (old == null) {
+      await store.create(u.companyId, 'projectGroup', group);
+    } else if (!await store.update(
       u.companyId,
-      'project',
-    )).where((p) => _projectVisible(p, u)).toList(),
+      'projectGroup',
+      group,
+      old['version'],
+    )) {
+      return _conflict();
+    }
+    return jsonOk(group, status: old == null ? 201 : 200);
+  }
+
+  Future<List<String>> _groups(Document body, AppUser u) async {
+    final ids = body['groupIds'] ?? <String>[];
+    if (ids is! List || ids.length > 100 || ids.any((id) => id is! String)) {
+      throw FormatException('groupIds: maximal 100 Gruppen-IDs.');
+    }
+    for (final id in ids) {
+      if (await store.get(u.companyId, 'projectGroup', id) == null) {
+        throw FormatException(
+          'Projektgruppen müssen zur eigenen Firma gehören.',
+        );
+      }
+    }
+    return ids.cast<String>().toSet().toList();
+  }
+
+  Future<Response> _listProjects(Request q, AppUser u) async => jsonOk({
+    'projects': [
+      for (final p in await store.list(u.companyId, 'project'))
+        if (await _projectVisible(p, u)) p,
+    ],
   });
 
   Future<Response> _createProject(Request q, AppUser u) async {
@@ -224,6 +293,7 @@ class WorkspaceRouter {
       'description': _text(d, 'description', max: 4000, optional: true),
       'metadata': _metadata(d['metadata']),
       'memberIds': await _members(d, u),
+      'groupIds': await _groups(d, u),
     };
     await store.create(u.companyId, 'project', p);
     return jsonOk(p, status: 201);
@@ -231,13 +301,13 @@ class WorkspaceRouter {
 
   Future<Response> _project(Request q, AppUser u, String id) async {
     final p = await store.get(u.companyId, 'project', id);
-    if (p == null || !_projectVisible(p, u))
+    if (p == null || !await _projectVisible(p, u))
       return jsonError('Projekt nicht gefunden.', status: 404);
     if (q.method == 'GET') return jsonOk(p);
     final d = await _body(q);
     if (d['version'] is! int) throw FormatException('version ist Pflicht.');
     if (d['version'] != p['version']) return _conflict();
-    if (!_admin(u) && d.containsKey('memberIds'))
+    if (!_admin(u) && (d.containsKey('memberIds') || d.containsKey('groupIds')))
       return jsonError('Nur Firmenadmins verwalten Mitglieder.', status: 403);
     final next = {
       ..._revision(p, u),
@@ -249,6 +319,9 @@ class WorkspaceRouter {
       'memberIds': _admin(u) && d.containsKey('memberIds')
           ? await _members(d, u)
           : p['memberIds'],
+      'groupIds': d.containsKey('groupIds')
+          ? await _groups(d, u)
+          : p['groupIds'] ?? <String>[],
     };
     if (!await store.update(u.companyId, 'project', next, d['version'] as int))
       return _conflict();
@@ -547,7 +620,7 @@ class WorkspaceRouter {
 
   Future<Document?> _drawingProject(String id, AppUser u) async {
     final p = await store.get(u.companyId, 'project', id);
-    return p != null && _projectVisible(p, u) ? p : null;
+    return p != null && await _projectVisible(p, u) ? p : null;
   }
 
   Document _drawingResponse(Document p) {

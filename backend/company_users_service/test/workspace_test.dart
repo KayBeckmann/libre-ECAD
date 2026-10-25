@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:ecad_core/ecad_core.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
-import 'package:shared_server_kit/shared_server_kit.dart' hide cloneJson;
+import 'package:shared_server_kit/shared_server_kit.dart' hide cloneJson, Json;
 import 'package:company_users_service/src/models.dart';
 import 'package:company_users_service/src/repository_memory.dart';
 import 'package:company_users_service/src/router.dart';
@@ -81,6 +81,177 @@ void main() {
       },
     ).handler.call;
   });
+  test(
+    'project groups grant and revoke workspace, offline and scoped API access with tenant and CAS checks',
+    () async {
+      Future<Json> createGroup(String name, List<String> members) async => json(
+        await call('admin-a', 'POST', 'project-groups', {
+          'name': name,
+          'memberIds': members,
+        }),
+      );
+      final group = await createGroup('Team A', ['drafter-a']);
+      expect(
+        (await call('drafter-a', 'POST', 'project-groups', {
+          'name': 'Forged',
+        })).statusCode,
+        403,
+      );
+      expect(
+        (await call('admin-a', 'POST', 'project-groups', {
+          'name': 'Foreign',
+          'memberIds': ['admin-b'],
+        })).statusCode,
+        400,
+      );
+      final p = await json(
+        await call('admin-a', 'POST', 'projects', {
+          'name': 'Grouped',
+          'groupIds': [group['id']],
+        }),
+      );
+      final id = p['id'];
+      expect((await call('drafter-a', 'GET', 'projects/$id')).statusCode, 200);
+      expect(
+        (await json(await call('drafter-a', 'GET', 'projects')))['projects'],
+        hasLength(1),
+      );
+      expect(
+        (await json(
+          await call('drafter-a', 'GET', 'project-groups'),
+        ))['groups'].first.containsKey('memberIds'),
+        false,
+      );
+      expect((await call('admin-b', 'GET', 'projects/$id')).statusCode, 404);
+      expect(
+        (await call('admin-b', 'PATCH', 'project-groups/${group['id']}', {
+          ...group,
+          'name': 'Stolen',
+        })).statusCode,
+        404,
+      );
+      expect(
+        (await call('admin-b', 'POST', 'projects', {
+          'name': 'Stolen',
+          'groupIds': [group['id']],
+        })).statusCode,
+        400,
+      );
+      expect(
+        (await call('drafter-a', 'PATCH', 'projects/$id', {
+          'version': 1,
+          'name': 'Forged',
+          'groupIds': [],
+        })).statusCode,
+        403,
+      );
+      final drawing = sampleDrawing('motor');
+      expect(
+        (await call('drafter-a', 'PUT', 'projects/$id/drawing', {
+          'version': 1,
+          'drawing': drawing,
+        })).statusCode,
+        200,
+      );
+      expect(
+        (await call('drafter-a', 'POST', 'projects/$id/offline', {
+          'confirmed': true,
+        })).statusCode,
+        200,
+      );
+      final token = await json(
+        await call('drafter-a', 'POST', 'automation/tokens', {
+          'confirmed': true,
+          'label': 'Group test',
+          'projectIds': [id],
+          'allowProposals': true,
+        }),
+      );
+      tokens['automation'] = token['token'];
+      expect(
+        (await call('automation', 'GET', 'automation/projects/$id')).statusCode,
+        200,
+      );
+      final revoked = await call(
+        'admin-a',
+        'PATCH',
+        'project-groups/${group['id']}',
+        {...group, 'memberIds': []},
+      );
+      expect(revoked.statusCode, 200);
+      expect(
+        (await call('admin-a', 'PATCH', 'project-groups/${group['id']}', {
+          ...group,
+          'name': 'Stale',
+        })).statusCode,
+        409,
+      );
+      for (final suffix in [
+        '',
+        '/drawing',
+        '/drawing/history',
+        '/documents?version=2',
+        '/releases',
+      ]) {
+        expect(
+          (await call('drafter-a', 'GET', 'projects/$id$suffix')).statusCode,
+          404,
+        );
+      }
+      expect(
+        (await call(
+          'drafter-a',
+          'POST',
+          'projects/$id/offline/upload',
+          {},
+        )).statusCode,
+        404,
+      );
+      expect(
+        (await call('automation', 'GET', 'automation/projects/$id')).statusCode,
+        404,
+      );
+      expect(
+        (await json(
+          await call('automation', 'GET', 'automation/projects'),
+        ))['projects'],
+        isEmpty,
+      );
+      expect(
+        (await call('automation', 'POST', 'automation/projects/$id/proposals', {
+          'version': 2,
+          'reason': 'revoked',
+          'drawing': drawing,
+        })).statusCode,
+        404,
+      );
+      // A second group or explicit membership is an independent grant.
+      final second = await createGroup('Team B', ['drafter-a']);
+      expect(
+        (await call('admin-a', 'PATCH', 'projects/$id', {
+          'version': 2,
+          'name': 'Grouped',
+          'groupIds': [group['id'], second['id']],
+        })).statusCode,
+        200,
+      );
+      expect((await call('drafter-a', 'GET', 'projects/$id')).statusCode, 200);
+      expect(
+        (await call('admin-a', 'PATCH', 'projects/$id', {
+          'version': 3,
+          'name': 'Direct',
+          'groupIds': [],
+          'memberIds': ['drafter-a'],
+        })).statusCode,
+        200,
+      );
+      expect((await call('drafter-a', 'GET', 'projects/$id')).statusCode, 200);
+      expect(
+        await store.history('a', 'projectGroup', group['id']),
+        hasLength(2),
+      );
+    },
+  );
   test(
     'macro privacy, version conflict, copies and shared company read permissions',
     () async {

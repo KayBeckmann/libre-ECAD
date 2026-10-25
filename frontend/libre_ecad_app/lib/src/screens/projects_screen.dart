@@ -7,6 +7,7 @@ import '../api/workspace_api.dart';
 import '../api/company_users_api.dart';
 import '../models.dart';
 import 'drawing_screen.dart';
+import 'project_groups_screen.dart';
 import 'automation_screen.dart';
 
 class ProjectsScreen extends StatefulWidget {
@@ -18,8 +19,13 @@ class ProjectsScreen extends StatefulWidget {
 
 class _ProjectsScreenState extends State<ProjectsScreen> {
   late final api = WorkspaceApi(widget.session);
-  late Future<Map<String, dynamic>> data = api.request('GET', 'projects');
-  void reload() => setState(() => data = api.request('GET', 'projects'));
+  String groupFilter = '';
+  late Future<Map<String, dynamic>> data = load();
+  Future<Map<String, dynamic>> load() async => {
+    ...await api.request('GET', 'projects'),
+    ...await api.request('GET', 'project-groups'),
+  };
+  void reload() => setState(() => data = load());
   @override
   void dispose() {
     api.close();
@@ -39,7 +45,30 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Projekte')),
+    appBar: AppBar(
+      title: const Text('Projekte'),
+      actions: [
+        IconButton(
+          tooltip: 'Projekte neu laden',
+          onPressed: reload,
+          icon: const Icon(Icons.refresh),
+        ),
+        if (widget.session.role == UserRole.admin)
+          TextButton.icon(
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProjectGroupsScreen(session: widget.session),
+                ),
+              );
+              if (mounted) reload();
+            },
+            icon: const Icon(Icons.folder_shared_outlined),
+            label: const Text('Gruppen & Mitarbeiter'),
+          ),
+      ],
+    ),
     floatingActionButton: widget.session.role == UserRole.admin
         ? FloatingActionButton.extended(
             onPressed: () => edit(),
@@ -67,41 +96,89 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final projects = snapshot.data!['projects'] as List;
-        if (projects.isEmpty) {
-          return const Center(child: Text('Noch keine zugänglichen Projekte.'));
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
-          itemCount: projects.length,
-          separatorBuilder: (_, _) => const Divider(),
-          itemBuilder: (context, index) {
-            final p = projects[index] as Map<String, dynamic>;
-            return ListTile(
-              leading: const Icon(Icons.folder_outlined),
-              title: Text(p['name'] as String),
-              subtitle: Text(
-                'Arbeitsstand ${p['version']} · ${(p['memberIds'] as List).length} zugewiesene Nutzer',
+        final groups = snapshot.data!['groups'] as List;
+        final all = snapshot.data!['projects'] as List;
+        final projects = all
+            .where(
+              (p) =>
+                  groupFilter.isEmpty ||
+                  (groupFilter == '-'
+                      ? (p['groupIds'] as List? ?? []).isEmpty
+                      : (p['groupIds'] as List? ?? []).contains(groupFilter)),
+            )
+            .toList();
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: DropdownButtonFormField<String>(
+                key: ValueKey('$groupFilter-${groups.length}'),
+                initialValue:
+                    groupFilter == '-' ||
+                        groups.any((g) => g['id'] == groupFilter)
+                    ? groupFilter
+                    : '',
+                decoration: const InputDecoration(labelText: 'Projektgruppe'),
+                items: [
+                  const DropdownMenuItem(
+                    value: '',
+                    child: Text('Alle zugänglichen Projekte'),
+                  ),
+                  const DropdownMenuItem(
+                    value: '-',
+                    child: Text('Ohne Gruppe'),
+                  ),
+                  for (final g in groups)
+                    DropdownMenuItem(
+                      value: g['id'] as String,
+                      child: Text(g['name']),
+                    ),
+                ],
+                onChanged: (v) => setState(() => groupFilter = v!),
               ),
-              trailing: const Icon(Icons.arrow_forward),
-              onTap: () async {
-                try {
-                  final current = await api.request(
-                    'GET',
-                    'projects/${p['id']}',
-                  );
-                  if (mounted) {
-                    await edit(current);
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(this.context)
-                        .showSnackBar(SnackBar(content: Text('$e')));
-                  }
-                }
-              },
-            );
-          },
+            ),
+            if (projects.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Text('Keine zugänglichen Projekte in dieser Auswahl.'),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                  itemCount: projects.length,
+                  separatorBuilder: (_, _) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final p = projects[index] as Map<String, dynamic>;
+                    return ListTile(
+                      leading: const Icon(Icons.folder_outlined),
+                      title: Text(p['name'] as String),
+                      subtitle: Text(
+                        "Arbeitsstand ${p['version']} · ${groups.where((g) => (p['groupIds'] as List? ?? []).contains(g['id'])).map((g) => g['name']).join(' / ')} · ${(p['memberIds'] as List).length} direkte Zuweisungen",
+                      ),
+                      trailing: const Icon(Icons.arrow_forward),
+                      onTap: () async {
+                        try {
+                          final current = await api.request(
+                            'GET',
+                            'projects/${p['id']}',
+                          );
+                          if (mounted) {
+                            await edit(current);
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context)
+                                .showSnackBar(SnackBar(content: Text('$e')));
+                          }
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
         );
       },
     ),
@@ -147,6 +224,13 @@ class _ProjectEditorState extends State<ProjectEditor> {
       ? CompanyUsersApi(baseUrl: widget.session.backendUrl)
             .listUsers(widget.session.token)
       : Future.value([]);
+  late final Set<String> groupIds = Set<String>.from(
+    widget.project?['groupIds'] ?? [],
+  );
+  late final Future<Map<String, dynamic>> groups = api.request(
+    'GET',
+    'project-groups',
+  );
   bool busy = false;
   String? error;
   @override
@@ -183,6 +267,8 @@ class _ProjectEditorState extends State<ProjectEditor> {
           },
           if (widget.session.role == UserRole.admin)
             'memberIds': members.toList(),
+          if (widget.session.role == UserRole.admin)
+            'groupIds': groupIds.toList(),
           if (widget.project != null) 'version': widget.project!['version'],
         },
       );
@@ -294,6 +380,43 @@ class _ProjectEditorState extends State<ProjectEditor> {
                 ],
               ),
               if (widget.session.role == UserRole.admin) ...[
+                Text(
+                  'Projektgruppen',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const Text(
+                  'Mitglieder jeder gewählten Gruppe erhalten zusätzlich Zugriff. Ohne Gruppenzuweisung gelten nur direkte Mitglieder und Firmenadmins.',
+                ),
+                FutureBuilder<Map<String, dynamic>>(
+                  future: groups,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Text(
+                        'Gruppen konnten nicht geladen werden: ${snapshot.error}',
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const LinearProgressIndicator();
+                    }
+                    return Column(
+                      children: [
+                        for (final g in snapshot.data!['groups'])
+                          CheckboxListTile(
+                            title: Text(g['name']),
+                            value: groupIds.contains(g['id']),
+                            onChanged: busy
+                                ? null
+                                : (v) => setState(() {
+                                    v == true
+                                        ? groupIds.add(g['id'])
+                                        : groupIds.remove(g['id']);
+                                  }),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+
                 Text(
                   'Projektmitglieder',
                   style: Theme.of(context).textTheme.titleLarge,

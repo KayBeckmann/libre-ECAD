@@ -5,6 +5,7 @@ import 'package:shelf_router/shelf_router.dart';
 import '../models.dart';
 import '../repository.dart';
 import 'store.dart';
+import 'project_access.dart';
 
 /// Scoped credentials cannot call the session-only review or workspace routes.
 /// Proposals are immutable; the project history is authoritative for acceptance.
@@ -55,12 +56,12 @@ class AutomationRouter {
     r.get(
       '/projects',
       (Request q) => _scoped(q, (u, t, tx) async {
-        final items = (await store.list(u.companyId, 'project'))
-            .where(
-              (p) =>
-                  _visible(p, u) && (t['projectIds'] as List).contains(p['id']),
-            )
-            .toList();
+        final items = [
+          for (final p in await store.list(u.companyId, 'project'))
+            if ((t['projectIds'] as List).contains(p['id']) &&
+                await projectVisible(store, p, u))
+              p,
+        ];
         return jsonOk({
           'projects': [
             for (final p in items)
@@ -246,13 +247,11 @@ class AutomationRouter {
       return action(u, t, tx);
     }),
   );
-  bool _visible(Json p, AppUser u) =>
-      u.role == UserRole.admin || (p['memberIds'] as List).contains(u.id);
   Future<Json?> _project(AppUser u, String id, Json? token) async {
     if (token != null && !(token['projectIds'] as List).contains(id))
       return null;
     final p = await store.get(u.companyId, 'project', id);
-    return p != null && _visible(p, u) ? p : null;
+    return p != null && await projectVisible(store, p, u) ? p : null;
   }
 
   Json _public(Json p) => {

@@ -48,4 +48,18 @@ Future<void> migrateWorkspace(SessionExecutor db) async {
     );
     await tx.execute('INSERT INTO schema_migrations(version) VALUES (7)');
   });
+  await db.runTx((tx) async {
+    await tx.execute('SELECT pg_advisory_xact_lock(28471822)');
+    final done = await tx.execute(
+      'SELECT version FROM schema_migrations WHERE version=9',
+    );
+    if (done.isNotEmpty) return;
+    await tx.execute(
+      'ALTER TABLE workspace_documents DROP CONSTRAINT workspace_documents_kind_check',
+    );
+    await tx.execute(
+      "ALTER TABLE workspace_documents ADD CONSTRAINT workspace_documents_kind_check CHECK (kind IN ('project','article','macro','projectGroup'))",
+    );
+    await tx.execute('INSERT INTO schema_migrations(version) VALUES (9)');
+  });
 }
