@@ -2,7 +2,7 @@
 
 **LibreECAD** ist ein geplantes, quelloffenes Werkzeug zur Planung und Dokumentation von Elektroanlagen – für Verteilerbau und Schaltanlagen. Der Name ist ein **Arbeitsname**; Marken- und Namensrechte wurden nicht abschließend geprüft.
 
-> **Projektstatus:** **Meilenstein 1–5 sind für die LAN-Vorschau umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. M3 ergänzt moderierte Katalogbeiträge und eine getrennte Betreiberoberfläche. M4 ergänzt einen Schaltplaneditor mit expliziten elektrischen Verbindungen, mehreren Blättern und Gerätequerverweisen. M5 ergänzt abgeleitete Listen, PDF-Ausgaben und unveränderliche Freigabepakete. Die Oberfläche folgt den Projektmockups. Die kleine Symbolbibliothek ist synthetisch; ein grafischer Symboleditor folgt später. Öffentlicher Upload-/Mietbetrieb benötigt eine eigene fachliche Freigabe.
+> **Projektstatus:** **Meilenstein 1–5 sind für die LAN-Vorschau umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. M3 ergänzt moderierte Katalogbeiträge und eine getrennte Betreiberoberfläche. M4 ergänzt einen Schaltplaneditor mit expliziten elektrischen Verbindungen, mehreren Blättern und Gerätequerverweisen. M5 ergänzt abgeleitete Listen, PDF-Ausgaben und unveränderliche Freigabepakete. Die Oberfläche folgt den Projektmockups. Der Artikel-Baukasten enthält einen grafischen Symboleditor. Drehstromdarstellung und mehrere Öffner/Schließer je Relaisspule sind verfügbar; die eingebaute Symbolbibliothek bleibt synthetisch. Öffentlicher Upload-/Mietbetrieb benötigt eine eigene fachliche Freigabe.
 
 ## Zielbild
 
@@ -30,6 +30,8 @@ Die drei Backenddienste nutzen jeweils eine eigene PostgreSQL-Instanz; das Web-F
 **Meilenstein 5:** Abgeleitete Listen, Metadaten-Deckblätter, explizite PDF-Quellen, objektbezogene Prüffunde und begründete Freigaben mit unveränderlichen Git-/SQL-Paketen. Details: [Dokumente und Freigaben](docs/m5-documents.md).
 
 **Meilenstein 6 in Arbeit:** Verschlüsselte vorbereitete Offline-Projekte, lokales PDF und ausdrücklicher Konflikt-Upload; Linux offline getestet, Android-Debug-Build vorhanden. Projektbezogene API-/MCP-Zugänge legen Vorschläge zur menschlichen Prüfung an. Ein echtes PostgreSQL-Labor prüft Replikation, Netztrennung und Fencing. Windows-/Android-Geräteabnahme und betriebliches Katalog-HA bleiben offen. Details: [Offline](docs/m6-offline.md), [API/MCP](docs/m6-api-mcp.md), [HA-Labor und Grenzen](docs/m6-catalog-ha.md).
+
+**Schaltplan-Erweiterung:** Eigene Artikelsymbole zeichnen, als feste Version im Projekt verwenden, L1/L2/L3/N/PE darstellen und mehrere Öffner/Schließer einer Spule zuordnen. Anleitung: [Symboldesigner und Relaiskontakte](docs/symbol-designer.md).
 
 **Spätere Meilensteine:** Weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt mehrsprachige Homepage und Wiki.
 
