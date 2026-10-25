@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Manual model evaluation, not a claim that an LLM evaluation was executed.
+Fixture: successful smoke-m6.py then browser-m6.py; token scoped only to that
+synthetic TEST M6 project, read-only. Every question starts by listing projects,
+then compares ecad_get_project and ecad_get_documents at the returned version.
+No write tool is necessary or permitted. -->
+<evaluation>
+  <qa_pair><question>Finde das zugängliche Testprojekt im Zugangsscope. Vergleiche Gerätezahl, grafische Instanzen und Materialpositionen. Nenne die drei Anzahlen in dieser Reihenfolge.</question><answer>6 Geräte; 7 Instanzen; 6 Materialpositionen</answer></qa_pair>
+  <qa_pair><question>Welches Betriebsmittel wird auf mehreren Blättern dargestellt? Gleiche Geräte-ID, grafische Instanzen und Materialpositionsverweise ab. Nenne BMK und Instanzzahl.</question><answer>2-K6; 2 Instanzen</answer></qa_pair>
+  <qa_pair><question>Prüfe die Blattliste gegen die Blattbezüge der Zeichnungsobjekte. Welche beiden Blattnummern und Titel muss die Dokumentausgabe enthalten?</question><answer>1: TEST · Motorabgang; 2: TEST · Steuerung / Fortsetzung</answer></qa_pair>
+  <qa_pair><question>Vergleiche die terminal-Geräte im Modell mit der Klemmenliste des gleichen Versionsstands. Welches Klemmen-BMK und wie viele Klemmenzeilen gibt es?</question><answer>1-X2; 1 Klemmenzeile</answer></qa_pair>
+  <qa_pair><question>Gleiche sämtliche expliziten wire-IDs mit den Verbindungslisten-IDs ab. Wie viele elektrische Verbindungen gibt es und fehlt eine ID in der Liste?</question><answer>6 Verbindungen; keine ID fehlt</answer></qa_pair>
+  <qa_pair><question>Gleiche Kabelobjekte und deren Adern gegen die Kabelausgabe ab. Welches Kabel-BMK existiert, mit wie vielen Adern und wie vielen Ausgabezeilen?</question><answer>W1; 1 Ader; 1 Ausgabezeile</answer></qa_pair>
+  <qa_pair><question>Finde das motor-Gerät über seinen Typ, dann seine Materialposition über die stabile Geräte-ID. Nenne BMK, Anschlusszahl und Materialmenge.</question><answer>1-M8; 4 Anschlüsse; Menge 1</answer></qa_pair>
+  <qa_pair><question>Finde die Versorgung über den Gerätetyp und prüfe ihren Eintrag in der Materialliste des gleichen Stands. Nenne BMK, Anschlusszahl und Materialmenge.</question><answer>1-G2; 2 Anschlüsse; Menge 1</answer></qa_pair>
+  <qa_pair><question>Prüfe, ob die zwei grafischen Relaisdarstellungen zu einer doppelten Materialmenge führen. Nenne BMK, Anschlusszahl des Geräts und tatsächliche Materialmenge.</question><answer>2-K6; 4 Anschlüsse; Menge 1</answer></qa_pair>
+  <qa_pair><question>Vergleiche alle Material-BMK mit den Geräte-BMK und ordne sie lexikografisch. Welche Kennungen kommen genau einmal vor?</question><answer>1-G2, 1-M8, 1-Q2, 1-X2, 2-K6, 2-S3</answer></qa_pair>
+</evaluation>

@@ -6,6 +6,7 @@ import '../api/company_users_api.dart';
 import '../models.dart';
 import '../screens/drawing_screen.dart';
 import 'vault.dart';
+import '../drawing/drawing_comparison.dart';
 import 'offline_api.dart';
 import 'storage.dart' as disk;
 
@@ -249,24 +250,11 @@ class _OfflineScreenState extends State<OfflineScreen> {
                     'Lokale Basis V${packet['baseVersion']} / Server V${fresh['baseVersion']}. ${changes.length} abweichende Objekte. Nur die Zeichnung wird übernommen; Server-Metadaten bleiben erhalten. Keine fachliche Freigabe.',
                   ),
                   Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: SelectableText(
-                              'LOKAL\n${canonicalJson(local)}',
-                            ),
-                          ),
-                        ),
-                        const VerticalDivider(),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: SelectableText(
-                              'SERVER\n${canonicalJson(remote)}',
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: DrawingComparison(
+                      left: local,
+                      right: remote,
+                      leftTitle: 'Lokaler Entwurf',
+                      rightTitle: 'Serverstand',
                     ),
                   ),
                 ],
@@ -282,7 +270,14 @@ class _OfflineScreenState extends State<OfflineScreen> {
                 child: const Text('Serverzeichnung lokal übernehmen'),
               ),
               FilledButton(
-                onPressed: () => Navigator.pop(c, 'local'),
+                onPressed:
+                    MediaQuery.sizeOf(c).width < 1000 ||
+                        MediaQuery.sizeOf(c).height -
+                                kToolbarHeight -
+                                MediaQuery.paddingOf(c).vertical <
+                            500
+                    ? null
+                    : () => Navigator.pop(c, 'local'),
                 child: const Text('Lokale Zeichnung bewusst hochladen'),
               ),
             ],

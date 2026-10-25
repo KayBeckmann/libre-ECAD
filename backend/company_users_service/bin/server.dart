@@ -29,6 +29,8 @@ Future<void> main() async {
   await ensureSchema(db);
   await migrateWorkspace(db);
   await migrateManagement(db);
+  final automationRecords = PostgresRecords(db);
+  await automationRecords.migrate();
 
   final internalToken = Platform.environment['INTERNAL_SERVICE_TOKEN'] ?? '';
   if (internalToken.isEmpty) {
@@ -45,6 +47,7 @@ Future<void> main() async {
     operatorHandler: ManagedCompanies(db,internalToken).handle,
     catalogApi: InternalApi(Uri.parse(Platform.environment['GLOBAL_ARTICLES_SERVICE_URL']??'http://global-articles-service:8082'), internalToken),
     workspace: PostgresWorkspaceStore(db),
+    automationRecords: automationRecords,
     globalLookup: GlobalCatalog(
       Uri.parse(
         Platform.environment['GLOBAL_ARTICLES_SERVICE_URL'] ??

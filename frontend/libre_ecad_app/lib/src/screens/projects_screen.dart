@@ -7,6 +7,7 @@ import '../api/workspace_api.dart';
 import '../api/company_users_api.dart';
 import '../models.dart';
 import 'drawing_screen.dart';
+import 'automation_screen.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key, required this.session});
@@ -231,6 +232,22 @@ class _ProjectEditorState extends State<ProjectEditor> {
                     icon: const Icon(Icons.polyline_outlined),
                     label: const Text('Schaltplan öffnen'),
                   ),
+                ),
+              if (widget.project != null)
+                OutlinedButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AutomationScreen(
+                              session: widget.session,
+                              projectId: widget.project!['id'],
+                            ),
+                          ),
+                        ),
+                  icon: const Icon(Icons.integration_instructions_outlined),
+                  label: const Text('API / MCP'),
                 ),
               if (!kIsWeb && widget.project != null)
                 OutlinedButton.icon(

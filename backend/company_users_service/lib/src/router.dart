@@ -7,6 +7,7 @@ import 'package:shelf_router/shelf_router.dart';
 import 'models.dart';
 import 'repository.dart';
 import 'workspace/router.dart';
+import 'workspace/automation.dart';
 import 'workspace/store.dart';
 
 /// M1.3 Firmen-/Nutzerdienst. Siehe Roadmap-Abnahme: "Admin A erstellt/
@@ -19,6 +20,7 @@ class CompanyUserRouter {
     required this.repository,
     required this.internalToken,
     this.workspace,
+    this.automationRecords,
     this.catalogApi,
     this.operatorHandler,
     this.globalLookup,
@@ -27,6 +29,7 @@ class CompanyUserRouter {
 
   final CompanyUserRepository repository;
   final WorkspaceStore? workspace;
+  final Records? automationRecords;
   final InternalApi? catalogApi;
   final Handler? operatorHandler;
   final Future<Document?> Function(String)? globalLookup;
@@ -64,6 +67,12 @@ class CompanyUserRouter {
       body['actor']={'companyId':auth.user.companyId,'userId':auth.user.id,'role':auth.user.role.wireValue};
       return jsonOk(await catalogApi!.call('/internal/contributions',method:'POST',body:body));
     }));
+    if (workspace != null && automationRecords != null) {
+      router.mount('/api/v1/automation/', AutomationRouter(
+        records:automationRecords!, store:workspace!, users:repository,
+        authenticate:(q) async => (await _requireUser(q))?.user,
+      ).handler.call);
+    }
     if (workspace != null) {
       router.mount(
         '/api/v1/',

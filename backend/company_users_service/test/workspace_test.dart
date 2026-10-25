@@ -67,6 +67,7 @@ void main() {
       repository: users,
       internalToken: 'test',
       workspace: store,
+      automationRecords: MemoryRecords(),
       globalLookup: (id) async {
         if (!globalAvailable) throw GlobalCatalogUnavailable();
         return {
@@ -625,6 +626,189 @@ void main() {
           'version': 5,
         })).statusCode,
         404,
+      );
+    },
+  );
+  test(
+    'scoped automation cannot approve; proposals require human CAS and audit',
+    () async {
+      final p = await json(
+        await call('admin-a', 'POST', 'projects', {'name': 'Automation'}),
+      );
+      final id = p['id'];
+      final other = await json(
+        await call('admin-a', 'POST', 'projects', {'name': 'Unshared'}),
+      );
+      await call('admin-a', 'PUT', 'projects/$id/drawing', {
+        'version': 1,
+        'drawing': sampleDrawing('motor'),
+      });
+      final issue = {
+        'confirmed': true,
+        'label': 'Test model client',
+        'projectIds': [id],
+        'allowProposals': true,
+      };
+      expect(
+        (await call('admin-a', 'POST', 'automation/tokens', {
+          ...issue,
+          'confirmed': false,
+        })).statusCode,
+        400,
+      );
+      final t = await json(
+        await call('admin-a', 'POST', 'automation/tokens', issue),
+      );
+      tokens['scoped'] = t['token'];
+      final list = await json(
+        await call('scoped', 'GET', 'automation/projects'),
+      );
+      expect((list['projects'] as List).length, 1);
+      expect(
+        (await call(
+          'scoped',
+          'GET',
+          'automation/projects/${other['id']}',
+        )).statusCode,
+        404,
+      );
+      expect((await call('scoped', 'GET', 'projects/$id')).statusCode, 401);
+      expect(
+        (await call('admin-a', 'GET', 'automation/projects')).statusCode,
+        401,
+      );
+      expect(
+        (await call('scoped', 'POST', 'projects/$id/releases', {
+          'confirmed': true,
+        })).statusCode,
+        401,
+      );
+      final proposalBody = {
+        'version': 2,
+        'reason': 'Explicit proposal',
+        'drawing': sampleDrawing('distribution'),
+      };
+      final v = await json(
+        await call(
+          'scoped',
+          'POST',
+          'automation/projects/$id/proposals',
+          proposalBody,
+        ),
+      );
+      expect((await store.get('a', 'project', id))!['version'], 2);
+      final apply = 'automation/review/$id/${v['id']}/apply';
+      expect(
+        (await call('scoped', 'POST', apply, {
+          'confirmed': true,
+          'version': 2,
+        })).statusCode,
+        401,
+      );
+      expect(
+        (await call('admin-b', 'POST', apply, {
+          'confirmed': true,
+          'version': 2,
+        })).statusCode,
+        404,
+      );
+      expect(
+        (await call('admin-a', 'POST', apply, {'version': 2})).statusCode,
+        400,
+      );
+      final responses = await Future.wait(
+        List.generate(
+          2,
+          (_) =>
+              call('admin-a', 'POST', apply, {'confirmed': true, 'version': 2}),
+        ),
+      );
+      expect(responses.map((r) => r.statusCode).toList()..sort(), [200, 409]);
+      final current = (await store.get('a', 'project', id))!;
+      expect(current['activity']['proposalId'], v['id']);
+      expect(current['activity']['confirmedBy'], 'admin-a');
+      expect(current['release'], isNull);
+      final review = await json(
+        await call('admin-a', 'GET', 'automation/review/$id'),
+      );
+      expect(review['proposals'][0]['status'], 'applied');
+      expect(
+        (await call(
+          'scoped',
+          'POST',
+          'automation/projects/$id/proposals',
+          proposalBody,
+        )).statusCode,
+        409,
+      );
+      expect(
+        (await call(
+          'scoped',
+          'GET',
+          'automation/projects/$id/documents?version=2',
+        )).statusCode,
+        409,
+      );
+      expect(
+        (await call(
+          'scoped',
+          'GET',
+          'automation/projects/$id/documents?version=3',
+        )).statusCode,
+        200,
+      );
+      await call('admin-a', 'POST', 'automation/tokens/${t['id']}/revoke', {});
+      expect(
+        (await call('scoped', 'GET', 'automation/projects')).statusCode,
+        401,
+      );
+      final ro = await json(
+        await call('admin-a', 'POST', 'automation/tokens', {
+          ...issue,
+          'allowProposals': false,
+        }),
+      );
+      tokens['readonly'] = ro['token'];
+      expect(
+        (await call('readonly', 'POST', 'automation/projects/$id/proposals', {
+          ...proposalBody,
+          'version': 3,
+        })).statusCode,
+        403,
+      );
+      await call('admin-a', 'PATCH', 'projects/$id', {
+        ...current,
+        'memberIds': ['drafter-a'],
+      });
+      final dt = await json(
+        await call('drafter-a', 'POST', 'automation/tokens', issue),
+      );
+      tokens['drafter-api'] = dt['token'];
+      expect(
+        (await call(
+          'drafter-api',
+          'GET',
+          'automation/projects/$id',
+        )).statusCode,
+        200,
+      );
+      var latest = (await store.get('a', 'project', id))!;
+      await call('admin-a', 'PATCH', 'projects/$id', {
+        ...latest,
+        'memberIds': [],
+      });
+      expect(
+        (await call(
+          'drafter-api',
+          'GET',
+          'automation/projects/$id',
+        )).statusCode,
+        404,
+      );
+      await users.setUserActive(id: 'drafter-a', active: false);
+      expect(
+        (await call('drafter-api', 'GET', 'automation/projects')).statusCode,
+        401,
       );
     },
   );
