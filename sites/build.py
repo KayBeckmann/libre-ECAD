@@ -98,7 +98,7 @@ def validate(home, chapters):
 def shell(lang, title, description, body, other_path, home, version, site='homepage'):
     t = home[lang]
     other = 'en' if lang == 'de' else 'de'
-    home_link = service_link('homepage', f'/{lang}/', 'LibreECAD') if site == 'wiki' else f'<a class="brand" href="/{lang}/">Libre<span>ECAD</span></a>'
+    home_link = service_link('homepage', f'/{lang}/', 'LibreECAD', 'brand') if site == 'wiki' else f'<a class="brand" href="/{lang}/">Libre<span>ECAD</span></a>'
     navigation = service_link('wiki', wiki_path(lang, version), t['wiki']) if site == 'homepage' else service_link('homepage', f'/{lang}/', 'Homepage')
     navigation += service_link('app', '/', t['app'])
     navigation += f'<a class="language" href="{esc(other_path)}" hreflang="{other}" lang="{other}" aria-label="{"English" if other == "en" else "Deutsch"}">{other.upper()}</a>'

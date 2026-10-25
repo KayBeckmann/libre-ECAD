@@ -8,6 +8,7 @@ for (const link of document.querySelectorAll('[data-service]')) {
 }
 for (const link of document.querySelectorAll('[hreflang]')) {
   link.hash = location.hash;
+  link.addEventListener('click', () => { link.hash = location.hash; });
 }
 const menu = document.querySelector('#menu-toggle');
 if (menu) menu.addEventListener('click', () => {
