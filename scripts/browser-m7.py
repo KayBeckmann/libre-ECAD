@@ -54,6 +54,7 @@ with sync_playwright() as p:
     button('Planart Installationsplan').click()
     inspect('plan-menu')
     page.get_by_role('menuitem',name='Aufbauzeichnung',exact=True).click()
+    expect(page.get_by_role('group',name='TEST Leitung 2.4 m inkl. Zuschlag',exact=True)).to_be_visible()
     inspect('layout')
     # This alternate view is a local draft until explicitly adopted.
     button('Back').click()

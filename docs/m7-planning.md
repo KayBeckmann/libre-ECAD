@@ -19,7 +19,9 @@ Projekt → Schaltplan öffnen. Die Bauteilbibliothek enthält jetzt:
 - **Aufbauzeichnung:** Planart umschalten und mm je Zeichnungseinheit festlegen.
   Im Geräteinspektor „Artikel / Maße zuordnen“ wählen. Rechtecke verwenden die
   festgehaltenen Artikelmaße; fehlende Maße, Überschneidungen und Blattgrenzen
-  erzeugen Prüffunde. Keine automatische Montageabstandsprüfung.
+  erzeugen Prüffunde. Leitungsweglängen verwenden hier den Millimetermaßstab,
+  auch nach einem Wechsel von einer zuvor kalibrierten Installationsansicht.
+  Keine automatische Montageabstandsprüfung.
 - **Automatisierung:** Generische SPS-, FU- und Sicherheitsgeräte mit benannten
   Anschlüssen, Kontaktbaum und bestehenden Querverweisen. SPS-Signale I0/I1/Q0/Q1
   sind strukturiert gespeichert. Diese synthetischen Blöcke bilden keine
@@ -118,9 +120,10 @@ Lagerbuchung. Der getrennte ERP-Zweig ist nicht in die laufende ERP-Instanz
   Aufbauansicht, Rechenwerte, Materialdownload, Makroeinfügen und kompakter
   Lesemodus in Chromium.
 - Web-, Linux- und Android-Release-Build erfolgreich.
-- WerkkernERP: Analyse `lib test` ohne Befunde; 318 Tests einschließlich einer
-  vom LibreECAD-Generator erzeugten Materialdatei; zusätzlich gezielter
-  Widgettest zum sichtbaren Zurücksetzen beim erneuten Laden.
+- WerkkernERP: Analyse `lib test` ohne Befunde; 321 Tests einschließlich einer
+  vom LibreECAD-Generator erzeugten Materialdatei und sichtbarem Zurücksetzen
+  beim erneuten Laden. Web-Release auch nach Abgleich mit dem aktuellen
+  ERP-Hauptzweig gebaut.
 
 Synthetischer Beispieldatensatz: `dart run bin/planning_sample.dart` im Core-Paket.
 Die Skripte nutzen ausschließlich isolierte TEST-Firmen. Zugangsdaten bleiben in
