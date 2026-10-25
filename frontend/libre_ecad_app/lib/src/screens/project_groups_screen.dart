@@ -37,7 +37,7 @@ class _ProjectGroupsScreenState extends State<ProjectGroupsScreen> {
       if (mounted) {
         setState(() {
           groups = (result['groups'] as List).cast<Map<String, dynamic>>();
-          users = people.where((u) => u.active && u.activated).toList();
+          users = people;
           error = null;
           busy = false;
         });
@@ -84,10 +84,17 @@ class _ProjectGroupsScreenState extends State<ProjectGroupsScreen> {
                   const Text(
                     'Freigeschaltete Mitarbeiter erhalten Zugriff auf alle zugeordneten Projekte. Direkte Projektzuweisungen bleiben zusätzlich bestehen.',
                   ),
-                  for (final u in users)
+                  for (final u in users.where(
+                    (u) => (u.active && u.activated) || members.contains(u.id),
+                  ))
                     CheckboxListTile(
                       value: members.contains(u.id),
                       title: Text(u.username),
+                      subtitle: u.active && u.activated
+                          ? null
+                          : const Text(
+                              'Inaktiver Zugang – vor dem Speichern entfernen.',
+                            ),
                       onChanged: (v) => update(() {
                         v == true ? members.add(u.id) : members.remove(u.id);
                       }),
@@ -192,7 +199,14 @@ class _ProjectGroupsScreenState extends State<ProjectGroupsScreen> {
               child: Text('Gruppen bearbeiten'),
             ),
             for (final u in users)
-              DropdownMenuItem(value: u.id, child: Text(u.username)),
+              DropdownMenuItem(
+                value: u.id,
+                child: Text(
+                  u.active && u.activated
+                      ? u.username
+                      : '${u.username} · inaktiv',
+                ),
+              ),
           ],
           onChanged: busy
               ? null
@@ -223,7 +237,15 @@ class _ProjectGroupsScreenState extends State<ProjectGroupsScreen> {
                   title: Text(g['name']),
                   subtitle: Text(g['description']),
                   value: (g['memberIds'] as List).contains(employee),
-                  onChanged: busy ? null : (v) => grant(g, v!),
+                  onChanged:
+                      busy ||
+                          (!(g['memberIds'] as List).contains(employee) &&
+                              !users.any(
+                                (u) =>
+                                    u.id == employee && u.active && u.activated,
+                              ))
+                      ? null
+                      : (v) => grant(g, v!),
                 ),
       ],
     ),
