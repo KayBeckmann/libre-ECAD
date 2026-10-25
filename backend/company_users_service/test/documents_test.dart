@@ -8,6 +8,29 @@ import 'package:company_users_service/src/workspace/git_archive.dart';
 
 void main() {
   test(
+    'SVG puts contact comb below coil and contacts reference only the coil',
+    () {
+      final d = sampleDrawing('three-phase');
+      final coil = objects(
+        d,
+        'instances',
+      ).firstWhere((i) => symbolByKey(i['symbol'], d).role == 'coil');
+      final reference = positionReference(d, coil);
+      final sheets = objects(d, 'sheets');
+      final all = sheets.map((s) => sheetSvg(d, s['id'])).join();
+      expect(all, contains('Kontaktkamm'));
+      expect(all, contains('Öffner'));
+      expect(all, contains('Schließer'));
+      final labels = RegExp(
+        r'>Ref\. ([^<]+)</text>',
+      ).allMatches(all).map((m) => m[1]).toList();
+      expect(labels, hasLength(3));
+      expect(labels.toSet(), {const HtmlEscape().convert(reference)});
+      expect(sheetSvg(d, coil['sheetId']), contains('y="${coil['y'] + 52}"'));
+    },
+  );
+
+  test(
     'installation PNG, scale, circuits and calculation evidence render in PDF',
     () async {
       final d = planningSample();

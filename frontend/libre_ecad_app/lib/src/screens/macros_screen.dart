@@ -11,9 +11,11 @@ class MacrosScreen extends StatefulWidget {
     required this.api,
     required this.drawing,
     required this.editable,
+    this.selectionDrawing,
   });
   final WorkspaceApi api;
   final Json drawing;
+  final Json? selectionDrawing;
   final bool editable;
   @override
   State<MacrosScreen> createState() => _MacrosScreenState();
@@ -70,7 +72,7 @@ class _MacrosScreenState extends State<MacrosScreen> {
       ],
     ),
   ).then((v) => v == true);
-  Future<void> edit([Json? old]) async {
+  Future<void> edit([Json? old, bool selection = false]) async {
     final name = TextEditingController(text: old?['name'] ?? ''),
         origin = TextEditingController(text: old?['origin'] ?? ''),
         license = TextEditingController(text: old?['license'] ?? ''),
@@ -84,7 +86,9 @@ class _MacrosScreenState extends State<MacrosScreen> {
         builder: (c, set) => AlertDialog(
           title: Text(
             old == null
-                ? 'Projektblätter als Makro speichern'
+                ? selection
+                      ? 'Auswahl als Makro speichern'
+                      : 'Projektblätter als Makro speichern'
                 : 'Makroversion bearbeiten',
           ),
           content: SizedBox(
@@ -111,8 +115,10 @@ class _MacrosScreenState extends State<MacrosScreen> {
                         'Geometrie durch alle aktuellen Projektblätter ersetzen',
                       ),
                     ),
-                  const Text(
-                    'Die Vorlage enthält Geräte, Verbindungen und eingebettete Daten aller übernommenen Blätter. Bestehende Einfügungen bleiben unverändert.',
+                  Text(
+                    selection
+                        ? 'Nur Bauteile mit Mittelpunkt im Rahmen, enthaltene Knoten und vollständig interne Leitungen. Keine Hintergrundbilder, Blattfortsetzungen, externen Leitungen oder Berechnungen. Vor dem Einfügen Vorschau prüfen.'
+                        : 'Die Vorlage enthält Geräte, Verbindungen und eingebettete Daten aller übernommenen Blätter. Bestehende Einfügungen bleiben unverändert.',
                   ),
                 ],
               ),
@@ -142,7 +148,11 @@ class _MacrosScreenState extends State<MacrosScreen> {
               .map((s) => s.trim())
               .where((s) => s.isNotEmpty)
               .toList(),
-          'drawing': replace ? widget.drawing : old!['drawing'],
+          'drawing': replace
+              ? selection
+                    ? widget.selectionDrawing!
+                    : widget.drawing
+              : old!['drawing'],
           if (old != null) 'version': old['version'],
           if (old == null) 'scope': scope,
         };
@@ -368,6 +378,20 @@ class _MacrosScreenState extends State<MacrosScreen> {
                   load();
                 },
               ),
+              if (widget.selectionDrawing != null && scope != 'global')
+                FilledButton.icon(
+                  onPressed:
+                      enabled &&
+                          !busy &&
+                          (scope == 'personal' ||
+                              widget.api.session.role == UserRole.admin)
+                      ? () => edit(null, true)
+                      : null,
+                  icon: const Icon(Icons.select_all),
+                  label: Text(
+                    'Auswahl als Makro speichern (${objects(widget.selectionDrawing!, 'instances').length} Bauteile)',
+                  ),
+                ),
               if (scope != 'global')
                 FilledButton.icon(
                   onPressed:

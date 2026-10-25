@@ -178,3 +178,102 @@ Json macroFields(Json body) {
     'drawing': drawing,
   };
 }
+
+/// A rectangle selects symbol centres on one sheet. Only complete internal wires
+/// and nodes are copied, never hidden backgrounds or references outside the box.
+Json extractMacroRegion(
+  Json source,
+  String sheetId,
+  num x1,
+  num y1,
+  num x2,
+  num y2,
+) {
+  final original = validateDrawing(source);
+  final left = x1 < x2 ? x1 : x2, right = x1 > x2 ? x1 : x2;
+  final top = y1 < y2 ? y1 : y2, bottom = y1 > y2 ? y1 : y2;
+  bool inside(Json o) =>
+      o['sheetId'] == sheetId &&
+      o['x'] >= left &&
+      o['x'] <= right &&
+      o['y'] >= top &&
+      o['y'] <= bottom;
+  final instances = objects(original, 'instances').where(inside).toList();
+  if (instances.isEmpty)
+    throw FormatException('Der Auswahlrahmen enthält keine Bauteile.');
+  final deviceIds = instances.map((i) => i['deviceId']).toSet();
+  for (final id in deviceIds) {
+    final contacts = instances.where(
+      (i) =>
+          i['deviceId'] == id && symbolByKey(i['symbol'], original).isContact,
+    );
+    if (contacts.isNotEmpty &&
+        !instances.any(
+          (i) =>
+              i['deviceId'] == id &&
+              symbolByKey(i['symbol'], original).role == 'coil',
+        )) {
+      throw FormatException(
+        'Ausgewählte Relaiskontakte benötigen ihre Spule im Rahmen. Für blattübergreifende Gruppen das gesamte Projekt als Makro speichern.',
+      );
+    }
+  }
+  final ids = instances.map((i) => i['id']).toSet();
+  final nodes = objects(original, 'nodes').where(inside).toList();
+  final nodeIds = nodes.map((n) => n['id']).toSet();
+  bool included(Json ref) => ref['kind'] == 'port'
+      ? ids.contains(ref['instanceId'])
+      : ref['kind'] == 'node' && nodeIds.contains(ref['id']);
+  final wires = objects(
+    original,
+    'wires',
+  ).where((w) => included(w['from']) && included(w['to'])).toList();
+  final cables = objects(
+    original,
+    'cables',
+  ).where((c) => wires.any((w) => w['cableId'] == c['id'])).toList();
+  final symbols = instances.map((i) => i['symbol']).toSet();
+  final d = emptyDrawing()
+    ..['sheets'] = [objectById(original, 'sheets', sheetId)]
+    ..['instances'] = instances
+    ..['devices'] = objects(
+      original,
+      'devices',
+    ).where((dev) => deviceIds.contains(dev['id'])).toList()
+    ..['nodes'] = nodes
+    ..['wires'] = wires
+    ..['cables'] = cables
+    ..['symbols'] = objects(
+      original,
+      'symbols',
+    ).where((s) => symbols.contains('custom_${s['id']}')).toList();
+  // Keep the layout scale; source images, routes and calculations are deliberately excluded.
+  final plans = (original['plans'] as List? ?? []).cast<Json>().where(
+    (p) => p['id'] == sheetId,
+  );
+  if (plans.isNotEmpty)
+    d['plans'] = [
+      {
+        'id': sheetId,
+        'kind': plans.first['kind'],
+        if (plans.first['kind'] == 'layout')
+          'mmPerUnit': plans.first['mmPerUnit'],
+        'circuits': <Json>[],
+        'routes': <Json>[],
+      },
+    ];
+  final copy = cloneJson(d);
+  for (final dev in objects(
+    copy,
+    'devices',
+  ).where((v) => v['type'] == 'relay')) {
+    final used = {
+      'A1',
+      'A2',
+      for (final i in instances.where((i) => i['deviceId'] == dev['id']))
+        ...instancePorts(original, i),
+    };
+    (dev['terminals'] as List).removeWhere((t) => !used.contains(t['id']));
+  }
+  return validateDrawing(copy);
+}

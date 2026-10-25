@@ -593,3 +593,44 @@ Json validateDrawing(Object? input) {
   validateCalculations(d);
   return cloneJson(d);
 }
+
+/// Contacts point only to their coil. Coils enumerate contacts in the comb.
+List<Json> instanceReferences(Json d, Json instance) {
+  final symbol = symbolByKey(instance['symbol'], d);
+  return crossReferences(d, instance['deviceId']).where((ref) {
+    if (ref['instanceId'] == instance['id']) return false;
+    final other = symbolByKey(ref['symbol'], d);
+    return symbol.isContact
+        ? other.role == 'coil'
+        : symbol.role == 'coil'
+        ? other.isContact
+        : true;
+  }).toList()..sort(
+    (a, b) => a['position'].toString().compareTo(b['position'].toString()),
+  );
+}
+
+/// Shared layout used by the Flutter canvas and server/native SVG/PDF renderer.
+List<Json> relayContactComb(Json d, Json coil) {
+  if (symbolByKey(coil['symbol'], d).role != 'coil') return [];
+  final refs = instanceReferences(d, coil);
+  final x = (coil['x'] as num).clamp(80, 1060), y = (coil['y'] as num) + 74;
+  final columns = ((1120 - x) ~/ 100 + 1).clamp(1, 8);
+  return [
+    for (var n = 0; n < refs.length; n++)
+      {
+        ...refs[n],
+        'x': x + (n % columns) * 100,
+        'y': y + (n ~/ columns) * 90,
+        'role': symbolByKey(refs[n]['symbol'], d).role,
+        'terminals': [
+          for (final id in instancePorts(
+            d,
+            objectById(d, 'instances', refs[n]['instanceId']),
+          ))
+            (objectById(d, 'devices', coil['deviceId'])['terminals'] as List)
+                .firstWhere((t) => t['id'] == id)['label'],
+        ],
+      },
+  ];
+}

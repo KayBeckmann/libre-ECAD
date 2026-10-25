@@ -37,7 +37,13 @@ class DrawingCanvas extends StatefulWidget {
     required this.onMove,
     required this.onPort,
     this.pending,
+    this.selectingRegion = false,
+    this.region,
+    this.onRegion,
   });
+  final bool selectingRegion;
+  final Rect? region;
+  final ValueChanged<Rect>? onRegion;
   final Json drawing;
   final String sheetId, projectName;
   final int version;
@@ -55,7 +61,8 @@ class DrawingCanvas extends StatefulWidget {
 class _DrawingCanvasState extends State<DrawingCanvas> {
   final transform = TransformationController();
   bool fitted = false;
-  Offset? dragStart, dragDelta;
+  Offset? dragStart, dragDelta, regionStart;
+  Rect? regionDrag;
   @override
   void dispose() {
     transform.dispose();
@@ -89,112 +96,159 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 padding: const EdgeInsets.all(20),
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTapUp: widget.editable
+                  onPanStart: widget.editable && widget.selectingRegion
+                      ? (event) => setState(() {
+                          regionStart = event.localPosition;
+                          regionDrag = Rect.fromPoints(
+                            regionStart!,
+                            regionStart!,
+                          );
+                        })
+                      : null,
+                  onPanUpdate: widget.editable && widget.selectingRegion
+                      ? (event) => setState(() {
+                          regionDrag = Rect.fromPoints(
+                            regionStart!,
+                            event.localPosition,
+                          );
+                        })
+                      : null,
+                  onPanEnd: widget.editable && widget.selectingRegion
+                      ? (_) {
+                          if (regionDrag != null) {
+                            widget.onRegion?.call(regionDrag!);
+                          }
+                          setState(() {
+                            regionDrag = null;
+                            regionStart = null;
+                          });
+                        }
+                      : null,
+                  onPanCancel: () => setState(() {
+                    regionDrag = null;
+                    regionStart = null;
+                  }),
+                  onTapUp: widget.editable && !widget.selectingRegion
                       ? (e) => widget.onTap(e.localPosition)
                       : null,
                   child: SizedBox(
                     width: 1200,
                     height: 800,
-                    child: Stack(
-                      children: [
-                        if (background != null) ...[
-                          const Positioned.fill(
-                            child: ColoredBox(color: Colors.white),
-                          ),
-                          Positioned(
-                            left: (background['x'] as num).toDouble(),
-                            top: (background['y'] as num).toDouble(),
-                            width: (background['width'] as num).toDouble(),
-                            height: (background['height'] as num).toDouble(),
-                            child: Image.memory(
-                              base64Decode(background['png']),
-                              fit: BoxFit.fill,
-                              gaplessPlayback: true,
+                    child: IgnorePointer(
+                      ignoring: widget.selectingRegion,
+                      child: Stack(
+                        children: [
+                          if (background != null) ...[
+                            const Positioned.fill(
+                              child: ColoredBox(color: Colors.white),
                             ),
-                          ),
-                        ],
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: SheetPainter(
-                              d,
-                              widget.sheetId,
-                              widget.projectName,
-                              widget.version,
-                              widget.selected,
+                            Positioned(
+                              left: (background['x'] as num).toDouble(),
+                              top: (background['y'] as num).toDouble(),
+                              width: (background['width'] as num).toDouble(),
+                              height: (background['height'] as num).toDouble(),
+                              child: Image.memory(
+                                base64Decode(background['png']),
+                                fit: BoxFit.fill,
+                                gaplessPlayback: true,
+                              ),
                             ),
-                          ),
-                        ),
-                        for (final i in objects(
-                          d,
-                          'instances',
-                        ).where((i) => i['sheetId'] == widget.sheetId))
-                          Positioned(
-                            left: (i['x'] as num).toDouble() - 48,
-                            top: (i['y'] as num).toDouble() - 24,
-                            width: 96,
-                            height: 48,
-                            child: Semantics(
-                              button: true,
-                              identifier: 'ecad-hit-symbol-${i['id']}',
-                              label:
-                                  'Symbol ${objectById(d, 'devices', i['deviceId'])['bmk']}',
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => widget.onSelect(i['id']),
-                                onPanStart: widget.editable
-                                    ? (_) {
-                                        dragStart = Offset(
-                                          (i['x'] as num).toDouble(),
-                                          (i['y'] as num).toDouble(),
-                                        );
-                                        dragDelta = Offset.zero;
-                                        widget.onSelect(i['id']);
-                                      }
-                                    : null,
-                                onPanUpdate: widget.editable
-                                    ? (e) {
-                                        dragDelta = dragDelta! + e.delta;
-                                      }
-                                    : null,
-                                onPanEnd: widget.editable
-                                    ? (_) {
-                                        widget.onMove(
-                                          i['id'],
-                                          dragStart! + dragDelta!,
-                                        );
-                                      }
-                                    : null,
-                                child: const SizedBox.expand(),
+                          ],
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: SheetPainter(
+                                d,
+                                widget.sheetId,
+                                widget.projectName,
+                                widget.version,
+                                widget.selected,
                               ),
                             ),
                           ),
-                        for (final i in objects(
-                          d,
-                          'instances',
-                        ).where((i) => i['sheetId'] == widget.sheetId))
-                          if (planFor(d, widget.sheetId)?['kind'] != 'layout')
-                            for (final p in instancePorts(d, i))
+                          for (final i in objects(
+                            d,
+                            'instances',
+                          ).where((i) => i['sheetId'] == widget.sheetId))
+                            Positioned(
+                              left: (i['x'] as num).toDouble() - 48,
+                              top: (i['y'] as num).toDouble() - 24,
+                              width: 96,
+                              height: 48,
+                              child: Semantics(
+                                button: true,
+                                identifier: 'ecad-hit-symbol-${i['id']}',
+                                label:
+                                    'Symbol ${objectById(d, 'devices', i['deviceId'])['bmk']}',
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => widget.onSelect(i['id']),
+                                  onPanStart: widget.editable
+                                      ? (_) {
+                                          dragStart = Offset(
+                                            (i['x'] as num).toDouble(),
+                                            (i['y'] as num).toDouble(),
+                                          );
+                                          dragDelta = Offset.zero;
+                                          widget.onSelect(i['id']);
+                                        }
+                                      : null,
+                                  onPanUpdate: widget.editable
+                                      ? (e) {
+                                          dragDelta = dragDelta! + e.delta;
+                                        }
+                                      : null,
+                                  onPanEnd: widget.editable
+                                      ? (_) {
+                                          widget.onMove(
+                                            i['id'],
+                                            dragStart! + dragDelta!,
+                                          );
+                                        }
+                                      : null,
+                                  child: const SizedBox.expand(),
+                                ),
+                              ),
+                            ),
+                          for (final i in objects(
+                            d,
+                            'instances',
+                          ).where((i) => i['sheetId'] == widget.sheetId))
+                            if (planFor(d, widget.sheetId)?['kind'] != 'layout')
+                              for (final p in instancePorts(d, i))
+                                port(
+                                  d,
+                                  portRef(i['id'], p),
+                                  '${objectById(d, 'devices', i['deviceId'])['bmk']}:$p',
+                                ),
+                          if ((regionDrag ?? widget.region) != null)
+                            Positioned.fromRect(
+                              rect: regionDrag ?? widget.region!,
+                              child: IgnorePointer(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: accent.withValues(alpha: .12),
+                                    border: Border.all(color: accent, width: 2),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          for (final kind in ['nodes', 'continuations'])
+                            for (final o in objects(
+                              d,
+                              kind,
+                            ).where((o) => o['sheetId'] == widget.sheetId))
                               port(
                                 d,
-                                portRef(i['id'], p),
-                                '${objectById(d, 'devices', i['deviceId'])['bmk']}:$p',
+                                pointRef(
+                                  kind == 'nodes' ? 'node' : 'continuation',
+                                  o['id'],
+                                ),
+                                kind == 'nodes'
+                                    ? 'Knoten ${shortObjectId(o['id'])}'
+                                    : 'Fortsetzung ${o['label']}',
                               ),
-                        for (final kind in ['nodes', 'continuations'])
-                          for (final o in objects(
-                            d,
-                            kind,
-                          ).where((o) => o['sheetId'] == widget.sheetId))
-                            port(
-                              d,
-                              pointRef(
-                                kind == 'nodes' ? 'node' : 'continuation',
-                                o['id'],
-                              ),
-                              kind == 'nodes'
-                                  ? 'Knoten ${shortObjectId(o['id'])}'
-                                  : 'Fortsetzung ${o['label']}',
-                            ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -502,12 +556,54 @@ class SheetPainter extends CustomPainter {
               : 32);
       label(c, '${device['bmk']}', Offset(labelX, y - 20), size: 14);
       label(c, '${device['label']}', Offset(labelX, y), size: 10);
-      final refs = crossReferences(d, device['id'])
-          .where((r) => r['instanceId'] != i['id'])
-          .map((r) => r['position'])
-          .join(', ');
-      if (refs.isNotEmpty) {
+      final refs = instanceReferences(
+        d,
+        i,
+      ).map((r) => r['position']).join(', ');
+      if (refs.isNotEmpty && symbol.role != 'coil') {
         label(c, 'Ref. $refs', Offset(labelX, y + 17), size: 10, color: accent);
+      }
+      final comb = relayContactComb(d, i);
+      if (comb.isNotEmpty) {
+        label(
+          c,
+          'Kontaktkamm',
+          Offset((comb.first['x'] as num).toDouble() - 16, y + 42),
+          size: 10,
+        );
+      }
+      for (final contact in comb) {
+        final cx = (contact['x'] as num).toDouble(),
+            cy = (contact['y'] as num).toDouble();
+        c.drawLine(Offset(cx, cy - 15), Offset(cx, cy - 8), line);
+        c.drawLine(Offset(cx, cy + 8), Offset(cx, cy + 15), line);
+        c.drawLine(
+          Offset(cx, cy + 8),
+          Offset(contact['role'] == 'nc' ? cx : cx + 12, cy - 8),
+          line,
+        );
+        if (contact['role'] == 'nc') {
+          c.drawLine(Offset(cx - 5, cy - 8), Offset(cx + 5, cy - 8), line);
+        }
+        label(
+          c,
+          contact['terminals'].join('/'),
+          Offset(cx + 18, cy - 18),
+          size: 10,
+        );
+        label(
+          c,
+          contact['role'] == 'nc' ? 'Öffner' : 'Schließer',
+          Offset(cx + 18, cy - 3),
+          size: 9,
+        );
+        label(
+          c,
+          contact['position'],
+          Offset(cx - 14, cy + 22),
+          size: 10,
+          color: accent,
+        );
       }
       for (final p in instancePorts(d, i)) {
         final pos = endpointOffset(d, portRef(i['id'], p));

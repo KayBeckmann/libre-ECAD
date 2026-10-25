@@ -138,11 +138,27 @@ String sheetSvg(Json d, String sheetId) {
             : 32);
     label(dev['bmk'], labelX, y - 8, size: 14);
     label(dev['label'], labelX, y + 10, size: 10);
-    final refs = crossReferences(d, dev['id'])
-        .where((v) => v['instanceId'] != i['id'])
-        .map((v) => v['position'])
-        .join(', ');
-    if (refs.isNotEmpty) label('Ref. $refs', labelX, y + 27, size: 10);
+    final refs = instanceReferences(d, i).map((v) => v['position']).join(', ');
+    if (refs.isNotEmpty && s.role != 'coil')
+      label('Ref. $refs', labelX, y + 27, size: 10);
+    final comb = relayContactComb(d, i);
+    if (comb.isNotEmpty)
+      label('Kontaktkamm', comb.first['x'] - 16, y + 52, size: 10);
+    for (final contact in comb) {
+      final num cx = contact['x'], cy = contact['y'];
+      line(cx, cy - 15, cx, cy - 8);
+      line(cx, cy + 8, cx, cy + 15);
+      line(cx, cy + 8, contact['role'] == 'nc' ? cx : cx + 12, cy - 8);
+      if (contact['role'] == 'nc') line(cx - 5, cy - 8, cx + 5, cy - 8);
+      label(contact['terminals'].join('/'), cx + 18, cy - 8, size: 10);
+      label(
+        contact['role'] == 'nc' ? 'Öffner' : 'Schließer',
+        cx + 18,
+        cy + 7,
+        size: 9,
+      );
+      label(contact['position'], cx - 14, cy + 32, size: 10);
+    }
     for (final p in instancePorts(d, i)) {
       final pos = endpointPosition(d, portRef(i['id'], p));
       final t = (dev['terminals'] as List).firstWhere((t) => t['id'] == p);

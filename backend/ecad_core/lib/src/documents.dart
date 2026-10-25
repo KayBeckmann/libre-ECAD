@@ -222,6 +222,15 @@ List<Json> drawingFindings(Object? input) {
     final coils = views
         .where((i) => symbolByKey(i['symbol'], d).role == 'coil')
         .toList();
+    for (final coil in coils) {
+      if (relayContactComb(d, coil).any((c) => c['y'] + 35 > 700)) {
+        add(
+          'contact-comb-bounds',
+          '${device['bmk']}: Kontaktkamm überschreitet den Zeichenbereich. Spule höher platzieren.',
+          coil,
+        );
+      }
+    }
     if (coils.length != 1 && views.isNotEmpty)
       add(
         'relay-coil',

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'documents_screen.dart';
 import 'planning_screen.dart';
 import 'macros_screen.dart';
+import 'article_picker.dart';
 import 'calculations_screen.dart';
 import 'material_screen.dart';
 
@@ -35,6 +36,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Timer? heartbeat;
   String? error, sheetId, selected, pendingDevice;
   String name = '', tool = 'select', query = '';
+  Rect? macroRegion;
+  String? regionSheet;
   Json? pendingPort;
   int version = 0;
   bool busy = false, online = false, checking = false, canLeave = false;
@@ -500,10 +503,27 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<void> macros() async {
+    Json? selectionDrawing;
+    if (macroRegion != null && regionSheet == sheetId) {
+      try {
+        selectionDrawing = extractMacroRegion(
+          d,
+          sheetId!,
+          macroRegion!.left,
+          macroRegion!.top,
+          macroRegion!.right,
+          macroRegion!.bottom,
+        );
+      } catch (e) {
+        setState(() => error = '$e');
+        return;
+      }
+    }
     final result = await Navigator.push<Json>(
       context,
       MaterialPageRoute(
         builder: (_) => MacrosScreen(
+          selectionDrawing: selectionDrawing,
           api: api,
           drawing: d,
           editable: online && !busy && hasEditingSpace,
@@ -539,24 +559,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   Future<void> assignArticle(Json device) async {
     try {
-      final own = await api.request('GET', 'articles?scope=personal'),
-          company = await api.request('GET', 'articles?scope=company');
-      if (!mounted) return;
-      final picked = await showDialog<Json>(
-        context: context,
-        builder: (c) => SimpleDialog(
-          title: const Text('Artikelversion zuordnen'),
-          children: [
-            for (final a in [...own['articles'], ...company['articles']])
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(c, a),
-                child: Text(
-                  '${a['articleNumber']} · ${a['name']} · V${a['version']}',
-                ),
-              ),
-          ],
-        ),
-      );
+      final picked = await pickLocalArticle(context, api);
       if (picked != null && mounted) {
         change(
           (d) => objectById(d, 'devices', device['id'])['article'] =
@@ -570,49 +573,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   Future<void> importArticleSymbol() async {
     try {
-      final personal = await api.request('GET', 'articles?scope=personal');
-      final company = await api.request('GET', 'articles?scope=company');
-      final articles =
-          [...(personal['articles'] as List), ...(company['articles'] as List)]
-              .cast<Json>()
-              .where((a) => a['layers']?['symbol']?['definition'] != null)
-              .toList();
-      if (!mounted) return;
-      final picked = await showDialog<Json>(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: const Text('Artikelsymbol übernehmen'),
-          content: SizedBox(
-            width: 600,
-            height: 400,
-            child: ListView(
-              children: [
-                const Text(
-                  'Die gewählte Artikelversion wird als unabhängige Symbolkopie im Projekt gespeichert. Spätere Änderungen am Artikel ersetzen sie nicht.',
-                ),
-                if (articles.isEmpty)
-                  const Text(
-                    'Noch keine gezeichneten Artikelsymbole. Im Artikel-Baukasten ein Schaltsymbol erstellen.',
-                  ),
-                for (final a in articles)
-                  ListTile(
-                    title: Text('${a['articleNumber']} · ${a['name']}'),
-                    subtitle: Text(
-                      'Version ${a['version']} · ${a['scope'] == 'company' ? 'Firma' : 'Persönlich'}',
-                    ),
-                    onTap: () => Navigator.pop(c, a),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c),
-              child: const Text('Abbrechen'),
-            ),
-          ],
-        ),
-      );
+      final picked = await pickLocalArticle(context, api, symbolsOnly: true);
       if (picked == null || !mounted) return;
       String? key;
       change((d) => key = pinArticleSymbol(d, picked));
@@ -1066,6 +1027,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                               const SizedBox(width: 12),
                               for (final mode in [
                                 ('select', 'Auswählen', Icons.near_me_outlined),
+                                ('region', 'Rahmenauswahl', Icons.select_all),
                                 (
                                   'connect',
                                   'Verbinden',
@@ -1113,6 +1075,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                     : null,
                                 icon: const Icon(Icons.redo),
                               ),
+                              if (macroRegion != null)
+                                TextButton(
+                                  onPressed: () => setState(() {
+                                    macroRegion = null;
+                                    regionSheet = null;
+                                  }),
+                                  child: const Text('Auswahl aufheben'),
+                                ),
                               const VerticalDivider(indent: 12, endIndent: 12),
                               TextButton.icon(
                                 onPressed: enabled ? continuation : null,
@@ -1221,6 +1191,15 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                       selected: selected,
                                       editable: enabled && tool != 'pan',
                                       pending: pendingPort,
+                                      selectingRegion: tool == 'region',
+                                      region: regionSheet == sheetId
+                                          ? macroRegion
+                                          : null,
+                                      onRegion: (rect) => setState(() {
+                                        macroRegion = rect;
+                                        regionSheet = sheetId;
+                                        selected = null;
+                                      }),
                                       onTap: tap,
                                       onSelect: (id) =>
                                           setState(() => selected = id),
@@ -1558,7 +1537,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     })
                   : null,
             ),
-            for (final ref in crossReferences(d, device['id']))
+            for (final ref in instanceReferences(d, i))
               TextButton(
                 onPressed: () => setState(() {
                   sheetId = ref['sheetId'];
