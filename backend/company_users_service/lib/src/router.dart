@@ -1,3 +1,4 @@
+import 'workspace/macros.dart';
 import 'dart:convert';
 
 import 'package:shared_server_kit/shared_server_kit.dart';
@@ -56,24 +57,56 @@ class CompanyUserRouter {
     router.post('/internal/companies', _internalCreateCompany);
     router.post('/internal/companies/<companyId>/admins', _internalCreateAdmin);
 
-    if(operatorHandler!=null) router.mount('/internal/operator/',operatorHandler!);
-    router.post('/api/v1/contributions', (Request request)=>apiGuard(() async {
-      final auth=await _requireUser(request);
-      if(auth==null) return jsonError('Nicht angemeldet oder Firmenzugang gesperrt.',status:401);
-      if(catalogApi==null) return jsonError('Katalog nicht verfügbar.',status:503);
-      final body=await readJson(request);
-      // All identity and privilege fields come from the local session.
-      body.remove('mode');
-      body['actor']={'companyId':auth.user.companyId,'userId':auth.user.id,'role':auth.user.role.wireValue};
-      return jsonOk(await catalogApi!.call('/internal/contributions',method:'POST',body:body));
-    }));
+    if (operatorHandler != null)
+      router.mount('/internal/operator/', operatorHandler!);
+    router.post(
+      '/api/v1/contributions',
+      (Request request) => apiGuard(() async {
+        final auth = await _requireUser(request);
+        if (auth == null)
+          return jsonError(
+            'Nicht angemeldet oder Firmenzugang gesperrt.',
+            status: 401,
+          );
+        if (catalogApi == null)
+          return jsonError('Katalog nicht verfügbar.', status: 503);
+        final body = await readJson(request, maxBytes: 4194304);
+        // All identity and privilege fields come from the local session.
+        body.remove('mode');
+        body['actor'] = {
+          'companyId': auth.user.companyId,
+          'userId': auth.user.id,
+          'role': auth.user.role.wireValue,
+        };
+        return jsonOk(
+          await catalogApi!.call(
+            '/internal/contributions',
+            method: 'POST',
+            body: body,
+          ),
+        );
+      }),
+    );
     if (workspace != null && automationRecords != null) {
-      router.mount('/api/v1/automation/', AutomationRouter(
-        records:automationRecords!, store:workspace!, users:repository,
-        authenticate:(q) async => (await _requireUser(q))?.user,
-      ).handler.call);
+      router.mount(
+        '/api/v1/automation/',
+        AutomationRouter(
+          records: automationRecords!,
+          store: workspace!,
+          users: repository,
+          authenticate: (q) async => (await _requireUser(q))?.user,
+        ).handler.call,
+      );
     }
     if (workspace != null) {
+      router.mount(
+        '/api/v1/macros/',
+        MacroRouter(
+          catalogApi: catalogApi,
+          store: workspace!,
+          authenticate: (q) async => (await _requireUser(q))?.user,
+        ).handler.call,
+      );
       router.mount(
         '/api/v1/',
         WorkspaceRouter(
@@ -200,7 +233,8 @@ class CompanyUserRouter {
         companyId: user.companyId,
         createdAt: now,
         expiresAt: now.add(sessionTtl),
-        companyEpoch:company.authEpoch,userEpoch:user.authEpoch,
+        companyEpoch: company.authEpoch,
+        userEpoch: user.authEpoch,
       ),
     );
     return jsonOk({
@@ -317,7 +351,11 @@ class CompanyUserRouter {
       }
     }
 
-    if(!await repository.setUserActive(id: id, active: active)) return jsonError('Zugang wurde zwischenzeitlich geändert oder ist letzter Admin.',status:409);
+    if (!await repository.setUserActive(id: id, active: active))
+      return jsonError(
+        'Zugang wurde zwischenzeitlich geändert oder ist letzter Admin.',
+        status: 409,
+      );
     return jsonOk({'id': id, 'active': active});
   }
 
@@ -341,10 +379,16 @@ class CompanyUserRouter {
       return null;
     }
     final user = await repository.findUserById(session.userId);
-    if (user == null || !user.active || user.companyId != session.companyId || user.authEpoch != session.userEpoch)
+    if (user == null ||
+        !user.active ||
+        user.companyId != session.companyId ||
+        user.authEpoch != session.userEpoch)
       return null;
     final company = await repository.findCompanyById(user.companyId);
-    if (company == null || !company.active || company.authEpoch != session.companyEpoch) return null;
+    if (company == null ||
+        !company.active ||
+        company.authEpoch != session.companyEpoch)
+      return null;
     return (user: user, session: session);
   }
 

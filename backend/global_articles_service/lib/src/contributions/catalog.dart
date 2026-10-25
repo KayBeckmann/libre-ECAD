@@ -1,3 +1,4 @@
+import 'package:ecad_core/ecad_core.dart' show macroFields;
 import 'package:shared_server_kit/shared_server_kit.dart';
 import '../repository.dart';
 
@@ -9,13 +10,14 @@ class ContributionCatalog {
   Future<List<Json>> publicArticles() => records.transaction(
     (tx) async => [
       for (final d in await tx.list('contribution'))
-        if (d['published'] != null)
+        if (d['published'] != null && d['published']['kind'] != 'macro')
           Map<String, dynamic>.from(d['published'] as Map),
     ],
   );
   Future<Json?> publicArticle(String id) => records.transaction((tx) async {
     final d = await tx.get('contribution', id);
-    return d?['published'] as Json?;
+    final published = d?['published'] as Json?;
+    return published?['kind'] == 'macro' ? null : published;
   });
   Future<List<Json>> publicHistory(String id) =>
       records.transaction((tx) async {
@@ -42,6 +44,13 @@ class ContributionCatalog {
     final action = requiredText(body, 'action');
     final owner = '$company/$user';
     final grant = await tx.get('manufacturer', company);
+    if (action == 'publicMacros')
+      return {
+        'macros': [
+          for (final v in await tx.list('contribution'))
+            if (v['published']?['kind'] == 'macro') v['published'],
+        ],
+      };
     if (action == 'list')
       return {
         'results': [
@@ -278,6 +287,15 @@ Json _payload(Json body) {
   // SPDX identifiers simplify attribution; moderation still checks source compatibility.
   if (!['CC0-1.0', 'CC-BY-4.0', 'CC-BY-SA-4.0'].contains(license))
     throw ApiProblem(400, 'Unterstützte Datenlizenz auswählen.');
+  if (raw['kind'] == 'macro') {
+    final macro = macroFields(raw);
+    return {
+      ...macro,
+      'kind': 'macro',
+      'articleNumber': requiredText(raw, 'articleNumber'),
+      'attribution': requiredText(raw, 'attribution', max: 1000),
+    };
+  }
   final layers = <String, dynamic>{};
   final input = raw['layers'];
   if (input != null && input is! Json)

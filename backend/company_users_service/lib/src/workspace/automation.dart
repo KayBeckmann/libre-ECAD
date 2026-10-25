@@ -103,7 +103,7 @@ class AutomationRouter {
           return jsonError('Zugang erlaubt nur Lesen.', status: 403);
         final p = await _project(u, id, t);
         if (p == null) return jsonError('Projekt nicht gefunden.', status: 404);
-        final b = await readJson(q);
+        final b = await readJson(q, maxBytes: 4194304);
         if (b['version'] != p['version']) return _conflict();
         final reason = b['reason'];
         if (reason is! String || reason.trim().isEmpty || reason.length > 1000)
@@ -164,7 +164,7 @@ class AutomationRouter {
     r.post(
       '/review/<id>/<proposalId>/apply',
       (Request q, String id, String proposalId) => _session(q, (u) async {
-        final b = await readJson(q);
+        final b = await readJson(q, maxBytes: 4194304);
         if (b['confirmed'] != true)
           throw FormatException(
             'Vergleich und Übernahme ausdrücklich bestätigen.',
@@ -280,7 +280,7 @@ class AutomationRouter {
           ],
         }),
       );
-    final b = await readJson(q);
+    final b = await readJson(q, maxBytes: 4194304);
     if (b['confirmed'] != true)
       throw FormatException('Datenweitergabe bewusst bestätigen.');
     final ids = b['projectIds'];

@@ -23,11 +23,18 @@ class ArticleRouter {
     final router = Router();
     router.get('/health', (Request request) => healthResponse());
     router.get('/articles', _search);
-    router.get('/articles/<id>', (Request r,String id)=>apiGuard(()=>_findById(r,Uri.decodeComponent(id))));
+    router.get(
+      '/articles/<id>',
+      (Request r, String id) =>
+          apiGuard(() => _findById(r, Uri.decodeComponent(id))),
+    );
     router.get(
       '/articles/<id>/history',
       (Request r, String id) => apiGuard(
-        () async => jsonOk({'entries': await catalog?.publicHistory(Uri.decodeComponent(id)) ?? []}),
+        () async => jsonOk({
+          'entries':
+              await catalog?.publicHistory(Uri.decodeComponent(id)) ?? [],
+        }),
       ),
     );
     router.post(
@@ -36,7 +43,7 @@ class ArticleRouter {
         if (internalToken.isEmpty ||
             r.headers['x-internal-token'] != internalToken)
           return jsonError('Nicht berechtigt.', status: 403);
-        final b = await readJson(r);
+        final b = await readJson(r, maxBytes: 4194304);
         if (catalog == null) return jsonError('Nicht verfügbar.', status: 503);
         Json result;
         if (b['mode'] == 'operator') {

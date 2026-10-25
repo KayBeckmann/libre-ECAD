@@ -28,11 +28,11 @@ void confirmed(Json body) {
     throw ApiProblem(400, 'Bewusste Bestätigung erforderlich.');
 }
 
-Future<Json> readJson(Request request) async {
+Future<Json> readJson(Request request, {int maxBytes = 131072}) async {
   final bytes = <int>[];
   await for (final chunk in request.read()) {
     bytes.addAll(chunk);
-    if (bytes.length > 131072) throw ApiProblem(413, 'Anfrage zu groß.');
+    if (bytes.length > maxBytes) throw ApiProblem(413, 'Anfrage zu groß.');
   }
   final body = jsonDecode(utf8.decode(bytes));
   if (body is! Json) throw ApiProblem(400, 'JSON-Objekt erforderlich.');

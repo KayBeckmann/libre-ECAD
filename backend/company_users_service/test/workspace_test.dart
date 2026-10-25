@@ -82,6 +82,74 @@ void main() {
     ).handler.call;
   });
   test(
+    'macro privacy, version conflict, copies and shared company read permissions',
+    () async {
+      final body = {
+        'scope': 'personal',
+        'name': 'Motorstarter',
+        'origin': 'Own TEST',
+        'license': 'CC0-1.0',
+        'groups': ['Schaltanlagen'],
+        'drawing': sampleDrawing('motor'),
+      };
+      final created = await call('drafter-a', 'POST', 'macros/', body);
+      expect(created.statusCode, 201);
+      final a = await json(created);
+      for (final user in ['admin-a', 'admin-b'])
+        expect((await call(user, 'GET', 'macros/${a['id']}')).statusCode, 404);
+      expect(
+        (await call('drafter-a', 'POST', 'macros/${a['id']}/copy', {
+          'scope': 'company',
+          'version': 1,
+        })).statusCode,
+        403,
+      );
+      final own = await json(
+        await call('admin-a', 'POST', 'macros/', {...body, 'scope': 'company'}),
+      );
+      expect(
+        (await call('drafter-a', 'GET', 'macros/${own['id']}')).statusCode,
+        200,
+      );
+      expect(
+        (await call('drafter-a', 'PATCH', 'macros/${own['id']}', {
+          ...body,
+          'version': 1,
+        })).statusCode,
+        403,
+      );
+      expect(
+        (await call('admin-a', 'PATCH', 'macros/${own['id']}', {
+          ...body,
+          'name': 'Revision',
+          'version': 1,
+        })).statusCode,
+        200,
+      );
+      expect(
+        (await call('admin-a', 'PATCH', 'macros/${own['id']}', {
+          ...body,
+          'version': 1,
+        })).statusCode,
+        409,
+      );
+      final copy = await json(
+        await call('drafter-a', 'POST', 'macros/${own['id']}/copy', {
+          'scope': 'personal',
+          'version': 2,
+        }),
+      );
+      expect(copy['source']['version'], 2);
+      expect(copy['id'], isNot(own['id']));
+      expect(
+        (await json(
+          await call('admin-a', 'GET', 'macros/${own['id']}/history'),
+        ))['versions'],
+        hasLength(2),
+      );
+    },
+  );
+  test(
     'same project names do not cross company boundaries, including direct IDs',
     () async {
       final a = await json(

@@ -1,3 +1,4 @@
+import 'package:ecad_core/ecad_core.dart' show sampleDrawing;
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:global_articles_service/src/router.dart';
@@ -37,6 +38,31 @@ void main() {
   };
   setUp(
     () => c = ContributionCatalog(MemoryRecords(), InMemoryArticleRepository()),
+  );
+  test(
+    'macros require rights and moderation, stay separate from article search and preserve released versions',
+    () async {
+      final body = draft();
+      body['payload']['kind'] = 'macro';
+      body['payload']['groups'] = ['Verteilerbau'];
+      body['payload']['drawing'] = sampleDrawing('distribution');
+      expect(
+        () => c.user(a, {...body, 'rightsConfirmed': false}),
+        throwsA(isA<ApiProblem>()),
+      );
+      var d = await c.user(a, body);
+      expect((await c.user(b, {'action': 'publicMacros'}))['macros'], isEmpty);
+      d = await c.user(a, transition(d, 'submit'));
+      d = await c.operator(transition(d, 'approve'));
+      final published =
+          (await c.user(b, {'action': 'publicMacros'}))['macros'] as List;
+      expect(published, hasLength(1));
+      expect(published.single['drawing'], body['payload']['drawing']);
+      expect(await c.publicArticles(), isEmpty);
+      await c.user(a, transition(d, 'withdraw'));
+      expect((await c.user(b, {'action': 'publicMacros'}))['macros'], isEmpty);
+      expect(published.single['version'], 1);
+    },
   );
   test(
     'encoded catalog IDs resolve through router and public history',

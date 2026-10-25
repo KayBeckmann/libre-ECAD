@@ -140,8 +140,8 @@ class WorkspaceRouter {
     final bytes = <int>[];
     await for (final part in q.read()) {
       bytes.addAll(part);
-      if (bytes.length > 131072)
-        throw FormatException('Anfrage zu groß (max. 128 KiB).');
+      if (bytes.length > 4194304)
+        throw FormatException('Anfrage zu groß (max. 4 MiB).');
     }
     final value = jsonDecode(utf8.decode(bytes));
     if (value is! Map<String, dynamic>)
