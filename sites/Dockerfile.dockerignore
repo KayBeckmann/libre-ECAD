@@ -1,14 +1,9 @@
 **
-!sites/
 !sites/**
-sites/build/
-sites/tests/
-sites/__pycache__/
+sites/build/**
+sites/tests/**
+sites/**/__pycache__/**
 !LICENSE
-!frontend/
-!frontend/libre_ecad_app/
-!frontend/libre_ecad_app/assets/
-!frontend/libre_ecad_app/assets/fonts/
 !frontend/libre_ecad_app/assets/fonts/NotoSans-Regular.ttf
 !frontend/libre_ecad_app/assets/fonts/NotoSans-Bold.ttf
 !frontend/libre_ecad_app/assets/fonts/LICENSE-Noto.txt
