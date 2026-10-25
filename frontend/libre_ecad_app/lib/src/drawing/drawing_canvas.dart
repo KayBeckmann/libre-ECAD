@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:ecad_core/ecad_core.dart';
@@ -72,6 +73,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         transform.value = Matrix4.diagonal3Values(fit, fit, 1);
       }
       final d = widget.drawing;
+      final background = planFor(d, widget.sheetId)?['background'];
       return Stack(
         children: [
           ColoredBox(
@@ -95,6 +97,22 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                     height: 800,
                     child: Stack(
                       children: [
+                        if (background != null) ...[
+                          const Positioned.fill(
+                            child: ColoredBox(color: Colors.white),
+                          ),
+                          Positioned(
+                            left: (background['x'] as num).toDouble(),
+                            top: (background['y'] as num).toDouble(),
+                            width: (background['width'] as num).toDouble(),
+                            height: (background['height'] as num).toDouble(),
+                            child: Image.memory(
+                              base64Decode(background['png']),
+                              fit: BoxFit.fill,
+                              gaplessPlayback: true,
+                            ),
+                          ),
+                        ],
                         Positioned.fill(
                           child: CustomPaint(
                             painter: SheetPainter(
@@ -154,12 +172,13 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                           d,
                           'instances',
                         ).where((i) => i['sheetId'] == widget.sheetId))
-                          for (final p in instancePorts(d, i))
-                            port(
-                              d,
-                              portRef(i['id'], p),
-                              '${objectById(d, 'devices', i['deviceId'])['bmk']}:$p',
-                            ),
+                          if (planFor(d, widget.sheetId)?['kind'] != 'layout')
+                            for (final p in instancePorts(d, i))
+                              port(
+                                d,
+                                portRef(i['id'], p),
+                                '${objectById(d, 'devices', i['deviceId'])['bmk']}:$p',
+                              ),
                         for (final kind in ['nodes', 'continuations'])
                           for (final o in objects(
                             d,
@@ -287,7 +306,10 @@ class SheetPainter extends CustomPainter {
 
   @override
   void paint(Canvas c, Size size) {
-    c.drawRect(Offset.zero & size, Paint()..color = Colors.white);
+    final plan = planFor(d, sheetId);
+    if (plan?['background'] == null) {
+      c.drawRect(Offset.zero & size, Paint()..color = Colors.white);
+    }
     final grid = Paint()
       ..color = const Color(0xffdce7e9)
       ..strokeWidth = 1;
@@ -329,7 +351,53 @@ class SheetPainter extends CustomPainter {
       const Offset(850, 716),
       size: 12,
     );
-    for (final w in objects(d, 'wires').where((w) => w['sheetId'] == sheetId)) {
+    if (plan != null) {
+      label(
+        c,
+        '${planKinds[plan['kind']]} · ${plan['kind'] == 'layout'
+            ? '${plan['mmPerUnit']} mm/Einheit'
+            : plan['calibration'] == null
+            ? 'Maßstab fehlt'
+            : 'Maßstab aus Referenzstrecke'}',
+        const Offset(56, 680),
+        size: 11,
+      );
+      for (final route in (plan['routes'] as List? ?? []).cast<Json>()) {
+        final points = routePoints(d, route),
+            path = Path()
+              ..moveTo(
+                (points.first['x'] as num).toDouble(),
+                (points.first['y'] as num).toDouble(),
+              );
+        for (final point in points.skip(1)) {
+          path.lineTo(
+            (point['x'] as num).toDouble(),
+            (point['y'] as num).toDouble(),
+          );
+        }
+        c.drawPath(
+          path,
+          Paint()
+            ..color = Colors.deepOrange
+            ..strokeWidth = 3
+            ..style = PaintingStyle.stroke,
+        );
+        final length = routeLength(d, plan, route)['metres'];
+        label(
+          c,
+          '${route['name']} · ${length == null ? 'Maßstab prüfen' : '${(length as num).toStringAsFixed(2)} m'}',
+          Offset(
+            (points.first['x'] as num).toDouble() + 10,
+            (points.first['y'] as num).toDouble() + 20,
+          ),
+          size: 11,
+        );
+      }
+    }
+    for (final w in objects(
+      d,
+      'wires',
+    ).where((w) => w['sheetId'] == sheetId && plan?['kind'] != 'layout')) {
       final points = wireRoute(d, w);
       final path = Path()..moveTo(points.first.dx, points.first.dy);
       for (final p in points.skip(1)) {
@@ -370,6 +438,29 @@ class SheetPainter extends CustomPainter {
           Paint()..color = accent.withValues(alpha: 0.09),
         );
       }
+      if (plan?['kind'] == 'layout') {
+        final box = layoutRectangle(d, plan!, i);
+        if (box == null) {
+          label(c, '${device['bmk']} · Maße fehlen', Offset(x, y));
+        } else {
+          c.drawRect(
+            Rect.fromLTWH(
+              (box['x'] as num).toDouble(),
+              (box['y'] as num).toDouble(),
+              (box['width'] as num).toDouble(),
+              (box['height'] as num).toDouble(),
+            ),
+            line,
+          );
+          label(
+            c,
+            '${device['bmk']}\n${device['article']['widthMm']} × ${device['article']['heightMm']} mm',
+            Offset(x, y),
+            size: 10,
+          );
+        }
+        continue;
+      }
       final symbol = symbolByKey(i['symbol'], d);
       for (final shape in symbolGeometry(symbol)) {
         final a = Offset(
@@ -405,7 +496,10 @@ class SheetPainter extends CustomPainter {
       }
       final labelX =
           x +
-          (symbol.definition != null || symbol.group == 'Drehstrom' ? 140 : 32);
+          (symbol.definition != null ||
+                  ['Drehstrom', 'Automatisierung'].contains(symbol.group)
+              ? 140
+              : 32);
       label(c, '${device['bmk']}', Offset(labelX, y - 20), size: 14);
       label(c, '${device['label']}', Offset(labelX, y), size: 10);
       final refs = crossReferences(d, device['id'])

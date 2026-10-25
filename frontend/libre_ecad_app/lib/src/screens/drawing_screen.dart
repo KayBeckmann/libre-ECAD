@@ -4,6 +4,10 @@ import 'package:ecad_core/ecad_core.dart';
 import 'package:flutter/material.dart';
 
 import 'documents_screen.dart';
+import 'planning_screen.dart';
+import 'macros_screen.dart';
+import 'calculations_screen.dart';
+import 'material_screen.dart';
 
 import '../api/company_users_api.dart';
 import '../api/workspace_api.dart';
@@ -474,6 +478,93 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
     if (objects(d, 'sheets').any((s) => s['id'] == id)) {
       setState(() => sheetId = id);
+    }
+  }
+
+  Future<void> calculations() async {
+    final result = await Navigator.push<Json>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CalculationsScreen(
+          drawing: d,
+          editable: online && !busy && hasEditingSpace,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      change((value) {
+        value.clear();
+        value.addAll(result);
+      });
+    }
+  }
+
+  Future<void> macros() async {
+    final result = await Navigator.push<Json>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MacrosScreen(
+          api: api,
+          drawing: d,
+          editable: online && !busy && hasEditingSpace,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      change((value) {
+        value.clear();
+        value.addAll(result);
+      });
+    }
+  }
+
+  Future<void> planning() async {
+    final result = await Navigator.push<Json>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PlanningScreen(
+          drawing: d,
+          sheetId: sheetId!,
+          editable: online && !busy && hasEditingSpace,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      change((value) {
+        value.clear();
+        value.addAll(result);
+      });
+    }
+  }
+
+  Future<void> assignArticle(Json device) async {
+    try {
+      final own = await api.request('GET', 'articles?scope=personal'),
+          company = await api.request('GET', 'articles?scope=company');
+      if (!mounted) return;
+      final picked = await showDialog<Json>(
+        context: context,
+        builder: (c) => SimpleDialog(
+          title: const Text('Artikelversion zuordnen'),
+          children: [
+            for (final a in [...own['articles'], ...company['articles']])
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(c, a),
+                child: Text(
+                  '${a['articleNumber']} · ${a['name']} · V${a['version']}',
+                ),
+              ),
+          ],
+        ),
+      );
+      if (picked != null && mounted) {
+        change(
+          (d) => objectById(d, 'devices', device['id'])['article'] =
+              articleSnapshot(picked),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
     }
   }
 
@@ -1212,10 +1303,44 @@ class _DrawingScreenState extends State<DrawingScreen> {
           icon: const Icon(Icons.inventory_2_outlined),
           label: const Text('Artikelsymbol einfügen'),
         ),
+        OutlinedButton.icon(
+          onPressed: enabled ? planning : null,
+          icon: const Icon(Icons.layers_outlined),
+          label: const Text('Planart / Maßstab'),
+        ),
+        OutlinedButton.icon(
+          onPressed: enabled && !api.isOffline ? macros : null,
+          icon: const Icon(Icons.account_tree_outlined),
+          label: const Text('Makrobibliothek'),
+        ),
+        OutlinedButton.icon(
+          onPressed: calculations,
+          icon: const Icon(Icons.calculate_outlined),
+          label: const Text('Berechnungen'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MaterialScreen(
+                project: {
+                  'id': widget.projectId,
+                  'name': name,
+                  'version': version,
+                  'drawing': d,
+                },
+                source: widget.session.backendUrl.toString(),
+              ),
+            ),
+          ),
+          icon: const Icon(Icons.receipt_long_outlined),
+          label: const Text('Material / ERP'),
+        ),
         for (final group in [
           'Verteilerabgang',
           'Steuer- / Motorabgang',
           'Drehstrom',
+          'Automatisierung',
           'Artikelsymbole',
         ])
           ExpansionTile(
@@ -1335,6 +1460,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   : null,
               child: const Text('BMK aus Position vorschlagen'),
             ),
+            TextButton.icon(
+              onPressed: enabled && !api.isOffline
+                  ? () => assignArticle(device)
+                  : null,
+              icon: const Icon(Icons.inventory_2_outlined),
+              label: const Text('Artikel / Maße zuordnen'),
+            ),
+            if (device['article'] != null)
+              Text(
+                '${device['article']['number']} · V${device['article']['version']} · ${device['article']['widthMm'] ?? '?'} × ${device['article']['heightMm'] ?? '?'} mm',
+              ),
             if (symbolByKey(i['symbol'], d).isContact) ...[
               Text(
                 '${symbolByKey(i['symbol'], d).role == 'no' ? 'Schließer' : 'Öffner'} · Anschlüsse ${instancePorts(d, i).join(' / ')}',
@@ -1345,6 +1481,58 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 label: const Text('Spule zuordnen / ändern'),
               ),
             ],
+            if (device['type'] == 'plc')
+              TextButton(
+                onPressed: enabled
+                    ? () async {
+                        final channels = (device['channels'] as List? ?? [])
+                            .cast<Json>();
+                        final values = await fields('SPS-Kanäle / Signale', {
+                          for (final id in ['I0', 'I1', 'Q0', 'Q1'])
+                            id:
+                                channels
+                                    .where((c) => c['id'] == id)
+                                    .firstOrNull?['signal'] ??
+                                '',
+                        });
+                        if (values != null && mounted) {
+                          change(
+                            (d) =>
+                                objectById(
+                                  d,
+                                  'devices',
+                                  device['id'],
+                                )['channels'] = [
+                                  for (final e in values.entries)
+                                    {
+                                      'id': e.key,
+                                      'module': device['id'],
+                                      'port': e.key,
+                                      'signal': e.value,
+                                    },
+                                ],
+                          );
+                        }
+                      }
+                    : null,
+                child: const Text('SPS-Kanäle / Signale'),
+              ),
+            if (device['type'] == 'relay')
+              ExpansionTile(
+                title: const Text('Kontaktbaum / Belegung'),
+                children: [
+                  for (final v in contactTree(d, device['id']))
+                    ListTile(
+                      dense: true,
+                      title: Text(
+                        '${symbolByKey(v['symbol'], d).name} · ${v['position']}',
+                      ),
+                      subtitle: Text(
+                        '${(v['ports'] as List).join(' / ')} · ${(v['connectedPorts'] as List).length}/${(v['ports'] as List).length} Pole verdrahtet',
+                      ),
+                    ),
+                ],
+              ),
             if (device['type'] == 'relay')
               const Text(
                 'Spule und Kontakte · gemeinsame Gerätekennung',

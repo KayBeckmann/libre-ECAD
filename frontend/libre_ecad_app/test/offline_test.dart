@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:ecad_core/ecad_core.dart';
+
+import '../../../backend/ecad_core/bin/planning_sample.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libre_ecad_app/src/offline/vault.dart';
 import 'package:libre_ecad_app/src/offline/offline_api.dart';
@@ -56,7 +59,7 @@ void main() {
       final second = create();
       await second.unlock('test-passphrase');
       final api = OfflineApi(v, 'local');
-      final edit = sampleDrawing('distribution');
+      final edit = planningSample();
       await api.request('PUT', 'projects/p/drawing', {
         'version': 3,
         'drawing': edit,
