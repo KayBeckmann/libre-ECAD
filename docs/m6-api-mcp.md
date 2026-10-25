@@ -6,7 +6,7 @@ Im Projekt öffnet **API / MCP** eine eigene Zugangs- und Prüfoberfläche. Ein 
 
 ## Endpunkte
 
-Alle folgenden Pfade beginnen mit `/api/v1/automation`; Authentifizierung: `Authorization: Bearer ...`. Datenkörper sind JSON, maximal 128 KiB. Leere/falsche Eingaben 400, nicht angemeldet/widerrufen 401, fehlende Aktionsberechtigung 403, nicht zugängliches Projekt 404, Versionskonflikt 409.
+Alle folgenden Pfade beginnen mit `/api/v1/automation`; Authentifizierung: `Authorization: Bearer ...`. Datenkörper sind JSON, maximal 4 MiB seit M7 (eingebettete Bildvorlagen). Leere/falsche Eingaben 400, nicht angemeldet/widerrufen 401, fehlende Aktionsberechtigung 403, nicht zugängliches Projekt 404, Versionskonflikt 409.
 
 | Pfad / Methode | Zugang | Verhalten |
 | --- | --- | --- |

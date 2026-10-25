@@ -35,7 +35,9 @@ The three backend services each use a separate PostgreSQL instance; the web deli
 
 **Drawing extension:** Create vector symbols in the article builder, pin a version into a project, draw L1/L2/L3/N/PE, and assign multiple NO/NC contacts to one coil with shared identifiers and separate terminals. See [symbol designer and relay workflow](docs/symbol-designer.md).
 
-**Later milestones:** Additional drawing types, macros, professionally validated calculations and ERP integration; finally a multilingual website and wiki.
+**Milestone 7 development:** Raster installation plans, scale and routes, article-sized layouts, versioned macros, transparent calculation estimates and material exchange previews. See [M7 workflows and acceptance limits](docs/m7-planning.md). The WerkkernERP preview lives on a separate integration branch; professional model/calculation review remains open.
+
+**Later:** Multilingual website and wiki.
 
 ## Important boundaries
 

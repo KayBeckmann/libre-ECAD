@@ -41,7 +41,7 @@ Alle Pfade unter `/api/v1/projects/{id}/drawing`, mit Firmen-Sitzung:
 
 - `GET`: Projektversion, Zeichnung (anfangs `null`), abgeleitete Netze.
 - `PUT`: `{version, drawing}`; nur Firmenadmin oder zugewiesener aktiver Zeichner.
-  Strikte Schemaprüfung, vollständiger atomarer Arbeitsstand, maximal 128 KiB.
+  Strikte Schemaprüfung, vollständiger atomarer Arbeitsstand, maximal 4 MiB seit M7 (eingebettete Bildvorlagen).
 - `GET /history`: gespeicherte Projektversionen mit Zeichnung und Akteur/Zeit.
 - `GET /export`: deterministisches UTF-8-JSON und SHA-256 eines atomar gelesenen
   Projektstands ohne Benutzer-/Mitgliedschaftsdaten. Zustand ausdrücklich

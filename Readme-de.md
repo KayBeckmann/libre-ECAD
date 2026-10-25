@@ -33,7 +33,9 @@ Die drei Backenddienste nutzen jeweils eine eigene PostgreSQL-Instanz; das Web-F
 
 **Schaltplan-Erweiterung:** Eigene Artikelsymbole zeichnen, als feste Version im Projekt verwenden, L1/L2/L3/N/PE darstellen und mehrere Öffner/Schließer einer Spule zuordnen. Anleitung: [Symboldesigner und Relaiskontakte](docs/symbol-designer.md).
 
-**Spätere Meilensteine:** Weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt mehrsprachige Homepage und Wiki.
+**Meilenstein 7 – Entwicklungsstand:** Installationspläne mit Bildvorlage, Maßstab und Leitungswegen; Aufbauzeichnungen nach Artikelmaßen; versionierte Makros; nachvollziehbare Rechenvorschläge und Materialübergabe. [Bedienung und Abnahmegrenzen](docs/m7-planning.md). Die WerkkernERP-Vorschau liegt auf einem getrennten Integrationszweig. Fachliche Modell-/Rechenabnahme bleibt offen.
+
+**Danach:** Mehrsprachige Homepage und Wiki.
 
 ## Wichtige Grenzen
 
