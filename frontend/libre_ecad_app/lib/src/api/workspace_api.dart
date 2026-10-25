@@ -6,11 +6,10 @@ import '../models.dart';
 import 'company_users_api.dart';
 
 class WorkspaceApi {
-  WorkspaceApi(this.session, {http.Client? client})
-    : _http = client ?? http.Client();
+  WorkspaceApi(this.session, {http.Client? client}) : _http = client;
   final Session session;
   bool get isOffline => false;
-  final http.Client _http;
+  http.Client? _http;
   Future<Map<String, dynamic>> request(
     String method,
     String path, [
@@ -24,7 +23,9 @@ class WorkspaceApi {
     });
     if (body != null) request.body = jsonEncode(body);
     final response = await http.Response.fromStream(
-      await _http.send(request).timeout(const Duration(seconds: 15)),
+      await (_http ??= http.Client())
+          .send(request)
+          .timeout(const Duration(seconds: 15)),
     );
     final value = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode >= 400) {
@@ -36,5 +37,5 @@ class WorkspaceApi {
     return value;
   }
 
-  void close() => _http.close();
+  void close() => _http?.close();
 }
