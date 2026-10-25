@@ -394,6 +394,10 @@ class _PlanningScreenState extends State<PlanningScreen> {
                             : null,
                       ),
                       if (plan['kind'] == 'layout')
+                        const Text(
+                          'Geräte und Leitungswege verwenden den Aufbaumaßstab in mm. Die Referenzstrecke darunter gilt nur für die Installationsansicht.',
+                        ),
+                      if (plan['kind'] == 'layout')
                         TextButton(
                           onPressed: enabled
                               ? () async {
@@ -466,7 +470,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
                         ),
                       ),
                       const Text(
-                        'Zwei Punkte korrigieren keine Perspektive. Schrägfotos vorab entzerren; Länge erst nach bestätigter Prüfung.',
+                        'Installationsmaßstab: Zwei Punkte korrigieren keine Perspektive. Schrägfotos vorab entzerren; Länge erst nach bestätigter Prüfung.',
                       ),
                       if (plan['calibration'] != null)
                         Text(

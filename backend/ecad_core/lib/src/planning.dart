@@ -281,13 +281,15 @@ List<Json> routePoints(Json d, Json route) => [
 ];
 Json routeLength(Json d, Json p, Json route) {
   final c = p['calibration'];
-  if (c == null || c['perspectiveConfirmed'] != true)
+  if (p['kind'] != 'layout' && (c == null || c['perspectiveConfirmed'] != true))
     return {'metres': null, 'reason': 'Maßstab oder Perspektivprüfung fehlt.'};
   final points = routePoints(d, route);
   var units = 0.0;
   for (var n = 1; n < points.length; n++)
     units += distance(points[n - 1], points[n]);
-  final factor = (c['metres'] as num) / distance(c['a'], c['b']);
+  final factor = p['kind'] == 'layout'
+      ? (p['mmPerUnit'] as num) / 1000
+      : (c['metres'] as num) / distance(c['a'], c['b']);
   return {
     'metres': units * factor + (route['allowanceM'] as num),
     'drawnMetres': units * factor,

@@ -114,6 +114,10 @@ void main() {
       final d = fixture(), p = d['plans'][0] as Json;
       p['kind'] = 'layout';
       p['mmPerUnit'] = 2;
+      // A layout uses its explicit millimetre scale, never a retained floor-plan calibration.
+      expect(routeLength(d, p, p['routes'][0])['metres'], closeTo(2.4, 1e-10));
+      p.remove('calibration');
+      expect(routeLength(d, p, p['routes'][0])['metres'], closeTo(2.4, 1e-10));
       final dev = objects(d, 'devices').first;
       dev['article'] = articleSnapshot({
         'id': 'article',
