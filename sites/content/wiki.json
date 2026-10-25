@@ -4,7 +4,7 @@
     "translations": {
       "de": {
         "title": "Start & Versionsstand",
-        "intro": "Der Einstieg in die private LibreECAD-Entwicklungsumgebung. Diese Dokumentation beschreibt M8 auf dem App-Stand 37603fa.",
+        "intro": "Der Einstieg in die private LibreECAD-Entwicklungsumgebung. Diese Dokumentation beschreibt M8 einschließlich Nachtrag vom 25.10.2026 auf dem App-Stand b51cd15.",
         "sections": [
           {
             "id": "first-steps",
@@ -62,7 +62,7 @@
       },
       "en": {
         "title": "Start & version",
-        "intro": "Start here for the private LibreECAD development environment. This documentation describes M8 with app revision 37603fa.",
+        "intro": "Start here for the private LibreECAD development environment. This documentation covers M8 including the 25 October 2026 follow-up, with app revision b51cd15.",
         "sections": [
           {
             "id": "first-steps",
@@ -438,6 +438,28 @@
                 "text": "Offline-Grenzen lesen →"
               }
             ]
+          },
+          {
+            "id": "project-groups",
+            "title": "Projektgruppen und Mitarbeiter",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Als Firmenadmin „Projekte → Gruppen & Mitarbeiter“ öffnen. Eine Gruppe mit Namen, Beschreibung und Mitarbeitern anlegen.",
+                  "Ein Projekt öffnen, die gewünschten Projektgruppen anhaken und speichern. Ein Projekt kann mehreren Gruppen angehören.",
+                  "Mitarbeiter entweder in der Gruppe auswählen oder über „Gruppen für Mitarbeiter freischalten“ einen Mitarbeiter wählen und seine Gruppen anhaken."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Gruppenrechte gelten zusätzlich zu direkten Projektzuweisungen. Das Entfernen aus einer Gruppe entzieht den Zugriff nur, wenn keine weitere Gruppe oder direkte Zuweisung ihn gewährt. Firmenadmins sehen alle Projekte ihrer Firma. Die Projektliste lässt sich nach Gruppe filtern."
+              },
+              {
+                "type": "p",
+                "text": "Aktuelle Gruppenrechte gelten auch für Dokumente, Historie, Freigaben, Offline-Upload und API/MCP. Bereits heruntergeladene Offline-Daten können nicht aus der Ferne gelöscht werden. Inaktive Zugänge lassen sich aus einer Gruppe entfernen; neue Freischaltungen erfordern aktive, aktivierte Nutzer."
+              }
+            ]
           }
         ]
       },
@@ -476,6 +498,28 @@
                 "type": "link",
                 "chapter": "offline",
                 "text": "Read offline limitations →"
+              }
+            ]
+          },
+          {
+            "id": "project-groups",
+            "title": "Project groups and employees",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "As company administrator, open “Projekte → Gruppen & Mitarbeiter”. Create a named group with a description and employees.",
+                  "Open a project, select its project groups and save. A project can belong to multiple groups.",
+                  "Select employees inside a group, or choose an employee under “Gruppen für Mitarbeiter freischalten” and check their groups."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Group grants are additive to direct project assignments. Removing one group revokes access only if no other group or direct assignment grants it. Company administrators see all projects in their company. The project list supports filtering by group."
+              },
+              {
+                "type": "p",
+                "text": "Current group grants also apply to documents, history, approvals, offline uploads and API/MCP. Previously downloaded offline data cannot be remotely erased. Inactive accounts can be removed from groups; new grants require active, activated users."
               }
             ]
           }
@@ -597,6 +641,21 @@
                 "text": "Eine bestätigte Herstelleridentität betrifft Identität und Vertretungsberechtigung zum Freigabezeitpunkt. Sie ist keine technische Prüfung der Artikeldaten. Neue oder korrigierte Beiträge durchlaufen den Versions-/Prüfablauf erneut."
               }
             ]
+          },
+          {
+            "id": "library-navigation",
+            "title": "Drei Bibliotheken gezielt verwenden",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "In „Artikelbibliothek“ zwischen „Persönlich“, „Firma“ und „Global“ wechseln. Der Erklärungstext zeigt Sichtbarkeit und Bearbeitungsrechte.",
+                  "Persönliche und Firmenartikel nach Artikelnummer oder Bezeichnung suchen. „Nur mit Schaltsymbol“ blendet Artikel ohne fertige Symboldefinition aus.",
+                  "Globale Artikel nach Herkunft suchen und bei Bedarf bewusst als persönliche Kopie übernehmen. Die Kopie bleibt unabhängig von späteren globalen Änderungen.",
+                  "Im Schaltplan bei „Artikel / Maße zuordnen“ oder „Artikelsymbol einfügen“ lokale Artikel nach Quelle und Suchbegriff auswählen. Quelle, Version und Symbolverfügbarkeit bleiben sichtbar."
+                ]
+              }
+            ]
           }
         ]
       },
@@ -634,6 +693,21 @@
               {
                 "type": "p",
                 "text": "A verified manufacturer identity covers identity and representation at approval time. It is not a technical validation of article data. New or corrected contributions go through versioning/review again."
+              }
+            ]
+          },
+          {
+            "id": "library-navigation",
+            "title": "Navigate the three libraries",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "In “Artikelbibliothek”, switch between “Persönlich”, “Firma” and “Global”. The explanation states visibility and editing rights.",
+                  "Search personal and company articles by number or name. “Nur mit Schaltsymbol” hides articles without a completed symbol definition.",
+                  "Search global articles by origin and deliberately copy a chosen revision into your personal library. The copy remains independent of later global changes.",
+                  "In the drawing, use “Artikel / Maße zuordnen” or “Artikelsymbol einfügen” to filter local articles by source and search text. Source, version and symbol availability remain visible."
+                ]
               }
             ]
           }
@@ -690,6 +764,46 @@
                 "text": "Unter 1000 Pixel Breite oder 500 Pixel nutzbarer Höhe bleibt der Editor schreibgeschützt. Für Änderungen ein ausreichend großes Fenster verwenden. Die ERP-Materialvorschau liegt auf einem getrennten Entwicklungsbranch und schreibt keine Bestände oder Bestellungen."
               }
             ]
+          },
+          {
+            "id": "frame-macros",
+            "title": "Bauteilgruppen als Makro speichern",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Im Schaltplan „Rahmenauswahl“ aktivieren und mit gedrückter Maustaste einen Rahmen um die Bauteilgruppe ziehen.",
+                  "„Makrobibliothek → Auswahl als Makro speichern“ öffnen. Anzahl prüfen, Name, Herkunft, Lizenz und Suchgruppen angeben, dann speichern.",
+                  "Zum Wiederverwenden das Makro suchen, „Einfügen“ wählen, die Vorschau prüfen und „Als neue Blätter einfügen“ bestätigen. Anschließend den Projektentwurf speichern."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Ausgewählt werden Symbolmittelpunkte und Knoten innerhalb des Rahmens. Leitungen werden übernommen, wenn beide Enden enthalten sind. Außenverbindungen, Blattfortsetzungen, Hintergründe, Verlegewege und Berechnungen werden nicht mitgenommen. Eigene Symboldefinitionen und benötigte Kabeldaten bleiben erhalten."
+              },
+              {
+                "type": "p",
+                "text": "Eine ausgewählte Relaiskontaktgruppe muss ihre Spule enthalten. Teilgruppen mit Spule und einzelnen Kontakten sind möglich; die Anschlussbelegung wird passend reduziert. Für blattübergreifende Relaisgruppen das bestehende Gesamtprojekt-Makro verwenden. Beim Einfügen entstehen neue Blätter, Gerätekennungen und interne IDs."
+              }
+            ]
+          },
+          {
+            "id": "sheet-references",
+            "title": "Verweise auf andere Seiten",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Mindestens zwei Blätter anlegen. Auf dem Ausgangsblatt „Blattfortsetzung“ öffnen.",
+                  "Signalnamen eingeben und das Zielblatt aus der Liste auswählen. „Fortsetzung anlegen“ erzeugt zwei zusammengehörige Enden mit gegenseitigem Seitenverweis.",
+                  "Auf beiden Blättern mit „Verbinden“ das jeweilige Ende an den Anschluss oder Knoten anschließen. Anschließend speichern."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Relaisverweise entstehen automatisch über die Gerätezuordnung. Bei einem Kontakt „Spule zuordnen / ändern“ verwenden. Der Kontakt verweist ausschließlich auf die Spule; im Eigenschaftenbereich ist dieser Verweis anklickbar. Der Kontaktkamm steht unter der Spule und zeigt Öffner/Schließer, Anschlüsse und Blatt-/Rasterpositionen – ebenso in neuen SVG-/PDF-Exporten. Für den Kamm unter der Spule Platz lassen; der Prüfbericht meldet Überläufe am unteren Blattrand."
+              }
+            ]
           }
         ]
       },
@@ -737,6 +851,46 @@
               {
                 "type": "note",
                 "text": "Below 1000 pixels width or 500 pixels usable height, the editor is read-only. Use a sufficiently large window for edits. The ERP material preview is on a separate development branch and does not write inventory or orders."
+              }
+            ]
+          },
+          {
+            "id": "frame-macros",
+            "title": "Save component groups as macros",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "In the drawing, activate “Rahmenauswahl” and drag a rectangle around the components.",
+                  "Open “Makrobibliothek → Auswahl als Makro speichern”. Check the count, provide a name, origin, license and search groups, then save.",
+                  "To reuse it, find the macro, select “Einfügen”, review the preview and confirm “Als neue Blätter einfügen”. Save the project draft afterwards."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Symbol centres and junctions inside the frame are selected. Wires are included only when both ends are included. External connections, sheet continuations, backgrounds, routes and calculations are excluded. Custom symbol definitions and required cable data are retained."
+              },
+              {
+                "type": "p",
+                "text": "A selected relay contact group must include its coil. A coil with a subset of contacts is allowed; terminal assignments are reduced accordingly. Use the existing whole-project macro for relay groups spanning sheets. Insertion creates new sheets, device identifiers and internal IDs."
+              }
+            ]
+          },
+          {
+            "id": "sheet-references",
+            "title": "References to other sheets",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Create at least two sheets. On the source sheet, open “Blattfortsetzung”.",
+                  "Enter a signal name and choose the target sheet from the list. “Fortsetzung anlegen” creates a paired continuation with reciprocal page references.",
+                  "On both sheets, use “Verbinden” to connect the corresponding end to a terminal or junction. Then save."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Relay references follow device associations automatically. On a contact, use “Spule zuordnen / ändern”. A contact references only its coil; that reference is clickable in the properties panel. The contact comb appears below the coil with normally open/closed symbols, terminals and sheet/grid positions, including in new SVG/PDF exports. Leave room below the coil; validation reports an overflow at the bottom edge."
               }
             ]
           }

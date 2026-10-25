@@ -1,8 +1,11 @@
 {
   "version": "m8-dev",
   "date": "2026-10-25",
-  "app_source": "37603fa",
-  "languages": ["de", "en"],
+  "app_source": "b51cd15bb1c7dcb7201a4bc38b0d002bc6a1479d",
+  "languages": [
+    "de",
+    "en"
+  ],
   "translation_owner": "Kay Beckmann",
   "publication": "private-preview"
 }

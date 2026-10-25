@@ -39,6 +39,8 @@ The three backend services each use a separate PostgreSQL instance; the web deli
 
 **Milestone 8 development:** German/English homepage and versioned wiki in independent containers, honest operating-model/build status, local search and a verified Linux download. [Operation and completed acceptance](docs/m8-sites.md); [site maintenance](sites/README.md). Public publication still requires Kay’s approval.
 
+**Follow-up 2026-10-25:** Project groups and employee grants, unified article libraries, rectangle-to-macro selection, explicit target-sheet selection and contact combs below relay coils. Contacts reference only their coil. See [workflows and checks](docs/2026-10-25-followup.md).
+
 ## Important boundaries
 
 - **The web app requires a reachable company backend.** Prepared offline work is available in installed clients; Linux offline execution is verified.

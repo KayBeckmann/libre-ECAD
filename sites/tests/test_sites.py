@@ -43,10 +43,11 @@ class PublishingTests(unittest.TestCase):
 
     def artifact(self):
         data = b'synthetic-test-artifact'
-        filename = 'libre-ecad-linux-x64-37603fa.tar.gz'
+        source = publisher.read_json(ROOT / 'version.json')['app_source']
+        filename = f'libre-ecad-linux-x64-{source[:7]}.tar.gz'
         (self.artifacts / filename).write_bytes(data)
         (self.artifacts / 'verification.txt').write_text('test-only evidence')
-        info = {'file': filename, 'source': '37603fa' + '0' * 33, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(), 'date': '2026-10-25', 'checks': ['flutter-analyze', 'flutter-test', 'linux-release-build', 'linux-native-integration', 'linux-release-launch'], 'log_sha256': hashlib.sha256(b'test-only evidence').hexdigest()}
+        info = {'file': filename, 'source': source.ljust(40, '0'), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(), 'date': '2026-10-25', 'checks': ['flutter-analyze', 'flutter-test', 'linux-release-build', 'linux-native-integration', 'linux-release-launch'], 'log_sha256': hashlib.sha256(b'test-only evidence').hexdigest()}
         (self.artifacts / 'linux.json').write_text(json.dumps(info))
         return info
 
