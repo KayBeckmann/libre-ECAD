@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../session_service.dart';
+import 'article_search_demo.dart';
+
 import 'package:ecad_core/ecad_core.dart';
 
 import 'symbol_designer.dart';
@@ -19,6 +24,8 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
   final query = TextEditingController();
   String scope = 'personal';
   late Future<Map<String, dynamic>> data = load();
+  late final globalUrl = context.read<SessionService>().loadGlobalArticlesUrl();
+  bool symbolsOnly = false;
   Future<Map<String, dynamic>> load() => api.request(
     'GET',
     'articles?scope=$scope&query=${Uri.encodeQueryComponent(query.text)}',
@@ -92,7 +99,8 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Artikelbibliothek')),
     floatingActionButton:
-        scope == 'personal' || widget.session.role == UserRole.admin
+        scope != 'global' &&
+            (scope == 'personal' || widget.session.role == UserRole.admin)
         ? FloatingActionButton.extended(
             onPressed: () => open(),
             icon: const Icon(Icons.add),
@@ -106,86 +114,139 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(
-                    value: 'personal',
-                    label: Text('Persönlich'),
-                    icon: Icon(Icons.person_outline),
-                  ),
-                  ButtonSegment(
-                    value: 'company',
-                    label: Text('Firma'),
-                    icon: Icon(Icons.business_outlined),
-                  ),
-                ],
-                selected: {scope},
-                onSelectionChanged: (s) {
-                  setState(() => scope = s.first);
-                  reload();
-                },
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: query,
-                onSubmitted: (_) => reload(),
-                decoration: InputDecoration(
-                  labelText: 'Artikelnummer oder Bezeichnung',
-                  suffixIcon: IconButton(
-                    onPressed: reload,
-                    icon: const Icon(Icons.search),
-                  ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'personal',
+                      label: Text('Persönlich'),
+                      icon: Icon(Icons.person_outline),
+                    ),
+                    ButtonSegment(
+                      value: 'company',
+                      label: Text('Firma'),
+                      icon: Icon(Icons.business_outlined),
+                    ),
+                    ButtonSegment(
+                      value: 'global',
+                      label: Text('Global'),
+                      icon: Icon(Icons.public),
+                    ),
+                  ],
+                  selected: {scope},
+                  onSelectionChanged: (s) {
+                    setState(() => scope = s.first);
+                    if (scope != 'global') reload();
+                  },
                 ),
               ),
+              const SizedBox(height: 12),
+              Text(switch (scope) {
+                'personal' => 'Persönlich · nur für dich sichtbar. Eigene Artikel und unabhängige Kopien.',
+                'company' => 'Firma · für Firmenmitglieder sichtbar; bearbeiten dürfen Firmenadmins.',
+                _ => 'Global · nach Herkunft durchsuchen und bewusst als persönliche Kopie übernehmen.',
+              }),
+              if (scope != 'global') ...[
+                const SizedBox(height: 12),
+                FilterChip(
+                  label: const Text('Nur mit Schaltsymbol'),
+                  selected: symbolsOnly,
+                  onSelected: (v) => setState(() => symbolsOnly = v),
+                ),
+                TextField(
+                  controller: query,
+                  onSubmitted: (_) => reload(),
+                  decoration: InputDecoration(
+                    labelText: 'Artikelnummer oder Bezeichnung',
+                    suffixIcon: IconButton(
+                      onPressed: reload,
+                      icon: const Icon(Icons.search),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
-        Expanded(
-          child: FutureBuilder<Map<String, dynamic>>(
-            future: data,
-            builder: (context, s) {
-              if (s.hasError) {
-                return Center(child: Text('${s.error}'));
-              }
-              if (!s.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final articles = s.data!['articles'] as List;
-              if (articles.isEmpty) {
-                return const Center(
-                  child: Text('Keine Artikel in diesem Bereich.'),
-                );
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-                itemCount: articles.length,
-                separatorBuilder: (_, _) => const Divider(),
-                itemBuilder: (context, i) {
-                  final a = articles[i] as Map<String, dynamic>;
-                  return ListTile(
-                    isThreeLine: true,
-                    title: Text('${a['articleNumber']} · ${a['name']}'),
-                    subtitle: Text(
-                      'Version ${a['version']} · ${a['origin']}\nLizenz: ${a['license']} · ungeprüft',
-                    ),
-                    onTap: () => open(a),
-                    trailing:
-                        scope == 'company' ||
-                            widget.session.role == UserRole.admin
-                        ? IconButton(
-                            tooltip: scope == 'personal'
-                                ? 'In Firmenstamm übernehmen'
-                                : 'Persönliche Kopie',
-                            icon: const Icon(Icons.copy_outlined),
-                            onPressed: () => copy(a),
-                          )
-                        : null,
+        if (scope == 'global')
+          Expanded(
+            child: FutureBuilder<String>(
+              future: globalUrl,
+              builder: (context, snapshot) => snapshot.hasData
+                  ? SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: ArticleSearchDemo(
+                        globalArticlesUrl: snapshot.data!,
+                      ),
+                    )
+                  : const Center(child: CircularProgressIndicator()),
+            ),
+          )
+        else
+          Expanded(
+            child: FutureBuilder<Map<String, dynamic>>(
+              future: data,
+              builder: (context, s) {
+                if (s.hasError) {
+                  return Center(child: Text('${s.error}'));
+                }
+                if (!s.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final articles =
+                    (s.data!['articles'] as List)
+                        .where(
+                          (a) =>
+                              !symbolsOnly ||
+                              a['layers']?['symbol']?['definition'] != null,
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) => a['articleNumber'].toString().compareTo(
+                          b['articleNumber'].toString(),
+                        ),
+                      );
+                if (articles.isEmpty) {
+                  return const Center(
+                    child: Text('Keine Artikel in diesem Bereich.'),
                   );
-                },
-              );
-            },
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+                  itemCount: articles.length,
+                  separatorBuilder: (_, _) => const Divider(),
+                  itemBuilder: (context, i) {
+                    final a = articles[i] as Map<String, dynamic>;
+                    return ListTile(
+                      leading: Icon(
+                        a['layers']?['symbol']?['definition'] != null
+                            ? Icons.polyline
+                            : Icons.inventory_2_outlined,
+                      ),
+                      isThreeLine: true,
+                      title: Text('${a['articleNumber']} · ${a['name']}'),
+                      subtitle: Text(
+                        "${scope == 'personal' ? 'Persönlich' : 'Firma'} · V${a['version']} · ${a['layers']?['symbol']?['definition'] != null ? 'Schaltsymbol vorhanden' : 'Ohne Schaltsymbol'}\n${a['origin']} · Lizenz: ${a['license']} · ungeprüft",
+                      ),
+                      onTap: () => open(a),
+                      trailing:
+                          scope == 'company' ||
+                              widget.session.role == UserRole.admin
+                          ? IconButton(
+                              tooltip: scope == 'personal'
+                                  ? 'In Firmenstamm übernehmen'
+                                  : 'Persönliche Kopie',
+                              icon: const Icon(Icons.copy_outlined),
+                              onPressed: () => copy(a),
+                            )
+                          : null,
+                    );
+                  },
+                );
+              },
+            ),
           ),
-        ),
       ],
     ),
   );
