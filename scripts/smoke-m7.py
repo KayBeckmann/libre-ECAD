@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """M7 persistence, tenant/CAS and moderated macro acceptance with synthetic data."""
-import base64, importlib.util, json, os, subprocess, time
+import base64, importlib.util, json, os, random, struct, subprocess, time, zlib
 from pathlib import Path
 spec = importlib.util.spec_from_file_location('m4', Path(__file__).with_name('smoke-m4.py'))
 m4 = importlib.util.module_from_spec(spec); spec.loader.exec_module(m4)
@@ -13,6 +13,17 @@ def main():
         u['token'] = r('/api/company/auth/login', {'username':u['username'],'password':u['password']})['token']
     fixture = json.loads(subprocess.check_output(['dart','run','bin/planning_sample.dart'],cwd=m4.ROOT/'backend/ecad_core'))
     d = fixture['project']['drawing']; stamp=str(time.time_ns())
+    # Exercise real proxy/body limits with a valid PNG larger than the old 128 KiB cap.
+    def chunk(kind,data):
+        return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
+    rng=random.Random(7)
+    pixels=b''.join(b'\0'+rng.randbytes(256*3) for _ in range(256))
+    png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',256,256,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(pixels))+chunk(b'IEND',b'')
+    large=json.loads(json.dumps(d));large['plans'][0]['background']['png']=base64.b64encode(png).decode()
+    assert len(json.dumps(large))>131072
+    probe=r(P+'projects',{'name':'TEST M7 Bildgroesse '+stamp},a['token'],expected=201)
+    r(P+'projects/'+probe['id']+'/drawing',{'version':1,'drawing':large},a['token'],method='PUT')
+    assert r(P+'projects/'+probe['id']+'/drawing',token=a['token'])['drawing']==large
     project=r(P+'projects',{'name':'TEST M7 Installation '+stamp},a['token'],expected=201)
     path=P+'projects/'+project['id']
     r(path+'/drawing',{'version':1,'drawing':d},a['token'],method='PUT')
