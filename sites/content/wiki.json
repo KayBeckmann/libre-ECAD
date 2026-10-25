@@ -1,0 +1,1213 @@
+[
+  {
+    "slug": "start",
+    "translations": {
+      "de": {
+        "title": "Start & Versionsstand",
+        "intro": "Der Einstieg in die private LibreECAD-Entwicklungsumgebung. Diese Dokumentation beschreibt M8 auf dem App-Stand 37603fa.",
+        "sections": [
+          {
+            "id": "first-steps",
+            "title": "In die Werkbank",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Werkbank am eigenen Host auf Port 8185 öffnen. Für die Betreiberverwaltung dient die getrennte Oberfläche auf Port 8186.",
+                  "Bestehenden Firmenzugang verwenden oder einen vom Betreiber sicher übergebenen Aktivierungstoken über „Zugang aktivieren“ einlösen. Es gibt keine offene Selbstregistrierung.",
+                  "Projekt anlegen oder ein zugängliches Projekt öffnen. Artikelquellen und gespeicherten Projektstand prüfen, bevor du zeichnest.",
+                  "Mit einer synthetischen Kopie beginnen. Änderungen ausdrücklich speichern; Freigaben benötigen einen Firmenadmin."
+                ]
+              },
+              {
+                "type": "note",
+                "text": "Die deutschsprachigen App-Bezeichnungen bleiben in Anleitungen als Orientierung erhalten. DE/EN gilt für Homepage und Wiki, nicht als vollständige Übersetzungszusage für die Werkbank."
+              }
+            ]
+          },
+          {
+            "id": "scope",
+            "title": "Was dieser Stand umfasst",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "M1–M7 umfassen getrennte Dienste, Firmen-/Nutzerverwaltung, Artikel und Schaltsymbole, mehrblättrige Pläne, Relaiszuordnung, Dokumente und Freigaben, vorbereitete native Offline-Arbeit, API/MCP sowie Installations- und Aufbauplanung. M8 ergänzt die getrennt betreibbaren Informationsseiten."
+              },
+              {
+                "type": "note",
+                "text": "Fachabnahme, normbezogene Validierung und öffentliche Veröffentlichung sind weiterhin offen. Ein erfolgreiches Software-Testprotokoll ist keine elektrotechnische Freigabe."
+              },
+              {
+                "type": "link",
+                "chapter": "planning",
+                "text": "Zeichen- und Planungsablauf →"
+              }
+            ]
+          },
+          {
+            "id": "versions",
+            "title": "Versionierte Pflege",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Die URL enthält m8-dev. App-Quellstand und Dokumentdatum stehen in jedem Kapitel. Historische Entwicklungsnotizen unter docs/ beschreiben ihren jeweiligen Meilenstein und sind nicht automatisch der aktuelle Benutzerleitfaden. Neue fachliche Versionen erhalten neue Pfade; veröffentlichte Versionen werden nicht stillschweigend umgedeutet."
+              },
+              {
+                "type": "p",
+                "text": "Kay Beckmann verantwortet beide Sprachfassungen. Änderungen an Fakten, Befehlen oder Einschränkungen müssen im gleichen Review in Deutsch und Englisch gepflegt werden. Der Generator prüft Kapitel und Abschnitts-IDs auf Paarigkeit; fachliche Übersetzungsqualität bleibt ein manueller Review."
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Start & version",
+        "intro": "Start here for the private LibreECAD development environment. This documentation describes M8 with app revision 37603fa.",
+        "sections": [
+          {
+            "id": "first-steps",
+            "title": "Enter the workbench",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Open the workbench on your host at port 8185. The separate operator interface runs on port 8186.",
+                  "Use an existing company account or redeem an activation token securely provided by your operator through “Zugang aktivieren”. There is no open self-registration.",
+                  "Create a project or open one you can access. Check article sources and the saved revision before drawing.",
+                  "Start with a synthetic copy. Save changes explicitly; approvals require a company administrator."
+                ]
+              },
+              {
+                "type": "note",
+                "text": "German application labels are retained in the guides to help you find controls. DE/EN refers to the homepage and wiki, not a promise that the entire workbench is translated."
+              }
+            ]
+          },
+          {
+            "id": "scope",
+            "title": "What this version covers",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "M1–M7 cover separate services, company/user administration, articles and schematic symbols, multi-sheet drawings, relay associations, documents and approvals, prepared native offline work, API/MCP and installation/cabinet planning. M8 adds independently deployable information sites."
+              },
+              {
+                "type": "note",
+                "text": "Professional engineering acceptance, standards validation and public publication remain open. A successful software test report is not electrical engineering approval."
+              },
+              {
+                "type": "link",
+                "chapter": "planning",
+                "text": "Drawing and planning workflow →"
+              }
+            ]
+          },
+          {
+            "id": "versions",
+            "title": "Versioned maintenance",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "The URL includes m8-dev. Each chapter shows the app revision and documentation date. Historical notes under docs/ describe their own milestones and are not automatically current user guidance. New behavioral versions receive new paths; published versions must not be silently reinterpreted."
+              },
+              {
+                "type": "p",
+                "text": "Kay Beckmann owns both language versions. Changes to facts, commands or limitations must update German and English in the same review. The generator checks paired chapters and section IDs; semantic translation quality still needs human review."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "installation",
+    "translations": {
+      "de": {
+        "title": "Installation & Compose",
+        "intro": "Die Entwicklungsumgebung lokal oder im privaten LAN starten. Für einen öffentlichen Betrieb fehlen weiterhin Abnahmen.",
+        "sections": [
+          {
+            "id": "requirements",
+            "title": "Voraussetzungen",
+            "blocks": [
+              {
+                "type": "ul",
+                "items": [
+                  "Git, Docker Engine mit Compose v2 und ausreichend Platz für drei PostgreSQL-Datenbanken, Freigabearchive und Images.",
+                  "Für den Web-Build Flutter/Dart passend zu pubspec.yaml (Dart ^3.13.4 in diesem App-Stand). Abhängigkeiten sind in den Lockdateien festgehalten.",
+                  "Freie Ports: 8181–8183 Dienste, 8185 Werkbank, 8186 Betreiberoberfläche. Homepage/Wiki verwenden optional 8187/8188.",
+                  "Für native Linux-Builds zusätzlich GTK-3-Entwicklungspakete, CMake, Ninja und Clang. Der Download wurde auf dem im Prüfprotokoll genannten Host geprüft."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "app",
+            "title": "App aufsetzen",
+            "blocks": [
+              {
+                "type": "code",
+                "text": "git clone https://github.com/KayBeckmann/libre-ECAD.git\ncd libre-ECAD\n# On a fresh checkout only; preserve an existing .env.\ncp -n .env.example .env\nchmod 600 .env"
+              },
+              {
+                "type": "p",
+                "text": "Vor dem Start alle change-me-Werte in .env ersetzen: ein langes zufälliges internes Diensttoken, getrennte DB-Passwörter und den initialen Betreiberzugang. .env und Aktivierungstoken nicht ins Repository oder in URLs aufnehmen. Bootstrap wirkt nur, solange noch kein Betreiberkonto existiert."
+              },
+              {
+                "type": "code",
+                "text": "./scripts/build-web.sh\ndocker compose up -d --build\ndocker compose ps"
+              },
+              {
+                "type": "p",
+                "text": "Die Werkbank läuft unter http://<Host>:8185, die Betreiberoberfläche unter http://<Host>:8186. Der Standard-Stack bindet seine App-/API-Ports an den Host; nur in einer entsprechend abgeschirmten Entwicklungsumgebung starten. Für andere Netze zuerst Netzwerkregeln, TLS, Reverse Proxy und Berechtigungen planen."
+              }
+            ]
+          },
+          {
+            "id": "sites",
+            "title": "Homepage und Wiki getrennt starten",
+            "blocks": [
+              {
+                "type": "code",
+                "text": "docker compose -p libre-ecad-sites -f compose.sites.yml up -d --build homepage\ndocker compose -p libre-ecad-sites -f compose.sites.yml up -d --build wiki"
+              },
+              {
+                "type": "p",
+                "text": "Diese beiden Befehle starten keine Datenbanken und kein Backend. Standardmäßig sind die Seiten nur über 127.0.0.1:8187 und 127.0.0.1:8188 erreichbar. Für die freigegebene private LAN-Vorschau SITES_BIND_ADDRESS auf die konkrete private Hostadresse setzen; nicht unbesehen auf alle Interfaces binden."
+              },
+              {
+                "type": "p",
+                "text": "Ohne konfigurierte Origins passt JavaScript Links zur Werkbank und zum anderen Container an den aktuellen Host und dessen Standardports an. Für feste Domains oder abweichende Ports beim Build HOMEPAGE_ORIGIN, WIKI_ORIGIN und APP_ORIGIN setzen. Nur HTTP(S)-Origins ohne Pfad oder Zugangsdaten sind erlaubt; konfigurierte Links funktionieren auch ohne JavaScript."
+              },
+              {
+                "type": "code",
+                "text": "HOMEPAGE_ORIGIN=http://192.168.1.20:8187 \\\nWIKI_ORIGIN=http://192.168.1.20:8188 \\\nAPP_ORIGIN=http://192.168.1.20:8185 \\\nSITES_BIND_ADDRESS=192.168.1.20 \\\ndocker compose -p libre-ecad-sites -f compose.sites.yml up -d --build"
+              },
+              {
+                "type": "note",
+                "text": "Die IP im Beispiel ist ein Platzhalter. noindex verhindert keine Zugriffe. Vor öffentlichem Livegang sind Kays Freigabe und die Prüfung von Produktname, Marken, Domain und Rechtstexten erforderlich."
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Installation & Compose",
+        "intro": "Run the development environment locally or on a private LAN. Public operation still requires acceptance.",
+        "sections": [
+          {
+            "id": "requirements",
+            "title": "Prerequisites",
+            "blocks": [
+              {
+                "type": "ul",
+                "items": [
+                  "Git, Docker Engine with Compose v2 and sufficient space for three PostgreSQL databases, approval archives and images.",
+                  "For the web build, Flutter/Dart matching pubspec.yaml (Dart ^3.13.4 in this app revision). Dependencies are recorded in lockfiles.",
+                  "Available ports: 8181–8183 services, 8185 workbench, 8186 operator interface. Optional homepage/wiki use 8187/8188.",
+                  "Native Linux builds additionally need GTK 3 development packages, CMake, Ninja and Clang. The download was checked on the host recorded in its verification log."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "app",
+            "title": "Set up the application",
+            "blocks": [
+              {
+                "type": "code",
+                "text": "git clone https://github.com/KayBeckmann/libre-ECAD.git\ncd libre-ECAD\n# On a fresh checkout only; preserve an existing .env.\ncp -n .env.example .env\nchmod 600 .env"
+              },
+              {
+                "type": "p",
+                "text": "Before starting, replace every change-me value in .env: a long random internal service token, separate database passwords and the initial operator account. Keep .env and activation tokens out of repositories and URLs. Bootstrap only applies while no operator account exists."
+              },
+              {
+                "type": "code",
+                "text": "./scripts/build-web.sh\ndocker compose up -d --build\ndocker compose ps"
+              },
+              {
+                "type": "p",
+                "text": "The workbench is at http://<host>:8185 and the operator interface at http://<host>:8186. The default stack binds its application/API ports to the host; start it only in a suitably isolated development environment. For other networks, first plan network rules, TLS, a reverse proxy and access controls."
+              }
+            ]
+          },
+          {
+            "id": "sites",
+            "title": "Start homepage and wiki separately",
+            "blocks": [
+              {
+                "type": "code",
+                "text": "docker compose -p libre-ecad-sites -f compose.sites.yml up -d --build homepage\ndocker compose -p libre-ecad-sites -f compose.sites.yml up -d --build wiki"
+              },
+              {
+                "type": "p",
+                "text": "These commands start no databases or backend services. By default the sites are reachable only on 127.0.0.1:8187 and 127.0.0.1:8188. For the authorized private LAN preview, set SITES_BIND_ADDRESS to the specific private host address; do not indiscriminately bind every interface."
+              },
+              {
+                "type": "p",
+                "text": "Without configured origins, JavaScript adapts links to the workbench and the other container to the current host and standard ports. For fixed domains or different ports, set HOMEPAGE_ORIGIN, WIKI_ORIGIN and APP_ORIGIN at build time. Only HTTP(S) origins without paths or credentials are allowed; configured links also work without JavaScript."
+              },
+              {
+                "type": "code",
+                "text": "HOMEPAGE_ORIGIN=http://192.168.1.20:8187 \\\nWIKI_ORIGIN=http://192.168.1.20:8188 \\\nAPP_ORIGIN=http://192.168.1.20:8185 \\\nSITES_BIND_ADDRESS=192.168.1.20 \\\ndocker compose -p libre-ecad-sites -f compose.sites.yml up -d --build"
+              },
+              {
+                "type": "note",
+                "text": "The example IP is a placeholder. noindex does not prevent access. Public launch requires Kay’s approval and review of product name, trademarks, domain and legal documents."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "backup",
+    "translations": {
+      "de": {
+        "title": "Backup & Wiederherstellung",
+        "intro": "Alle drei SQL-Datenbanken, Freigabearchive und die passende Konfiguration gehören zu einer wiederherstellbaren Installation.",
+        "sections": [
+          {
+            "id": "authority",
+            "title": "Was gesichert werden muss",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "PostgreSQL ist die Schreibautorität. Das Git-Freigabearchiv ersetzt weder Firmen-/Nutzerkonten noch aktuelle Arbeitsstände. Die Firmendatenbank enthält auch Projekt-/Automationshistorie (workspace_document, workspace_history, m3_records, m3_history). Offline-Vaults liegen getrennt auf Endgeräten und gehören nicht zum Serverbackup."
+              },
+              {
+                "type": "p",
+                "text": "Backups enthalten vertrauliche Daten. Mit restriktiven Rechten anlegen, außerhalb des Hosts verschlüsselt aufbewahren, Aufbewahrung festlegen und Restore regelmäßig auf einer isolierten Instanz üben. Code-Commit, Images und Konfiguration zusammen mit dem Backup dokumentieren."
+              }
+            ]
+          },
+          {
+            "id": "backup",
+            "title": "Konsistentes Wartungsbackup",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Im Repository auf dem Betreiberhost ausführen. Ein Wartungsfenster vereinbaren und alle schreibenden Backendinstanzen stoppen, bevor die drei Dumps beginnen. Die folgende Sequenz gilt für den einzelnen Compose-Stack, nicht für mehrere parallel schreibende Deployments. Bei einem Fehler zunächst Ursache und Backup prüfen; unvollständige Sicherungen nicht als erfolgreich markieren."
+              },
+              {
+                "type": "code",
+                "text": "umask 077\nbackup_dir=\"$PWD/backups/$(date -u +%Y%m%dT%H%M%SZ)\"\nmkdir -p \"$backup_dir\"\ngit rev-parse HEAD > \"$backup_dir/source.txt\"\ndocker compose images > \"$backup_dir/images.txt\"\ncp .env \"$backup_dir/environment.env\"\ndocker compose stop super-admin-service global-articles-service company-users-service\ndocker compose exec -T super-admin-db pg_dump -U super_admin -d super_admin -Fc > \"$backup_dir/super_admin.dump\"\ndocker compose exec -T global-articles-db pg_dump -U global_articles -d global_articles -Fc > \"$backup_dir/global_articles.dump\"\ndocker compose exec -T company-users-db pg_dump -U company_users -d company_users -Fc > \"$backup_dir/company_users.dump\"\ndocker compose run --rm --no-deps -T --entrypoint tar company-users-service -C /var/lib/libre-ecad/archives -czf - . > \"$backup_dir/archives.tar.gz\""
+              },
+              {
+                "type": "p",
+                "text": "Jeden Exitcode prüfen. Die Dumps mit pg_restore --list und das Archiv mit tar -tzf prüfen; erst dann Prüfsummen bilden. Das ist eine Formatprüfung, kein vollständiger Restore-Nachweis. Nach dem Wartungsfenster die drei Dienste wieder starten und Anmeldung, Projektzugriff und Archivexport prüfen. „docker compose down -v“ löscht Datenvolumes und gehört nicht zu diesem Ablauf."
+              },
+              {
+                "type": "code",
+                "text": "docker compose exec -T super-admin-db pg_restore --list < \"$backup_dir/super_admin.dump\"\ndocker compose exec -T global-articles-db pg_restore --list < \"$backup_dir/global_articles.dump\"\ndocker compose exec -T company-users-db pg_restore --list < \"$backup_dir/company_users.dump\"\ntar -tzf \"$backup_dir/archives.tar.gz\"\n(cd \"$backup_dir\" && sha256sum *.dump archives.tar.gz environment.env source.txt images.txt > SHA256SUMS)\ndocker compose start super-admin-service global-articles-service company-users-service"
+              }
+            ]
+          },
+          {
+            "id": "restore",
+            "title": "In frische Volumes zurückspielen",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Ausschließlich eine neue, isolierte Compose-Projektkennung verwenden; vorher sicherstellen, dass dafür keine Volumes existieren. Passenden Quellstand aus source.txt auschecken und die gesicherte Konfiguration als private .env bereitstellen. In einem separaten Arbeitsverzeichnis arbeiten, damit die laufende Installation unverändert bleibt. Hier wird nur ein Wiederherstellungstest gestartet, kein Produktivwechsel."
+              },
+              {
+                "type": "code",
+                "text": "# Set backup_dir to the absolute path of the chosen backup.\n(cd \"$backup_dir\" && sha256sum -c SHA256SUMS)\ndocker compose -p libre-ecad-restore-check up -d --wait super-admin-db global-articles-db company-users-db\ndocker compose -p libre-ecad-restore-check exec -T super-admin-db pg_restore --exit-on-error --no-owner -U super_admin -d super_admin < \"$backup_dir/super_admin.dump\"\ndocker compose -p libre-ecad-restore-check exec -T global-articles-db pg_restore --exit-on-error --no-owner -U global_articles -d global_articles < \"$backup_dir/global_articles.dump\"\ndocker compose -p libre-ecad-restore-check exec -T company-users-db pg_restore --exit-on-error --no-owner -U company_users -d company_users < \"$backup_dir/company_users.dump\"\ndocker compose -p libre-ecad-restore-check build company-users-service\ndocker compose -p libre-ecad-restore-check run --rm --no-deps -T --entrypoint tar company-users-service -C /var/lib/libre-ecad/archives -xzf - < \"$backup_dir/archives.tar.gz\""
+              },
+              {
+                "type": "ol",
+                "items": [
+                  "Restore-Exitcodes und Datenmengen prüfen, insbesondere Projektarbeitsstände, Historie, Freigaben, Rollen, Token und Vorschläge.",
+                  "Freigabearchive mit den SQL-Freigaben abgleichen. Bei Abweichungen keine neue Wahrheit aus Dateinamen ableiten; SQL und Export-/Archivlogik des passenden App-Stands prüfen.",
+                  "Für den Anwendungstest getrennte Hostports oder einen isolierten Host konfigurieren. Erst dann Backends starten, anmelden und Projektöffnung, Rechte, Dokumentexport und Freigabearchiv prüfen.",
+                  "Den Produktivwechsel separat mit Wartungsfenster, Zugriffsprüfung und Rückfallplan durchführen. Alte Instanz und Backup bis zur erfolgreichen Abnahme erhalten."
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Backup & recovery",
+        "intro": "A recoverable installation includes all three SQL databases, approval archives and matching configuration.",
+        "sections": [
+          {
+            "id": "authority",
+            "title": "What must be backed up",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "PostgreSQL is the write authority. Git approval archives do not replace company/user accounts or current working revisions. The company database also contains project/automation history (workspace_document, workspace_history, m3_records, m3_history). Offline vaults live separately on devices and are not part of a server backup."
+              },
+              {
+                "type": "p",
+                "text": "Backups contain confidential data. Create them with restrictive permissions, retain encrypted copies off the host, define retention and regularly practice recovery on an isolated instance. Record the code commit, images and configuration alongside each backup."
+              }
+            ]
+          },
+          {
+            "id": "backup",
+            "title": "Consistent maintenance backup",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Run from the repository on the operator host. Arrange a maintenance window and stop every backend writer before starting the three dumps. This sequence applies to a single Compose stack, not multiple deployments writing concurrently. If a step fails, inspect the cause and backup; never mark incomplete backups as successful."
+              },
+              {
+                "type": "code",
+                "text": "umask 077\nbackup_dir=\"$PWD/backups/$(date -u +%Y%m%dT%H%M%SZ)\"\nmkdir -p \"$backup_dir\"\ngit rev-parse HEAD > \"$backup_dir/source.txt\"\ndocker compose images > \"$backup_dir/images.txt\"\ncp .env \"$backup_dir/environment.env\"\ndocker compose stop super-admin-service global-articles-service company-users-service\ndocker compose exec -T super-admin-db pg_dump -U super_admin -d super_admin -Fc > \"$backup_dir/super_admin.dump\"\ndocker compose exec -T global-articles-db pg_dump -U global_articles -d global_articles -Fc > \"$backup_dir/global_articles.dump\"\ndocker compose exec -T company-users-db pg_dump -U company_users -d company_users -Fc > \"$backup_dir/company_users.dump\"\ndocker compose run --rm --no-deps -T --entrypoint tar company-users-service -C /var/lib/libre-ecad/archives -czf - . > \"$backup_dir/archives.tar.gz\""
+              },
+              {
+                "type": "p",
+                "text": "Check every exit code. Inspect dumps with pg_restore --list and the archive with tar -tzf, then generate checksums. This checks format, not full recoverability. After maintenance, restart the three services and verify login, project access and archive export. “docker compose down -v” deletes data volumes and is not part of this procedure."
+              },
+              {
+                "type": "code",
+                "text": "docker compose exec -T super-admin-db pg_restore --list < \"$backup_dir/super_admin.dump\"\ndocker compose exec -T global-articles-db pg_restore --list < \"$backup_dir/global_articles.dump\"\ndocker compose exec -T company-users-db pg_restore --list < \"$backup_dir/company_users.dump\"\ntar -tzf \"$backup_dir/archives.tar.gz\"\n(cd \"$backup_dir\" && sha256sum *.dump archives.tar.gz environment.env source.txt images.txt > SHA256SUMS)\ndocker compose start super-admin-service global-articles-service company-users-service"
+              }
+            ]
+          },
+          {
+            "id": "restore",
+            "title": "Restore into fresh volumes",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Use only a new, isolated Compose project name; first make sure it has no existing volumes. Check out the matching source revision from source.txt and provide the saved configuration as a private .env. Work in a separate directory to preserve the running installation. This starts a recovery test, not a production switchover."
+              },
+              {
+                "type": "code",
+                "text": "# Set backup_dir to the absolute path of the chosen backup.\n(cd \"$backup_dir\" && sha256sum -c SHA256SUMS)\ndocker compose -p libre-ecad-restore-check up -d --wait super-admin-db global-articles-db company-users-db\ndocker compose -p libre-ecad-restore-check exec -T super-admin-db pg_restore --exit-on-error --no-owner -U super_admin -d super_admin < \"$backup_dir/super_admin.dump\"\ndocker compose -p libre-ecad-restore-check exec -T global-articles-db pg_restore --exit-on-error --no-owner -U global_articles -d global_articles < \"$backup_dir/global_articles.dump\"\ndocker compose -p libre-ecad-restore-check exec -T company-users-db pg_restore --exit-on-error --no-owner -U company_users -d company_users < \"$backup_dir/company_users.dump\"\ndocker compose -p libre-ecad-restore-check build company-users-service\ndocker compose -p libre-ecad-restore-check run --rm --no-deps -T --entrypoint tar company-users-service -C /var/lib/libre-ecad/archives -xzf - < \"$backup_dir/archives.tar.gz\""
+              },
+              {
+                "type": "ol",
+                "items": [
+                  "Check restore exit codes and row counts, especially project working revisions, history, approvals, roles, tokens and proposals.",
+                  "Compare approval archives with SQL approvals. Do not infer authority from filenames if they differ; inspect SQL and the matching app version’s export/archive logic.",
+                  "Configure separate host ports or an isolated host for application testing. Only then start backends, sign in and check project access, permissions, document export and approval archives.",
+                  "Handle production switchover separately with a maintenance window, access checks and rollback plan. Retain the old instance and backup until acceptance succeeds."
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "roles",
+    "translations": {
+      "de": {
+        "title": "Rollen & Firmengrenzen",
+        "intro": "Betreiber, Firmenadministratoren und Zeichner haben unterschiedliche Aufgaben. Ein bekannter Projektbezeichner ersetzt keine Berechtigung.",
+        "sections": [
+          {
+            "id": "roles",
+            "title": "Zuständigkeiten",
+            "blocks": [
+              {
+                "type": "ul",
+                "items": [
+                  "Betreiber/Superadmin: Firmen und ersten Admin bereitstellen, Aktivierung erneuern, Managed-Zugänge sperren und globale Beiträge moderieren. Dafür die getrennte Betreiberoberfläche verwenden.",
+                  "Firmenadmin: Nutzer und Projektmitgliedschaften der eigenen Firma verwalten sowie Freigaben bewusst erteilen.",
+                  "Zeichner: zugängliche Projekte innerhalb der eigenen Mitgliedschaft bearbeiten. Keine automatische Freigabeberechtigung.",
+                  "Persönliche Artikel und Makros bleiben Eigentümerdaten; die Adminrolle macht fremde persönliche Bibliotheken nicht automatisch sichtbar. Firmenbibliotheken sind für Mitglieder lesbar, Änderungen erfordern Adminrechte."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "access",
+            "title": "Zugang und Sperren",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Aktivierungstoken gelten sieben Tage, sind einmalig verwendbar und serverseitig nur gehasht gespeichert. Sicher außerhalb von URLs weitergeben. Sitzungstoken bleiben im Arbeitsspeicher. Nach Sperre/Entsperre oder Deaktivierung ist eine neue Anmeldung erforderlich; alte Sitzungen werden nicht wieder gültig."
+              },
+              {
+                "type": "p",
+                "text": "Der Server prüft Firma, aktiven Nutzer und Mitgliedschaft bei Zugriffen. Bereits geladene Daten lassen sich nicht rückwirkend entfernen. Ein getrenntes Offline-Gerät erhält einen Rechteentzug erst wieder bei Kontakt zum Server; die lokale Berechtigungsdauer begrenzt den normalen Workflow."
+              },
+              {
+                "type": "link",
+                "chapter": "offline",
+                "text": "Offline-Grenzen lesen →"
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Roles & company boundaries",
+        "intro": "Operators, company administrators and drafters have distinct responsibilities. Knowing a project ID does not grant access.",
+        "sections": [
+          {
+            "id": "roles",
+            "title": "Responsibilities",
+            "blocks": [
+              {
+                "type": "ul",
+                "items": [
+                  "Operator/superadmin: provision companies and their first administrator, renew activation, suspend managed access and moderate global submissions. Use the separate operator interface.",
+                  "Company administrator: manage users and project memberships within their company and explicitly approve revisions.",
+                  "Drafter: edit accessible projects within their membership. No automatic approval permission.",
+                  "Personal articles and macros remain owner data; administrator status does not automatically expose other users’ personal libraries. Company libraries are readable by members; changes require administrator rights."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "access",
+            "title": "Access and suspension",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Activation tokens last seven days, are single-use and are stored only as hashes on the server. Share them securely, never in URLs. Session tokens stay in memory. Suspension/reinstatement or deactivation requires a new login; old sessions do not become valid again."
+              },
+              {
+                "type": "p",
+                "text": "The server checks company, active user and membership on access. Already loaded data cannot be retroactively removed. A disconnected offline device only learns about revoked rights when it contacts the server again; the local lease limits normal workflow."
+              },
+              {
+                "type": "link",
+                "chapter": "offline",
+                "text": "Read offline limitations →"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "backends",
+    "translations": {
+      "de": {
+        "title": "Backend wechseln",
+        "intro": "Ein Backendwechsel wählt einen anderen Datenverantwortlichen. Er ist keine Migration von Konten oder Projekten.",
+        "sections": [
+          {
+            "id": "switch",
+            "title": "Bewusst wechseln",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Offene Änderungen speichern oder bewusst verwerfen; offline vorbereitete Projekte gehören weiterhin zu ihrem bisherigen Backend und Benutzer.",
+                  "In der Backend-Auswahl den vorgesehenen Server wählen beziehungsweise die direkte Adresse prüfen. Externe Verzeichniseinträge bedeuten keine technische Prüfung oder Betriebszusage.",
+                  "Am neuen Backend mit dessen Zugang anmelden. Alte Sitzungen und Firmenidentitäten nicht als dort gültig behandeln.",
+                  "Firma, Projektliste und Artikelquellen prüfen, bevor du Daten bearbeitest oder an eine Assistenz weitergibst."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Beim Webzugriff laufen API-Anfragen über die gleichnamigen Proxy-Pfade der Werkbank. Ein nativer Firmenservice-Endpunkt nutzt direkt Port 8183; über den Web-Proxy lautet die Basis http://<Host>:8185/api/company. Für Android-Release ist HTTPS erforderlich."
+              }
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "Keine automatische Übertragung",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Kays Betreiberkonsole führt externe Backends nur als Verzeichniseinträge. Sie provisioniert dort keine Nutzer, setzt keine Remote-Sperren und migriert keine Konten, Projekte oder Herstelleridentitäten. Ein Betriebswechsel braucht einen separat geprüften Export-/Migrationsplan."
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Switch backends",
+        "intro": "Switching backends selects a different data operator. It does not migrate accounts or projects.",
+        "sections": [
+          {
+            "id": "switch",
+            "title": "Switch deliberately",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Save or deliberately discard open changes; prepared offline projects still belong to their original backend and user.",
+                  "Choose the intended server in backend selection or check the direct address. An external directory entry does not imply technical verification or an operating guarantee.",
+                  "Sign in to the new backend using its own account. Do not treat old sessions or company identities as valid there.",
+                  "Check company, project list and article sources before editing data or sharing it with an assistant."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Web access uses the workbench’s API proxy paths. A native company-service endpoint uses port 8183 directly; through the web proxy the base is http://<host>:8185/api/company. Android release requires HTTPS."
+              }
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "No automatic transfer",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Kay’s operator console lists external backends as directory entries only. It does not provision their users, remotely suspend them or migrate accounts, projects or manufacturer identities. Changing operators needs a separately reviewed export/migration plan."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "articles",
+    "translations": {
+      "de": {
+        "title": "Artikelquellen & Publikation",
+        "intro": "Herkunft, Version und Nutzungsrechte bleiben Teil des Artikels. Eine öffentliche Vorschau ist eine bewusste Veröffentlichung.",
+        "sections": [
+          {
+            "id": "sources",
+            "title": "Quellen unterscheiden",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Persönliche, Firmen- und globale Artikel sind getrennt. Eine übernommene globale Version wird zur unabhängigen lokalen Kopie; Quelle, Quellversion, Lizenz und Namensnennung bleiben erhalten. Ein späterer Rückzug im globalen Katalog löscht bestehende lokale Kopien nicht."
+              },
+              {
+                "type": "p",
+                "text": "Der Artikeldesigner erstellt Symbole und Anschlüsse. Synthetische Bibliothekssymbole sind keine Zertifizierung von Herstellerdaten oder IEC-/DIN-Konformität. Unbekannte technische Werte nicht durch vermeintlich plausible Zahlen ersetzen."
+              }
+            ]
+          },
+          {
+            "id": "publish",
+            "title": "Öffentliche Beiträge",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Eine eigene öffentliche Vorschau erstellen und die zu teilenden Felder bewusst auswählen.",
+                  "Herkunft, Namensnennung und passende Datenlizenz angeben. Fremde Herstellerdaten dürfen nicht allein durch Auswahl einer Lizenz neu lizenziert werden.",
+                  "Vorschau und Rechte prüfen, dann einreichen. Veröffentlichung erfolgt erst nach Betreiberprüfung; interne Entwürfe und öffentliche Versionsstände haben getrennte Revisionszähler.",
+                  "Bei Makros die gesamte Zeichnung einschließlich eingebettetem Hintergrund prüfen. Dort können vertrauliche Pläne und Bildrechte enthalten sein."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Eine bestätigte Herstelleridentität betrifft Identität und Vertretungsberechtigung zum Freigabezeitpunkt. Sie ist keine technische Prüfung der Artikeldaten. Neue oder korrigierte Beiträge durchlaufen den Versions-/Prüfablauf erneut."
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Article sources & publication",
+        "intro": "Source, version and usage rights remain part of an article. A public preview is a deliberate publication.",
+        "sections": [
+          {
+            "id": "sources",
+            "title": "Distinguish sources",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Personal, company and global articles are separate. A copied global version becomes an independent local copy, retaining its source, source version, license and attribution. A later global withdrawal does not delete existing local copies."
+              },
+              {
+                "type": "p",
+                "text": "The article designer creates symbols and terminals. Synthetic library symbols do not certify manufacturer data or IEC/DIN compliance. Do not replace unknown technical values with seemingly plausible numbers."
+              }
+            ]
+          },
+          {
+            "id": "publish",
+            "title": "Public submissions",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Create a separate public preview and deliberately choose the fields to share.",
+                  "Provide source, attribution and an appropriate data license. Selecting a license cannot relicense third-party manufacturer data.",
+                  "Review the preview and rights, then submit. Publication requires operator review; internal drafts and public versions use separate revision counters.",
+                  "For macros, inspect the entire drawing including any embedded background. It may contain confidential plans and image rights."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "A verified manufacturer identity covers identity and representation at approval time. It is not a technical validation of article data. New or corrected contributions go through versioning/review again."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "planning",
+    "translations": {
+      "de": {
+        "title": "Zeichnen & Planen",
+        "intro": "Der Editor hält Betriebsmittel, ihre Darstellungen und elektrische Verbindungen getrennt. Gespeichert wird ausdrücklich.",
+        "sections": [
+          {
+            "id": "electrical",
+            "title": "Schaltung und Relais",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Ein Betriebsmittel kann mehrere Darstellungen auf mehreren Blättern besitzen. Spule und zugehörige Öffner/Schließer müssen demselben Betriebsmittel zugeordnet sein; identische Texte allein erzeugen keine Beziehung. Eine Spule kann mehrere Kontakte besitzen. Dreiphasige Versorgung und Schutzgeräte führen die Leiter getrennt."
+              },
+              {
+                "type": "p",
+                "text": "Leitungen verbinden ausdrücklich benannte Anschlüsse oder Knoten. Eine sichtbare Kreuzung allein erzeugt keine elektrische Verbindung. Prüffunde, Anschlussnummern und blattübergreifende Verweise vor einer Freigabe kontrollieren."
+              }
+            ]
+          },
+          {
+            "id": "plans",
+            "title": "Grundriss und Aufbau",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Eine PNG-Vorlage mit passenden Nutzungsrechten hochladen. Die Zeichnung speichert den eingebetteten Hintergrund mit.",
+                  "Im Installationsplan zwei Referenzpunkte und die reale Strecke zur Kalibrierung angeben. Ohne gültigen Maßstab sind daraus abgeleitete Längen nicht belastbar.",
+                  "Betriebsmittel und Verlegewege setzen; im Aufbauplan reale Artikelabmessungen und Maßstab prüfen.",
+                  "Berechnungen, Materiallisten und generische SPS-/FU-/Sicherheitsfunktionen als Planungsunterstützung prüfen. Sie ersetzen weder Fachplanung noch Normnachweise."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "save",
+            "title": "Speichern, vergleichen, freigeben",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Vor Schreibzugriffen gilt die erwartete Projektversion. Bei HTTP 409 neu laden und beide Stände vergleichen; kein automatisches Zusammenführen oder blindes Wiederholen. Freigaben sind bestätigte Firmenadmin-Aktionen. Exporte des Arbeitsstands sind nicht automatisch freigegeben."
+              },
+              {
+                "type": "note",
+                "text": "Unter 1000 Pixel Breite oder 500 Pixel nutzbarer Höhe bleibt der Editor schreibgeschützt. Für Änderungen ein ausreichend großes Fenster verwenden. Die ERP-Materialvorschau liegt auf einem getrennten Entwicklungsbranch und schreibt keine Bestände oder Bestellungen."
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Drawing & planning",
+        "intro": "The editor separates physical devices, their representations and electrical connections. Saving is explicit.",
+        "sections": [
+          {
+            "id": "electrical",
+            "title": "Circuits and relays",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "A physical device may have multiple representations on multiple sheets. A coil and its normally closed/open contacts must reference the same device; identical labels alone do not create a relationship. One coil may have multiple contacts. Three-phase supply and protection devices carry separate conductors."
+              },
+              {
+                "type": "p",
+                "text": "Wires explicitly connect named terminals or junctions. A visible crossing alone does not create an electrical connection. Check validation findings, terminal numbers and cross-sheet references before approval."
+              }
+            ]
+          },
+          {
+            "id": "plans",
+            "title": "Floor plan and layout",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Upload a PNG template with appropriate usage rights. The drawing stores the embedded background.",
+                  "In the installation plan, set two reference points and their real distance for calibration. Derived lengths are not reliable without a valid scale.",
+                  "Place devices and routes; in cabinet layout, check actual article dimensions and scale.",
+                  "Review calculations, material lists and generic PLC/drive/safety functions as planning aids. They replace neither professional design nor standards evidence."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "save",
+            "title": "Save, compare, approve",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Writes require the expected project version. On HTTP 409, reload and compare both revisions; there is no automatic merge or blind retry. Approvals are confirmed company-administrator actions. Working-copy exports are not automatically approved."
+              },
+              {
+                "type": "note",
+                "text": "Below 1000 pixels width or 500 pixels usable height, the editor is read-only. Use a sufficiently large window for edits. The ERP material preview is on a separate development branch and does not write inventory or orders."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "offline",
+    "translations": {
+      "de": {
+        "title": "Vorbereitete Offline-Arbeit",
+        "intro": "Nur installierte Clients besitzen eine Offline-Ablage. Die Webanwendung braucht weiterhin das Backend.",
+        "sections": [
+          {
+            "id": "prepare",
+            "title": "Vor dem Trennen",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Online anmelden und das Projekt ausdrücklich speichern. Mit aktuellen Projektrechten „Offline vorbereiten“ wählen.",
+                  "Ein separates lokales Passwort mit mindestens acht Zeichen vergeben. Es schützt die Ablage; das Serverpasswort und Sitzungstoken werden nicht darin gespeichert.",
+                  "Den vorbereiteten Stand über „Offlineprojekte“ öffnen. Die Standardberechtigung gilt 24 Stunden; Betreiber können OFFLINE_LEASE_HOURS zwischen 1 und 168 konfigurieren."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Die Ablage verwendet AES-256-GCM und PBKDF2-HMAC-SHA256 mit 210.000 Iterationen. Sie liegt im Application-Support-Verzeichnis unter offline/vault.json. Atomisches Ersetzen, Dateilock und Vergleich des verschlüsselten Vorstands schützen vor unbemerktem Überschreiben durch ein zweites Fenster."
+              }
+            ]
+          },
+          {
+            "id": "reconcile",
+            "title": "Wieder verbinden",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "„Vergleichen und hochladen“ wählen und erneut online anmelden. Derselbe Benutzer muss seine aktuellen Rechte bestätigen.",
+                  "Server- und lokalen Stand vergleichen. Entweder die lokale Kopie durch den Serverstand ersetzen oder die lokale Zeichnung bewusst als neuen Arbeitsstand hochladen.",
+                  "Bei weiterer Änderung während des Vergleichs entsteht HTTP 409. Erneut vergleichen; keine automatische Übernahme. Der Upload erteilt keine Freigabe."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "Grenzen und Verlust",
+            "blocks": [
+              {
+                "type": "note",
+                "text": "Ablauf und Uhr-Rückstellprüfung sind Clientregeln, kein manipulationssicherer Schutz gegen den Gerätebesitzer. Entzogene Rechte können ein offline getrenntes Gerät nicht sofort erreichen. Der Server prüft jeden späteren Upload unabhängig neu."
+              },
+              {
+                "type": "p",
+                "text": "Nach Ablauf bleiben Änderungen gespeichert, bis Rechte online erneuert werden. Ein vergessenes lokales Passwort ist nicht zurücksetzbar; vorhandene Serverstände können neu heruntergeladen werden. Lokale, noch nicht hochgeladene Änderungen sind dann nicht wiederherstellbar. Offline-PDFs tragen OFFLINE-ENTWURF – NICHT FREIGEGEBEN."
+              },
+              {
+                "type": "p",
+                "text": "Linux wurde mit echtem Dateizugriff, erneutem Öffnen und PDF-Erzeugung bei blockiertem Dart-HTTP geprüft. Windows-/Android-Geräteabnahme bleibt offen; diese Prüfung ersetzt sie nicht."
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Prepared offline work",
+        "intro": "Only installed clients have an offline vault. The web application still needs the backend.",
+        "sections": [
+          {
+            "id": "prepare",
+            "title": "Before disconnecting",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Sign in online and explicitly save the project. With current project access, choose “Offline vorbereiten”.",
+                  "Choose a separate local password of at least eight characters. It protects the vault; the server password and session token are not stored in it.",
+                  "Open the prepared revision through “Offlineprojekte”. The default lease lasts 24 hours; operators may configure OFFLINE_LEASE_HOURS between 1 and 168."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "The vault uses AES-256-GCM and PBKDF2-HMAC-SHA256 with 210,000 iterations. It lives in the application-support directory under offline/vault.json. Atomic replacement, file locking and comparison of the previous encrypted state protect against unnoticed overwrites by a second window."
+              }
+            ]
+          },
+          {
+            "id": "reconcile",
+            "title": "Reconnect",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Choose “Vergleichen und hochladen” and sign in online again. The same user must confirm current access.",
+                  "Compare server and local revisions. Either replace the local copy with the server version or deliberately upload the local drawing as a new working revision.",
+                  "A further change during comparison causes HTTP 409. Compare again; there is no automatic application. Uploading grants no approval."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "Limits and loss",
+            "blocks": [
+              {
+                "type": "note",
+                "text": "Expiry and clock-rollback checks are client rules, not tamper-proof protection against the device owner. Revoked rights cannot immediately reach a disconnected device. The server independently checks every later upload."
+              },
+              {
+                "type": "p",
+                "text": "After expiry, changes remain stored until access is renewed online. A forgotten local password cannot be reset; existing server revisions can be downloaded again. Local changes not yet uploaded are then unrecoverable. Offline PDFs are marked OFFLINE-ENTWURF – NICHT FREIGEGEBEN."
+              },
+              {
+                "type": "p",
+                "text": "Linux was tested with real file access, reopening and PDF generation while Dart HTTP was blocked. Windows/Android device acceptance remains pending; this check does not replace it."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "api-mcp",
+    "translations": {
+      "de": {
+        "title": "API & MCP",
+        "intro": "Projektbezogene Zugänge geben Lesen oder prüfbare Vorschläge frei. Kein Tool genehmigt oder übernimmt selbstständig einen Plan.",
+        "sections": [
+          {
+            "id": "access",
+            "title": "Zugang einrichten",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Im Projekt „API / MCP“ öffnen und die Weitergabe des konkreten Projekts bestätigen.",
+                  "Lesen oder Lesen/Vorschläge wählen. Der Token gilt acht Stunden und wird nur einmal im Klartext angezeigt; serverseitig liegt nur sein SHA-256-Hash.",
+                  "Token in einer privaten Clientkonfiguration ablegen. Nicht ins Repository, in URLs oder in geteilte Protokolle aufnehmen. Bei Bedarf in derselben Oberfläche widerrufen."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Jeder Aufruf prüft aktuellen Benutzerstatus, Firma, Mitgliedschaft, Scope, Auth-Epoche, Ablauf und Widerruf. API-Zugänge sind keine normalen UI-Sitzungen. JSON-Datenkörper sind auf 4 MiB begrenzt."
+              }
+            ]
+          },
+          {
+            "id": "protocol",
+            "title": "Fachliche API",
+            "blocks": [
+              {
+                "type": "code",
+                "text": "Base: /api/v1/automation\nAuthorization: Bearer <project-token>\n\nGET  /projects\nGET  /projects/{id}\nGET  /projects/{id}/documents?version=N\nPOST /projects/{id}/proposals\n     {\"version\": N, \"reason\": \"...\", \"drawing\": {...}}"
+              },
+              {
+                "type": "p",
+                "text": "Ein Vorschlag ist unveränderlich und verändert das Projekt nicht. Erst ein berechtigter Benutzer vergleicht beide Zeichnungen und übernimmt ausdrücklich den noch passenden Stand. Veraltete Vorschläge müssen auf neuer Basis neu erstellt werden. Fehler: 400 Eingabe, 401 Anmeldung/Token, 403 Aktionsrecht, 404 kein zugängliches Projekt, 409 Versionskonflikt."
+              }
+            ]
+          },
+          {
+            "id": "mcp",
+            "title": "Lokalen MCP-Server starten",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Node >=22 verwenden. Das Repository enthält den stdio-Server und seine festgehaltenen Abhängigkeiten. Die folgenden Befehle im mcp-Verzeichnis ausführen:"
+              },
+              {
+                "type": "code",
+                "text": "npm ci --ignore-scripts\nnpm run build"
+              },
+              {
+                "type": "code",
+                "text": "{\n  \"mcpServers\": {\n    \"libre-ecad\": {\n      \"command\": \"node\",\n      \"args\": [\n        \"/absolute/path/libre-ECAD/mcp/build/index.js\"\n      ],\n      \"env\": {\n        \"ECAD_BACKEND_URL\": \"http://127.0.0.1:8185/api/company\",\n        \"ECAD_API_TOKEN\": \"REPLACE_WITH_PRIVATE_PROJECT_TOKEN\"\n      }\n    }\n  }\n}"
+              },
+              {
+                "type": "p",
+                "text": "Die Konfiguration gehört in den selbst gewählten MCP-Client. Werkzeuge: ecad_list_projects, ecad_get_project, ecad_get_documents, ecad_propose_drawing. Kein SQL, keine Nutzerverwaltung, Freigabe oder automatische Übernahme. HTTP-Requests folgen keinen Redirects und haben ein 15-Sekunden-Limit."
+              },
+              {
+                "type": "note",
+                "text": "Es wird kein Modellanbieter automatisch verbunden. Du entscheidest im Client über Anbieter und Datenweitergabe. Projekttexte sind Daten, keine Anweisungen. MCP benötigt das Firmenbackend; ein lokales Offline-LLM ist kein Bestandteil dieses Servers."
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "API & MCP",
+        "intro": "Project-scoped tokens allow reading or reviewable proposals. No tool independently approves or applies a drawing.",
+        "sections": [
+          {
+            "id": "access",
+            "title": "Create access",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Open “API / MCP” in the project and confirm sharing that specific project.",
+                  "Choose read or read/proposals access. The token lasts eight hours and is shown in plaintext only once; the server stores only its SHA-256 hash.",
+                  "Store the token in private client configuration. Keep it out of repositories, URLs and shared logs. Revoke it in the same interface when needed."
+                ]
+              },
+              {
+                "type": "p",
+                "text": "Every call checks current user status, company, membership, scope, authentication epoch, expiry and revocation. API tokens are not regular UI sessions. JSON request bodies are limited to 4 MiB."
+              }
+            ]
+          },
+          {
+            "id": "protocol",
+            "title": "Domain API",
+            "blocks": [
+              {
+                "type": "code",
+                "text": "Base: /api/v1/automation\nAuthorization: Bearer <project-token>\n\nGET  /projects\nGET  /projects/{id}\nGET  /projects/{id}/documents?version=N\nPOST /projects/{id}/proposals\n     {\"version\": N, \"reason\": \"...\", \"drawing\": {...}}"
+              },
+              {
+                "type": "p",
+                "text": "A proposal is immutable and does not change the project. An authorized user must compare both drawings and explicitly apply a still-current revision. Stale proposals must be recreated against a new base. Errors: 400 input, 401 authentication/token, 403 action permission, 404 no accessible project, 409 version conflict."
+              }
+            ]
+          },
+          {
+            "id": "mcp",
+            "title": "Run the local MCP server",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Use Node >=22. The repository contains the stdio server and its locked dependencies. Run these commands in the mcp directory:"
+              },
+              {
+                "type": "code",
+                "text": "npm ci --ignore-scripts\nnpm run build"
+              },
+              {
+                "type": "code",
+                "text": "{\n  \"mcpServers\": {\n    \"libre-ecad\": {\n      \"command\": \"node\",\n      \"args\": [\n        \"/absolute/path/libre-ECAD/mcp/build/index.js\"\n      ],\n      \"env\": {\n        \"ECAD_BACKEND_URL\": \"http://127.0.0.1:8185/api/company\",\n        \"ECAD_API_TOKEN\": \"REPLACE_WITH_PRIVATE_PROJECT_TOKEN\"\n      }\n    }\n  }\n}"
+              },
+              {
+                "type": "p",
+                "text": "Put this configuration into your chosen MCP client. Tools: ecad_list_projects, ecad_get_project, ecad_get_documents, ecad_propose_drawing. No SQL, user administration, approval or automatic application. HTTP requests do not follow redirects and have a 15-second limit."
+              },
+              {
+                "type": "note",
+                "text": "No model provider is connected automatically. You choose the provider and data sharing in your client. Project text is data, not instructions. MCP requires the company backend; a local offline LLM is not part of this server."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "operations",
+    "translations": {
+      "de": {
+        "title": "Betrieb & Veröffentlichungsgrenzen",
+        "intro": "Technischer Betriebsstand und kommerzielles Angebot sind getrennte Fragen. Für M8 bleibt der Zugriff privat.",
+        "sections": [
+          {
+            "id": "models",
+            "title": "Betriebsmodelle",
+            "blocks": [
+              {
+                "type": "ul",
+                "items": [
+                  "Self-Hosting: Quellcode und Compose stehen bereit. Der Betreiber verantwortet Systeme, Zugänge, TLS, Backup, Updates und Wiederherstellung.",
+                  "Kays Managed-Miete: Firmenbereitstellung und manuelle Vertrags-/Zahlungsverwaltung sind technisch vorbereitet. Kein veröffentlichtes Preisangebot, keine Abbuchungen, automatischen Rechnungen oder SLA-Zusage.",
+                  "Dienstleisterbetrieb: Externe Backendverzeichnisse sind möglich. Betreiber müssen eigene Verträge, Datenschutz und Zuständigkeiten klären. Keine zentrale Remote-Provisionierung oder Föderation."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "availability",
+            "title": "Verfügbarkeit ehrlich einordnen",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Der Standardkatalog nutzt eine einzelne PostgreSQL-Instanz. Das HA-Labor unter labs/catalog-ha ist ein synthetischer Versuch, kein produktiver Hochverfügbarkeitsnachweis. Mehrhostbetrieb, Fencing, RTO/RPO und Betriebsverantwortung sind vor einem zugesagten Dienst gesondert abzunehmen."
+              },
+              {
+                "type": "p",
+                "text": "Updates mit passendem Code-/Datenstand planen, vorher konsistent sichern und auf einer Kopie prüfen. Verfügbarkeit von Homepage oder Wiki beweist nicht die Gesundheit der Werkbank oder der Datenbanken."
+              }
+            ]
+          },
+          {
+            "id": "launch",
+            "title": "Vor öffentlichem Livegang",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Produktname, Marken und Domain prüfen; Kay muss den Livegang ausdrücklich freigeben.",
+                  "Impressum, Datenschutz, eventuelle Mietbedingungen, Verantwortlichkeiten und Kontaktwege mit echten Angaben freigeben. Die Statusseite ist kein Ersatz dafür.",
+                  "Sachbehauptungen, beide Sprachen, freigegebene Download-Builds und deren Quellstände erneut prüfen.",
+                  "TLS, erreichbare Ports, Betriebsüberwachung, Backup/Restore und Berechtigungen für die tatsächliche Zielumgebung abnehmen."
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Operations & publication limits",
+        "intro": "Technical operating status and a commercial offer are separate questions. Access stays private for M8.",
+        "sections": [
+          {
+            "id": "models",
+            "title": "Operating models",
+            "blocks": [
+              {
+                "type": "ul",
+                "items": [
+                  "Self-hosting: source code and Compose are available. The operator owns systems, access, TLS, backups, updates and recovery.",
+                  "Kay’s managed rental: company provisioning and manual contract/payment records are technically prepared. No published price offer, debits, automated invoicing or SLA promise.",
+                  "Provider operation: external backend directory entries are supported. Providers must establish their own contracts, privacy arrangements and responsibilities. No central remote provisioning or federation."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "availability",
+            "title": "Understand availability",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "The default catalog uses a single PostgreSQL instance. The HA lab under labs/catalog-ha is a synthetic experiment, not proof of production high availability. Multi-host operation, fencing, RTO/RPO and operating responsibilities require separate acceptance before promising a service."
+              },
+              {
+                "type": "p",
+                "text": "Plan updates against matching code/data revisions, take a consistent backup first and test on a copy. Homepage or wiki availability does not prove that the workbench or databases are healthy."
+              }
+            ]
+          },
+          {
+            "id": "launch",
+            "title": "Before public launch",
+            "blocks": [
+              {
+                "type": "ol",
+                "items": [
+                  "Review product name, trademarks and domain; Kay must explicitly approve public launch.",
+                  "Approve legal notice, privacy notice, any rental terms, responsibilities and contact channels using real details. The status page does not replace them.",
+                  "Recheck factual claims, both languages, approved download builds and their source revisions.",
+                  "Accept TLS, exposed ports, monitoring, backup/recovery and permissions for the actual target environment."
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "slug": "troubleshooting",
+    "translations": {
+      "de": {
+        "title": "Fehlersuche",
+        "intro": "Zuerst unterscheiden: statische Informationsseite, Anmeldung, Datenzugriff oder Versionskonflikt.",
+        "sections": [
+          {
+            "id": "connection",
+            "title": "Seite oder API nicht erreichbar",
+            "blocks": [
+              {
+                "type": "code",
+                "text": "docker compose ps\ndocker compose logs --tail=80 company-users-service\ndocker compose -p libre-ecad-sites -f compose.sites.yml ps\ndocker compose -p libre-ecad-sites -f compose.sites.yml logs --tail=80 homepage wiki"
+              },
+              {
+                "type": "p",
+                "text": "Die drei Datenbanken müssen gesund sein; Backend und Web-Proxy müssen zueinander passen. Bei 502 Dienstzustand und Docker-Netz prüfen. Bei Android-Release eine HTTPS-Adresse verwenden. Bei Homepage/Wiki zuerst Bind-Adresse und Hostports prüfen. Logs vor Weitergabe von Nutzerdaten und Geheimnissen bereinigen."
+              }
+            ]
+          },
+          {
+            "id": "access",
+            "title": "Anmeldung, Rechte und Konflikte",
+            "blocks": [
+              {
+                "type": "ul",
+                "items": [
+                  "401: neu anmelden; Aktivierung, Ablauf und Widerruf prüfen. Ein altes Token nach Entsperrung wird nicht wieder gültig.",
+                  "403/404: Firma, Projektmitgliedschaft und Aktionsrecht prüfen. Keine IDs erraten oder Adminrollen pauschal erweitern.",
+                  "409: gespeicherter Vergleichsstand veraltet. Beide Fassungen laden, bewusst entscheiden; nicht automatisch wiederholen.",
+                  "Schreibgeschützter Editor: Fensterbreite und nutzbare Höhe prüfen. Kleiner als 1000 × 500 Pixel bleibt die Zeichnung geschützt."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "offline",
+            "title": "Offline und Download",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "Nach abgelaufener Offline-Berechtigung mit demselben Benutzer online erneuern. Bei falschem lokalen Passwort gibt es keinen Reset für unübertragene Änderungen. Beschädigte Vault-Dateien zuerst geschützt sichern, nicht mit einer leeren Datei überschreiben."
+              },
+              {
+                "type": "p",
+                "text": "Fehlt der Linux-Download, wurde kein vollständig geprüftes Artefakt eingebunden. Ein Prüfsummenfehler stoppt den Seiten-Build. Archiv und SHA256SUMS gemeinsam laden, sha256sum -c SHA256SUMS ausführen und das vollständige Bundle entpacken. Nicht nur die ausführbare Datei verschieben; lib/ und data/ werden benötigt."
+              },
+              {
+                "type": "link",
+                "chapter": "backup",
+                "text": "Wiederherstellungsablauf →"
+              }
+            ]
+          }
+        ]
+      },
+      "en": {
+        "title": "Troubleshooting",
+        "intro": "First distinguish static information pages, authentication, data access and version conflicts.",
+        "sections": [
+          {
+            "id": "connection",
+            "title": "Page or API unavailable",
+            "blocks": [
+              {
+                "type": "code",
+                "text": "docker compose ps\ndocker compose logs --tail=80 company-users-service\ndocker compose -p libre-ecad-sites -f compose.sites.yml ps\ndocker compose -p libre-ecad-sites -f compose.sites.yml logs --tail=80 homepage wiki"
+              },
+              {
+                "type": "p",
+                "text": "All three databases must be healthy; backend and web proxy must match. For 502 errors, inspect service state and the Docker network. Use HTTPS for Android release. For homepage/wiki, first check bind address and host ports. Remove user data and secrets before sharing logs."
+              }
+            ]
+          },
+          {
+            "id": "access",
+            "title": "Authentication, permissions and conflicts",
+            "blocks": [
+              {
+                "type": "ul",
+                "items": [
+                  "401: sign in again; check activation, expiry and revocation. An old token does not become valid again after reinstatement.",
+                  "403/404: check company, project membership and action permission. Do not guess IDs or broadly expand administrator roles.",
+                  "409: the comparison revision is stale. Load both versions and decide deliberately; do not automatically retry.",
+                  "Read-only editor: check window width and usable height. Below 1000 × 500 pixels the drawing stays protected."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "offline",
+            "title": "Offline and download",
+            "blocks": [
+              {
+                "type": "p",
+                "text": "After an offline lease expires, renew online as the same user. A wrong local password has no reset path for unsynced changes. Securely preserve damaged vault files first; do not overwrite them with an empty file."
+              },
+              {
+                "type": "p",
+                "text": "If the Linux download is absent, no fully verified artifact was included. A checksum mismatch stops the site build. Download the archive and SHA256SUMS together, run sha256sum -c SHA256SUMS and extract the complete bundle. Do not move only the executable; lib/ and data/ are required."
+              },
+              {
+                "type": "link",
+                "chapter": "backup",
+                "text": "Recovery procedure →"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+]
