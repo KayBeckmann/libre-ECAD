@@ -477,6 +477,113 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
+  Future<void> importArticleSymbol() async {
+    try {
+      final personal = await api.request('GET', 'articles?scope=personal');
+      final company = await api.request('GET', 'articles?scope=company');
+      final articles =
+          [...(personal['articles'] as List), ...(company['articles'] as List)]
+              .cast<Json>()
+              .where((a) => a['layers']?['symbol']?['definition'] != null)
+              .toList();
+      if (!mounted) return;
+      final picked = await showDialog<Json>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Artikelsymbol übernehmen'),
+          content: SizedBox(
+            width: 600,
+            height: 400,
+            child: ListView(
+              children: [
+                const Text(
+                  'Die gewählte Artikelversion wird als unabhängige Symbolkopie im Projekt gespeichert. Spätere Änderungen am Artikel ersetzen sie nicht.',
+                ),
+                if (articles.isEmpty)
+                  const Text(
+                    'Noch keine gezeichneten Artikelsymbole. Im Artikel-Baukasten ein Schaltsymbol erstellen.',
+                  ),
+                for (final a in articles)
+                  ListTile(
+                    title: Text('${a['articleNumber']} · ${a['name']}'),
+                    subtitle: Text(
+                      'Version ${a['version']} · ${a['scope'] == 'company' ? 'Firma' : 'Persönlich'}',
+                    ),
+                    onTap: () => Navigator.pop(c, a),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Abbrechen'),
+            ),
+          ],
+        ),
+      );
+      if (picked == null || !mounted) return;
+      String? key;
+      change((d) => key = pinArticleSymbol(d, picked));
+      if (key != null) {
+        setState(() {
+          tool = 'place:$key';
+          pendingDevice = null;
+          pendingPort = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    }
+  }
+
+  Future<void> marryContact(Json contact) async {
+    final coils = objects(
+      d,
+      'instances',
+    ).where((i) => symbolByKey(i['symbol'], d).role == 'coil').toList();
+    final ids = coils.map((i) => i['deviceId']).toSet();
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Kontakt einer Relaisspule zuordnen'),
+        content: SizedBox(
+          width: 540,
+          height: 320,
+          child: ListView(
+            children: [
+              const Text(
+                'Der Kontakt erhält die Gerätekennung der Spule und eigene Anschlüsse. Vorhandene Leitungen bleiben am Kontakt.',
+              ),
+              if (ids.isEmpty)
+                const Text('Zuerst eine Relaisspule platzieren.'),
+              for (final id in ids)
+                ListTile(
+                  title: Text(objectById(d, 'devices', id)['bmk']),
+                  subtitle: Text(
+                    coils
+                        .where((i) => i['deviceId'] == id)
+                        .map((i) => 'Blatt ${positionReference(d, i)}')
+                        .join(', '),
+                  ),
+                  onTap: () => Navigator.pop(c, id),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('Abbrechen'),
+          ),
+        ],
+      ),
+    );
+    if (picked != null && mounted) {
+      change((d) => assignContact(d, contact['id'], picked));
+    }
+  }
+
   Future<void> sample(String kind) async {
     if (!await confirm(
           'Synthetische Arbeitsprobe laden?',
@@ -698,6 +805,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         'sheetId': sheetId,
         'from': pointRef('node', node['id'] as String),
         'to': end,
+        if (w['conductor'] != null) 'conductor': w['conductor'],
       });
     });
   }
@@ -930,6 +1038,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                     child: Text('TEST · Verteilerabgang'),
                                   ),
                                   PopupMenuItem(
+                                    value: 'three-phase',
+                                    child: Text(
+                                      'TEST · Dreiphasen und Relaiskontakte',
+                                    ),
+                                  ),
+                                  PopupMenuItem(
                                     value: 'motor',
                                     child: Text('TEST · Steuer- / Motorabgang'),
                                   ),
@@ -1041,7 +1155,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                             pendingPort != null
                                 ? 'Zielanschluss wählen · Werkzeugwechsel bricht ab'
                                 : tool.startsWith('place:')
-                                ? '${symbolByKey(tool.substring(6)).name}: zum Platzieren auf das Blatt klicken'
+                                ? '${symbolByKey(tool.substring(6), d).name}: zum Platzieren auf das Blatt klicken'
                                 : 'Raster 20 · ${objects(d, 'devices').length} Geräte · ${nets(d).where((n) => n['connected'] == true).length} verbundene Netze · Arbeitsentwurf / synthetische Symbole',
                             style: const TextStyle(
                               color: Colors.white,
@@ -1093,7 +1207,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
           onChanged: (v) => setState(() => query = v.toLowerCase()),
         ),
         const SizedBox(height: 12),
-        for (final group in ['Verteilerabgang', 'Steuer- / Motorabgang'])
+        OutlinedButton.icon(
+          onPressed: enabled && !api.isOffline ? importArticleSymbol : null,
+          icon: const Icon(Icons.inventory_2_outlined),
+          label: const Text('Artikelsymbol einfügen'),
+        ),
+        for (final group in [
+          'Verteilerabgang',
+          'Steuer- / Motorabgang',
+          'Drehstrom',
+          'Artikelsymbole',
+        ])
           ExpansionTile(
             key: ValueKey(group),
             initiallyExpanded: true,
@@ -1103,7 +1227,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             children: [
-              for (final s in symbolLibrary.where(
+              for (final s in drawingSymbols(d).where(
                 (s) => s.group == group && s.name.toLowerCase().contains(query),
               ))
                 ListTile(
@@ -1193,7 +1317,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       final proposal = proposedBmk(
                         d,
                         i['sheetId'],
-                        symbolByKey(i['symbol']).code,
+                        symbolByKey(i['symbol'], d).code,
                         i['x'],
                         exceptDevice: device['id'],
                       );
@@ -1211,6 +1335,21 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   : null,
               child: const Text('BMK aus Position vorschlagen'),
             ),
+            if (symbolByKey(i['symbol'], d).isContact) ...[
+              Text(
+                '${symbolByKey(i['symbol'], d).role == 'no' ? 'Schließer' : 'Öffner'} · Anschlüsse ${instancePorts(d, i).join(' / ')}',
+              ),
+              TextButton.icon(
+                onPressed: enabled ? () => marryContact(i) : null,
+                icon: const Icon(Icons.link),
+                label: const Text('Spule zuordnen / ändern'),
+              ),
+            ],
+            if (device['type'] == 'relay')
+              const Text(
+                'Spule und Kontakte · gemeinsame Gerätekennung',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             DropdownButton<String>(
               isExpanded: true,
               hint: const Text(
@@ -1218,9 +1357,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 style: TextStyle(fontSize: 12),
               ),
               items: [
-                for (final s in symbolLibrary.where(
-                  (s) => s.deviceType == device['type'],
-                ))
+                for (final s in drawingSymbols(
+                  d,
+                ).where((s) => s.deviceType == device['type']))
                   DropdownMenuItem(value: s.key, child: Text(s.name)),
               ],
               onChanged: enabled
@@ -1239,7 +1378,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   pendingPort = null;
                 }),
                 child: Text(
-                  'Blatt ${ref['position']} · ${symbolByKey(ref['symbol']).name}',
+                  'Blatt ${ref['position']} · ${symbolByKey(ref['symbol'], d).name}',
                 ),
               ),
             TextButton.icon(
@@ -1273,7 +1412,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                   title: Text(
-                    '${endpointLabel(w['from'])} -> ${endpointLabel(w['to'])}',
+                    '${w['conductor'] == null ? '' : '${w['conductor']} · '}${endpointLabel(w['from'])} -> ${endpointLabel(w['to'])}',
                     style: const TextStyle(fontSize: 11),
                   ),
                   subtitle: w['cableId'] == null
@@ -1299,6 +1438,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           );
                         }
                       }
+                      if (action.startsWith('conductor:')) {
+                        change((d) {
+                          final wire = objectById(d, 'wires', w['id']);
+                          final value = action.substring(10);
+                          if (value == 'none') {
+                            wire.remove('conductor');
+                          } else {
+                            wire['conductor'] = value;
+                          }
+                        });
+                      }
                       if (action == 'cable') await cable(w);
                       if (action == 'split') await splitWire(w);
                       if (action == 'uncable') {
@@ -1310,6 +1460,30 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       }
                     },
                     itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'conductor:L1',
+                        child: Text('Leiter L1'),
+                      ),
+                      PopupMenuItem(
+                        value: 'conductor:L2',
+                        child: Text('Leiter L2'),
+                      ),
+                      PopupMenuItem(
+                        value: 'conductor:L3',
+                        child: Text('Leiter L3'),
+                      ),
+                      PopupMenuItem(
+                        value: 'conductor:N',
+                        child: Text('Leiter N'),
+                      ),
+                      PopupMenuItem(
+                        value: 'conductor:PE',
+                        child: Text('Leiter PE'),
+                      ),
+                      PopupMenuItem(
+                        value: 'conductor:none',
+                        child: Text('Leiterkennzeichnung entfernen'),
+                      ),
                       PopupMenuItem(
                         value: 'delete',
                         child: Text('Verbindung trennen'),

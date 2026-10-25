@@ -94,7 +94,7 @@ class OfflineVault {
         'Offline-Berechtigung abgelaufen. Online erneuern; lokale Änderungen bleiben gespeichert.',
       );
     }
-    if (canonicalJson(packet['library']) != canonicalJson(pinnedLibrary())) {
+    if (!supportsLibrary(packet['library'])) {
       throw StateError('Diese Kopie benötigt einen anderen Bibliotheksstand.');
     }
   }

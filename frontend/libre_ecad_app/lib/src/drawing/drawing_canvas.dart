@@ -154,7 +154,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                           d,
                           'instances',
                         ).where((i) => i['sheetId'] == widget.sheetId))
-                          for (final p in symbolByKey(i['symbol']).ports)
+                          for (final p in instancePorts(d, i))
                             port(
                               d,
                               portRef(i['id'], p),
@@ -323,7 +323,9 @@ class SheetPainter extends CustomPainter {
     );
     label(
       c,
-      'LibreECAD / M4\nSynthetische Symbole · MIT',
+      objects(d, 'symbols').isEmpty
+          ? 'LibreECAD\nSynthetische Symbole · MIT'
+          : 'LibreECAD\nArtikelsymbole im Projektstand',
       const Offset(850, 716),
       size: 12,
     );
@@ -340,6 +342,9 @@ class SheetPainter extends CustomPainter {
           ..strokeWidth = 2
           ..style = PaintingStyle.stroke,
       );
+      if (w['conductor'] != null) {
+        label(c, w['conductor'], points[1] + const Offset(6, -30), size: 12);
+      }
       if (w['cableId'] != null) {
         final cable = objectById(d, 'cables', w['cableId']);
         final core = (cable['cores'] as List).firstWhere(
@@ -365,52 +370,52 @@ class SheetPainter extends CustomPainter {
           Paint()..color = accent.withValues(alpha: 0.09),
         );
       }
-      final symbol = symbolByKey(i['symbol']);
-      if (symbol.key == 'terminal') {
-        c.drawCircle(Offset(x, y), 8, line);
-        c.drawLine(Offset(x - 5, y), Offset(x + 5, y), line);
-      } else if (symbol.key == 'motor') {
-        c.drawCircle(Offset(x, y), 24, line);
-        label(c, 'M', Offset(x - 8, y - 12), size: 20);
-        for (final p in symbol.ports) {
-          final pos = endpointOffset(d, portRef(i['id'], p));
-          c.drawLine(pos, Offset(pos.dx, y - 24), line);
-        }
-      } else {
-        final top = Offset(x, y - 40), bottom = Offset(x, y + 40);
-        c.drawLine(top, Offset(x, y - 18), line);
-        c.drawLine(Offset(x, y + 18), bottom, line);
-        if (symbol.key == 'switch' || symbol.key == 'contact') {
-          c.drawLine(Offset(x, y + 18), Offset(x + 20, y - 18), line);
-          c.drawCircle(Offset(x, y - 18), 2, line);
-          c.drawCircle(Offset(x, y + 18), 2, line);
-        } else {
-          c.drawRect(
-            Rect.fromCenter(center: Offset(x, y), width: 44, height: 36),
-            line,
-          );
-          label(
-            c,
-            symbol.key == 'coil'
-                ? 'K'
-                : symbol.key == 'breaker'
-                ? 'Q'
-                : 'G',
-            Offset(x - 7, y - 9),
-            size: 14,
-          );
+      final symbol = symbolByKey(i['symbol'], d);
+      for (final shape in symbolGeometry(symbol)) {
+        final a = Offset(
+          x + (shape['x'] as num).toDouble(),
+          y + (shape['y'] as num).toDouble(),
+        );
+        switch (shape['kind']) {
+          case 'line':
+            c.drawLine(
+              a,
+              Offset(
+                x + (shape['x2'] as num).toDouble(),
+                y + (shape['y2'] as num).toDouble(),
+              ),
+              line,
+            );
+          case 'rect':
+            c.drawRect(
+              Rect.fromPoints(
+                a,
+                Offset(
+                  x + (shape['x2'] as num).toDouble(),
+                  y + (shape['y2'] as num).toDouble(),
+                ),
+              ),
+              line,
+            );
+          case 'circle':
+            c.drawCircle(a, (shape['radius'] as num).toDouble(), line);
+          case 'text':
+            label(c, shape['text'], a, size: 12);
         }
       }
-      label(c, '${device['bmk']}', Offset(x + 32, y - 20), size: 14);
-      label(c, '${device['label']}', Offset(x + 32, y), size: 10);
+      final labelX =
+          x +
+          (symbol.definition != null || symbol.group == 'Drehstrom' ? 140 : 32);
+      label(c, '${device['bmk']}', Offset(labelX, y - 20), size: 14);
+      label(c, '${device['label']}', Offset(labelX, y), size: 10);
       final refs = crossReferences(d, device['id'])
           .where((r) => r['instanceId'] != i['id'])
           .map((r) => r['position'])
           .join(', ');
       if (refs.isNotEmpty) {
-        label(c, 'Ref. $refs', Offset(x + 32, y + 17), size: 10, color: accent);
+        label(c, 'Ref. $refs', Offset(labelX, y + 17), size: 10, color: accent);
       }
-      for (final p in symbol.ports) {
+      for (final p in instancePorts(d, i)) {
         final pos = endpointOffset(d, portRef(i['id'], p));
         final t = (device['terminals'] as List).firstWhere((t) => t['id'] == p);
         label(c, '${t['label']}', pos + const Offset(-26, -12), size: 10);

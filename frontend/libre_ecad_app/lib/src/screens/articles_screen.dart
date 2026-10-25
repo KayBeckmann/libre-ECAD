@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ecad_core/ecad_core.dart';
+
+import 'symbol_designer.dart';
 
 import '../api/workspace_api.dart';
 import '../models.dart';
@@ -206,6 +209,7 @@ class _ArticleEditorState extends State<ArticleEditor> {
   final form = GlobalKey<FormState>();
   final fields = <String, TextEditingController>{};
   late final api = WorkspaceApi(widget.session);
+  Json? definition;
   bool busy = false;
   String? error;
   bool get writable =>
@@ -218,6 +222,8 @@ class _ArticleEditorState extends State<ArticleEditor> {
       fields[key] = TextEditingController(text: a[key] as String? ?? '');
     }
     final layers = a['layers'] as Map? ?? {};
+    final saved = (layers['symbol'] as Map?)?['definition'];
+    if (saved != null) definition = cloneJson(saved as Json);
     for (final entry in {
       'symbol': ['reference', 'license'],
       'mechanical': ['widthMm', 'heightMm', 'depthMm', 'viewReference'],
@@ -332,6 +338,7 @@ class _ArticleEditorState extends State<ArticleEditor> {
               : line.trim(),
         },
     ];
+    if (definition != null) layers['symbol']['definition'] = definition;
     return {
       for (final key in ['articleNumber', 'name', 'origin', 'license', 'notes'])
         key: fields[key]!.text.trim(),
@@ -339,6 +346,23 @@ class _ArticleEditorState extends State<ArticleEditor> {
       'layers': layers,
       if (widget.article != null) 'version': widget.article!['version'],
     };
+  }
+
+  Future<void> designSymbol() async {
+    final result = await Navigator.push<Json>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SymbolDesigner(initial: definition, editable: writable),
+      ),
+    );
+    if (result == null || !mounted || !writable) return;
+    setState(() {
+      definition = result;
+      fields['symbol.reference']!.text = result['name'];
+      fields['terminals']!.text = (result['ports'] as List)
+          .map((p) => '${p['id']};${p['label']}')
+          .join('\n');
+    });
   }
 
   Future<void> save() async {
@@ -493,6 +517,27 @@ class _ArticleEditorState extends State<ArticleEditor> {
                 'Schaltsymbol und Anschlüsse',
                 'Referenzen und Anschluss-IDs bleiben von mechanischen und elektrischen Daten getrennt.',
                 [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: busy ? null : designSymbol,
+                      icon: const Icon(Icons.draw_outlined),
+                      label: Text(
+                        definition == null
+                            ? 'Schaltsymbol erstellen'
+                            : writable
+                            ? 'Schaltsymbol bearbeiten'
+                            : 'Schaltsymbol ansehen',
+                      ),
+                    ),
+                  ),
+                  if (definition != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        '${definition!['name']} · ${(definition!['ports'] as List).length} Anschlüsse · ${(definition!['primitives'] as List).length} Zeichenelemente',
+                      ),
+                    ),
                   field(
                     'symbol.reference',
                     'Symbolreferenz / eigene Symbolbezeichnung',
