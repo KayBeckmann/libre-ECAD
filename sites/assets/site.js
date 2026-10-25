@@ -1,3 +1,4 @@
+document.documentElement.classList.add('js');
 // Private preview defaults: links stay on the current host. No persistent state.
 for (const link of document.querySelectorAll('[data-service]')) {
   const target = new URL(link.getAttribute('href'), location.href);
