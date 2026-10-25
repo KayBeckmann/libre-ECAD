@@ -15,6 +15,8 @@ Die Datei liegt im plattformeigenen Application-Support-Verzeichnis unter `offli
 - Backend: Rechte, fremde Firma/Identität, fehlende Bestätigung, konkurrierender Upload (ein 200/ein 409), Rechteentzug und Audit.
 - Flutter: Verschlüsselungs-Roundtrip, falsches Passwort, Manipulation, lokale konkurrierende Änderung, Ablauf/Zeit-Rückstellung, inkompatible Bibliothek, lokale Zeichnungsänderung/PDF und gesperrte Freigabe.
 - Linux Release-Build und gestarteter Linux-Integrationstest unter isoliertem Xvfb: echte verschlüsselte Datei, erneutes Öffnen, Zeichenoberfläche, lokale Änderung und PDF bei blockiertem Dart-HTTP. Test nutzt ausschließlich eigenes `XDG_DATA_HOME` mit Präfix `libre-ecad-native-test-`.
-- Windows und Android-Geräteabnahme stehen aus. Ein Linux-Test ist kein Nachweis für deren Dateisystem-/Druckdialoge.
+- Android-Debug-APK erfolgreich gebaut; Windows-Build sowie Windows-/Android-Geräteabnahme stehen aus. Ein Linux-Test ist kein Nachweis für deren Dateisystem-/Druckdialoge.
 
 Reproduktion: `flutter analyze`, `flutter test` im App-Verzeichnis; `DISPLAY=:97 XDG_DATA_HOME=/tmp/libre-ecad-native-test-<lauf> flutter test integration_test/offline_native_test.dart -d linux` mit vorbereitetem virtuellem Display. Der Test exportiert `offline-acceptance.pdf` in dieses Testverzeichnis. Kein echter Benutzer-Vault wird verwendet.
+
+Android: Release benötigt HTTPS; die INTERNET-Berechtigung ist im Hauptmanifest. Nur Debug erlaubt zusätzlich HTTP für die private LAN-Entwicklung. Linux-Bundle: `frontend/libre_ecad_app/build/linux/x64/release/bundle/`; Android-Debug: `frontend/libre_ecad_app/build/app/outputs/flutter-apk/app-debug.apk`. Builds sind lokale Artefakte, keine veröffentlichten Releases.

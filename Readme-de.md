@@ -2,7 +2,7 @@
 
 **LibreECAD** ist ein geplantes, quelloffenes Werkzeug zur Planung und Dokumentation von Elektroanlagen – für Verteilerbau und Schaltanlagen. Der Name ist ein **Arbeitsname**; Marken- und Namensrechte wurden nicht abschließend geprüft.
 
-> **Projektstatus:** **Meilenstein 1–4 sind für die LAN-Vorschau umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. M3 ergänzt moderierte Katalogbeiträge und eine getrennte Betreiberoberfläche. M4 ergänzt einen Schaltplaneditor mit expliziten elektrischen Verbindungen, mehreren Blättern und Gerätequerverweisen. Die kleine Symbolbibliothek ist synthetisch; ein grafischer Symboleditor folgt später. Öffentlicher Upload-/Mietbetrieb benötigt eine eigene fachliche Freigabe.
+> **Projektstatus:** **Meilenstein 1–5 sind für die LAN-Vorschau umgesetzt:** Firmenprojekte mit Mitgliedschaften, persönliche/Firmenartikel, Metadaten-Baukasten, Artikelhistorie, bewusste Kopien und getrennte globale Suche. M3 ergänzt moderierte Katalogbeiträge und eine getrennte Betreiberoberfläche. M4 ergänzt einen Schaltplaneditor mit expliziten elektrischen Verbindungen, mehreren Blättern und Gerätequerverweisen. M5 ergänzt abgeleitete Listen, PDF-Ausgaben und unveränderliche Freigabepakete. Die Oberfläche folgt den Projektmockups. Die kleine Symbolbibliothek ist synthetisch; ein grafischer Symboleditor folgt später. Öffentlicher Upload-/Mietbetrieb benötigt eine eigene fachliche Freigabe.
 
 ## Zielbild
 
@@ -27,11 +27,15 @@ Die drei Backenddienste nutzen jeweils eine eigene PostgreSQL-Instanz; das Web-F
 
 **Meilenstein 4:** Symbole platzieren/verschieben, Anschlüsse verbinden/trennen, Blätter, Knoten, Fortsetzungen und Kabeladern verwalten. Gerätekennungen und Querverweise bleiben konsistent. Atomare Projektversionen, Rückgängig/Wiederholen, Historie und bewusste Konfliktentscheidung. Einstieg: Projekt öffnen → **Schaltplan öffnen**. Details: [`docs/m4-drawing.md`](docs/m4-drawing.md).
 
-**Spätere Meilensteine:** Dokumentation, Plausibilitätsprüfung und unveränderliche freigegebene Projektstände; vorbereitete Offline-Arbeit in installierten Clients, Katalog-Ausfallsicherheit und fachliche API/MCP-Schnittstellen; weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt eine mehrsprachige Homepage und ein mehrsprachiges Wiki. Diese Reihenfolge ist ein Plan, keine Implementierungszusage.
+**Meilenstein 5:** Abgeleitete Listen, Metadaten-Deckblätter, explizite PDF-Quellen, objektbezogene Prüffunde und begründete Freigaben mit unveränderlichen Git-/SQL-Paketen. Details: [Dokumente und Freigaben](docs/m5-documents.md).
+
+**Meilenstein 6 in Arbeit:** Verschlüsselte vorbereitete Offline-Projekte, lokales PDF und ausdrücklicher Konflikt-Upload; Linux offline getestet, Android-Debug-Build vorhanden. Projektbezogene API-/MCP-Zugänge legen Vorschläge zur menschlichen Prüfung an. Ein echtes PostgreSQL-Labor prüft Replikation, Netztrennung und Fencing. Windows-/Android-Geräteabnahme und betriebliches Katalog-HA bleiben offen. Details: [Offline](docs/m6-offline.md), [API/MCP](docs/m6-api-mcp.md), [HA-Labor und Grenzen](docs/m6-catalog-ha.md).
+
+**Spätere Meilensteine:** Weitere Planarten, Makros, fachlich geprüfte Berechnungen und ERP-Übergabe; zuletzt mehrsprachige Homepage und Wiki.
 
 ## Wichtige Grenzen
 
-- **Web benötigt ein erreichbares Firmenbackend.** Offline-Arbeit ist später nur für installierte Clients mit zuvor heruntergeladenen Projekten und Bibliotheken vorgesehen.
+- **Web benötigt ein erreichbares Firmenbackend.** Vorbereitete Offline-Arbeit ist im installierten Client verfügbar; der Linux-Ablauf wurde geprüft.
 - **Konflikte werden nicht automatisch entschieden.** Betroffene Änderungen erfordern eine aktive Entscheidung eines berechtigten Nutzers.
 - **Fremde CAD-Daten** sollen ausschließlich als nicht editierbare Bildvorlage übernommen werden, nicht als native Projektobjekte.
 - **DIN-VDE-Konformität wird nicht behauptet.** Normausgaben, Nutzungsrechte, Referenzfälle und fachliche Abnahme müssen vor belastbaren Berechnungs- oder Konformitätsaussagen geklärt werden.

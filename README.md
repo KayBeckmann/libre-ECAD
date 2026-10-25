@@ -31,11 +31,13 @@ The three backend services each use a separate PostgreSQL instance; the web deli
 
 **Milestone 5:** Derived lists and metadata cover sheets, version-selected PDF export, object-linked findings, justified exceptions and explicit admin approval. Approved packets retain exact PDFs and pinned library data in SQL history and real Git commits. Open **Dokumente und Freigabe** in the editor. Details: [`docs/m5-documents.md`](docs/m5-documents.md).
 
-**Later milestones:** Prepared offline work in installed clients, catalog resilience, and domain-level API/MCP interfaces; additional drawing types, macros, professionally validated calculations, and ERP integration; finally, a multilingual website and wiki. These remain planned.
+**Milestone 6 in progress:** Encrypted prepared offline projects with explicit conflict upload, local PDF generation and a tested Linux client; project-scoped API/MCP credentials with human-reviewed drawing proposals. A real PostgreSQL replication/partition/fencing lab is included. Windows/Android device acceptance and operational catalog HA remain open. See [offline](docs/m6-offline.md), [API/MCP](docs/m6-api-mcp.md), and [HA experiment and limits](docs/m6-catalog-ha.md).
+
+**Later milestones:** Additional drawing types, macros, professionally validated calculations and ERP integration; finally a multilingual website and wiki.
 
 ## Important boundaries
 
-- **The web app requires a reachable company backend.** Offline work is planned only for installed clients with previously downloaded projects and libraries.
+- **The web app requires a reachable company backend.** Prepared offline work is available in installed clients; Linux offline execution is verified.
 - **Conflicts are never resolved automatically.** Affected changes require an active decision by an authorized user.
 - **External CAD data** will be accepted only as non-editable image references, not imported as native project objects.
 - **No DIN VDE compliance is claimed.** Applicable standard editions, licensing, reference cases, and professional review must be resolved before making credible calculation or compliance claims.
