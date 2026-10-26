@@ -18,6 +18,69 @@ void main() {
     companyName: 'TEST',
     backendUrl: Uri.parse('http://localhost'),
   );
+  testWidgets('general built-ins appear in the editor palette', (tester) async {
+    tester.view.physicalSize = const Size(1440, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = WorkspaceApi(
+      session,
+      client: MockClient(
+        (r) async => http.Response(
+          jsonEncode({
+            'projectName': 'Palette',
+            'version': 1,
+            'drawing': emptyDrawing(),
+          }),
+          200,
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DrawingScreen(session: session, projectId: 'p', api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Grundschaltungen'),
+      350,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Grundschaltungen'), findsOneWidget);
+    expect(
+      find.text('Schutzleiter / Erde', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(find.text('Photovoltaikzelle', skipOffstage: false), findsOneWidget);
+    final palette = find
+        .descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    for (final category in [
+      'Schutzgeräte',
+      'Antriebe / Energie',
+      'Elektronik',
+      'Anschlussklemmen',
+    ]) {
+      await tester.scrollUntilVisible(
+        find.text(category),
+        350,
+        scrollable: palette,
+      );
+      expect(find.text(category), findsOneWidget);
+    }
+    await tester.pumpWidget(const SizedBox());
+    api.close();
+  });
   test(
     'undo restores removed instance and wires without changing identity',
     () {

@@ -169,6 +169,386 @@ const symbolLibrary = <SymbolDefinition>[
     ['A1', 'A2', 'S11', 'S12', 'S21', 'S22', '13', '14'],
     ['A1', 'A2', 'S11', 'S12', 'S21', 'S22', '13', '14'],
   ),
+  // Original teaching glyphs, not copies of manufacturer or IEC artwork.
+  SymbolDefinition(
+    'earth',
+    'Schutzleiter / Erde',
+    'Grundschaltungen',
+    'earth',
+    'X',
+    ['PE'],
+    ['PE'],
+  ),
+  SymbolDefinition(
+    'fuse',
+    'Sicherung',
+    'Grundschaltungen',
+    'fuse',
+    'F',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'resistor',
+    'Widerstand',
+    'Grundschaltungen',
+    'resistor',
+    'R',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'capacitor',
+    'Kondensator',
+    'Grundschaltungen',
+    'capacitor',
+    'C',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'diode',
+    'Diode',
+    'Grundschaltungen',
+    'diode',
+    'V',
+    ['A', 'K'],
+    ['A', 'K'],
+  ),
+  SymbolDefinition(
+    'led',
+    'Leuchtdiode',
+    'Grundschaltungen',
+    'led',
+    'V',
+    ['A', 'K'],
+    ['A', 'K'],
+  ),
+  SymbolDefinition(
+    'battery',
+    'Batterie',
+    'Grundschaltungen',
+    'battery',
+    'G',
+    ['P', 'N'],
+    ['P', 'N'],
+  ),
+  SymbolDefinition(
+    'transformer',
+    'Transformator',
+    'Grundschaltungen',
+    'transformer',
+    'T',
+    ['P1', 'P2', 'S1', 'S2'],
+    ['P1', 'P2', 'S1', 'S2'],
+  ),
+  SymbolDefinition(
+    'lamp',
+    'Lampe',
+    'Grundschaltungen',
+    'lamp',
+    'H',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'push_no',
+    'Taster · Schließer',
+    'Grundschaltungen',
+    'push_no',
+    'S',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'push_nc',
+    'Taster · Öffner',
+    'Grundschaltungen',
+    'push_nc',
+    'S',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'changeover',
+    'Umschalter',
+    'Grundschaltungen',
+    'changeover',
+    'S',
+    ['COM', 'NO', 'NC'],
+    ['COM', 'NO', 'NC'],
+  ),
+  SymbolDefinition(
+    'buzzer',
+    'Summer / Hupe',
+    'Grundschaltungen',
+    'buzzer',
+    'H',
+    ['P', 'N'],
+    ['P', 'N'],
+  ),
+  SymbolDefinition(
+    'voltmeter',
+    'Voltmeter',
+    'Grundschaltungen',
+    'voltmeter',
+    'P',
+    ['P', 'N'],
+    ['P', 'N'],
+  ),
+  SymbolDefinition(
+    'ammeter',
+    'Amperemeter',
+    'Grundschaltungen',
+    'ammeter',
+    'P',
+    ['P', 'N'],
+    ['P', 'N'],
+  ),
+  SymbolDefinition(
+    'solar_cell',
+    'Photovoltaikzelle',
+    'Grundschaltungen',
+    'solar_cell',
+    'G',
+    ['P', 'N'],
+    ['P', 'N'],
+  ),
+  // Independently drafted functional glyphs, not external artwork.
+  SymbolDefinition(
+    'mcb1',
+    'Leitungsschutzschalter 1-polig',
+    'Schutzgeräte',
+    'mcb1',
+    'Q',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'mcb2',
+    'Leitungsschutzschalter 2-polig',
+    'Schutzgeräte',
+    'mcb2',
+    'Q',
+    ['1', '3', '2', '4'],
+    ['1', '3', '2', '4'],
+  ),
+  SymbolDefinition(
+    'mcb3',
+    'Leitungsschutzschalter 3-polig',
+    'Schutzgeräte',
+    'mcb3',
+    'Q',
+    ['1', '3', '5', '2', '4', '6'],
+    ['1', '3', '5', '2', '4', '6'],
+  ),
+  SymbolDefinition(
+    'rcd2',
+    'FI/RCD 2-polig',
+    'Schutzgeräte',
+    'rcd2',
+    'Q',
+    ['1', '3', '2', '4'],
+    ['1', '3', '2', '4'],
+  ),
+  SymbolDefinition(
+    'rcd4',
+    'FI/RCD 4-polig',
+    'Schutzgeräte',
+    'rcd4',
+    'Q',
+    ['1', '3', '5', '7', '2', '4', '6', '8'],
+    ['1', '3', '5', '7', '2', '4', '6', '8'],
+  ),
+  SymbolDefinition(
+    'rcbo2',
+    'FI/LS 2-polig',
+    'Schutzgeräte',
+    'rcbo2',
+    'Q',
+    ['1', '3', '2', '4'],
+    ['1', '3', '2', '4'],
+  ),
+  SymbolDefinition(
+    'rcbo4',
+    'FI/LS 4-polig',
+    'Schutzgeräte',
+    'rcbo4',
+    'Q',
+    ['1', '3', '5', '7', '2', '4', '6', '8'],
+    ['1', '3', '5', '7', '2', '4', '6', '8'],
+  ),
+  SymbolDefinition(
+    'motor_protection',
+    'Motorschutzschalter',
+    'Schutzgeräte',
+    'motor_protection',
+    'Q',
+    ['1', '3', '5', '2', '4', '6'],
+    ['1', '3', '5', '2', '4', '6'],
+  ),
+  SymbolDefinition(
+    'motor_dc',
+    'Gleichstrommotor',
+    'Antriebe / Energie',
+    'motor_dc',
+    'M',
+    ['P', 'N'],
+    ['P', 'N'],
+  ),
+  SymbolDefinition(
+    'motor_1ph',
+    'Wechselstrommotor 1-phasig',
+    'Antriebe / Energie',
+    'motor_1ph',
+    'M',
+    ['L', 'N', 'PE'],
+    ['L', 'N', 'PE'],
+  ),
+  SymbolDefinition(
+    'motor_6terminal',
+    'Drehstrommotor 6 Klemmen',
+    'Antriebe / Energie',
+    'motor_6terminal',
+    'M',
+    ['U1', 'V1', 'W1', 'U2', 'V2', 'W2'],
+    ['U1', 'V1', 'W1', 'U2', 'V2', 'W2'],
+  ),
+  SymbolDefinition(
+    'converter_ac_ac',
+    'Umformer AC/AC',
+    'Antriebe / Energie',
+    'converter_ac_ac',
+    'T',
+    ['L', 'N', 'OUT_L', 'OUT_N'],
+    ['L', 'N', 'OUT_L', 'OUT_N'],
+  ),
+  SymbolDefinition(
+    'converter_ac_dc',
+    'Umformer AC/DC',
+    'Antriebe / Energie',
+    'converter_ac_dc',
+    'T',
+    ['L', 'N', 'P', 'M'],
+    ['L', 'N', 'P', 'M'],
+  ),
+  SymbolDefinition(
+    'psu_pe',
+    'Netzteil AC/DC mit PE',
+    'Antriebe / Energie',
+    'psu_pe',
+    'G',
+    ['L', 'N', 'PE', 'P', 'M'],
+    ['L', 'N', 'PE', 'P', 'M'],
+  ),
+  SymbolDefinition(
+    'heater',
+    'Heizwiderstand',
+    'Antriebe / Energie',
+    'heater',
+    'R',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'potentiometer',
+    'Potentiometer',
+    'Elektronik',
+    'potentiometer',
+    'R',
+    ['1', '2', 'W'],
+    ['1', '2', 'W'],
+  ),
+  SymbolDefinition(
+    'ldr',
+    'Fotowiderstand LDR',
+    'Elektronik',
+    'ldr',
+    'R',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'transistor_npn',
+    'Transistor NPN',
+    'Elektronik',
+    'transistor_npn',
+    'V',
+    ['C', 'B', 'E'],
+    ['C', 'B', 'E'],
+  ),
+  SymbolDefinition(
+    'transistor_pnp',
+    'Transistor PNP',
+    'Elektronik',
+    'transistor_pnp',
+    'V',
+    ['C', 'B', 'E'],
+    ['C', 'B', 'E'],
+  ),
+  SymbolDefinition(
+    'triac',
+    'TRIAC',
+    'Elektronik',
+    'triac',
+    'V',
+    ['MT1', 'MT2', 'G'],
+    ['MT1', 'MT2', 'G'],
+  ),
+  SymbolDefinition(
+    'diac',
+    'DIAC',
+    'Elektronik',
+    'diac',
+    'V',
+    ['A1', 'A2'],
+    ['A1', 'A2'],
+  ),
+  SymbolDefinition(
+    'ic4',
+    'IC 4 Pins',
+    'Elektronik',
+    'ic4',
+    'A',
+    ['1', '2', '3', '4'],
+    ['1', '2', '3', '4'],
+  ),
+  SymbolDefinition(
+    'ic6',
+    'IC 6 Pins',
+    'Elektronik',
+    'ic6',
+    'A',
+    ['1', '2', '3', '4', '5', '6'],
+    ['1', '2', '3', '4', '5', '6'],
+  ),
+  SymbolDefinition(
+    'ic8',
+    'IC 8 Pins',
+    'Elektronik',
+    'ic8',
+    'A',
+    ['1', '2', '3', '4', '5', '6', '7', '8'],
+    ['1', '2', '3', '4', '5', '6', '7', '8'],
+  ),
+  SymbolDefinition(
+    'ic10',
+    'IC 10 Pins',
+    'Elektronik',
+    'ic10',
+    'A',
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+  ),
+  SymbolDefinition(
+    'pcb_terminal2',
+    'Printklemme 2-polig',
+    'Anschlussklemmen',
+    'pcb_terminal2',
+    'X',
+    ['1', '2'],
+    ['1', '2'],
+  ),
 ];
 
 Iterable<SymbolDefinition> drawingSymbols(Map<String, dynamic> d) sync* {
@@ -313,6 +693,70 @@ Map<String, dynamic> validateSymbol(Object? input) {
 List<Map<String, dynamic>> symbolPins(SymbolDefinition s) {
   if (s.definition != null)
     return (s.definition!['ports'] as List).cast<Map<String, dynamic>>();
+  if (const {
+    'Schutzgeräte',
+    'Antriebe / Energie',
+    'Elektronik',
+    'Anschlussklemmen',
+  }.contains(s.group)) {
+    final count = s.ports.length, half = count ~/ 2;
+    final pins = <(int, int)>[];
+    if (s.group == 'Schutzgeräte' || s.key == 'motor_6terminal') {
+      for (var i = 0; i < count; i++) {
+        pins.add(((i % half) * 40 - (half - 1) * 20, i < half ? -60 : 60));
+      }
+    } else if (s.key.startsWith('ic')) {
+      for (var i = 0; i < count; i++) {
+        pins.add((i < half ? -60 : 60, (i % half) * 40 - (half - 1) * 20));
+      }
+    } else if (s.key == 'psu_pe') {
+      pins.addAll([(-60, -40), (-60, 0), (-60, 40), (60, -20), (60, 20)]);
+    } else if (s.key.startsWith('converter_')) {
+      pins.addAll([(-60, -20), (-60, 20), (60, -20), (60, 20)]);
+    } else if (const {
+      'transistor_npn',
+      'transistor_pnp',
+      'triac',
+    }.contains(s.key)) {
+      pins.addAll([(0, -60), (-60, 0), (0, 60)]);
+    } else if (s.key == 'potentiometer') {
+      pins.addAll([(0, -60), (0, 60), (60, 0)]);
+    } else if (s.key == 'motor_1ph') {
+      pins.addAll([(-40, -60), (40, -60), (0, 60)]);
+    } else {
+      pins.addAll([(0, -60), (0, 60)]);
+    }
+    return [
+      for (var i = 0; i < count; i++)
+        {
+          'id': s.ports[i],
+          'label': s.ports[i],
+          'x': pins[i].$1,
+          'y': pins[i].$2,
+        },
+    ];
+  }
+  if (s.group == 'Grundschaltungen') {
+    final positions = switch (s.key) {
+      'earth' => [(0, -40)],
+      'transformer' => [(-40, -40), (-40, 40), (40, -40), (40, 40)],
+      'changeover' => [(-40, 0), (40, -40), (40, 40)],
+      _ => [(0, -40), (0, 40)],
+    };
+    return [
+      for (var i = 0; i < s.ports.length; i++)
+        {
+          'id': s.ports[i],
+          'label': switch (s.ports[i]) {
+            'P' => '+',
+            'N' => '−',
+            _ => s.ports[i],
+          },
+          'x': positions[i].$1,
+          'y': positions[i].$2,
+        },
+    ];
+  }
   if (s.group == 'Automatisierung') {
     final half = s.ports.length ~/ 2;
     return [
@@ -379,6 +823,231 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
     'y': y,
     'text': t,
   };
+  if (s.group == 'Schutzgeräte') {
+    final pins = symbolPins(s), columns = s.ports.length ~/ 2;
+    final halfWidth = columns * 20;
+    return [
+      rect(-halfWidth, -40, halfWidth, 40),
+      for (var i = 0; i < columns; i++) ...[
+        line(pins[i]['x'], -60, pins[i]['x'], -20),
+        line(pins[i]['x'], 20, pins[i]['x'], 60),
+        circle(pins[i]['x'], -20, 10),
+        circle(pins[i]['x'], 20, 10),
+        line((pins[i]['x'] as num) - 10, 10, (pins[i]['x'] as num) + 10, -10),
+      ],
+      // Dashes mark mechanical coupling, never an electrical connection.
+      if (columns > 1)
+        for (var x = -halfWidth + 10; x < halfWidth - 10; x += 20)
+          line(x, 30, x + 10, 30),
+      if (s.key.startsWith('rcd') || s.key.startsWith('rcbo'))
+        text('IΔ', -halfWidth + 10, -40),
+      if (s.key.startsWith('mcb') || s.key.startsWith('rcbo'))
+        text('I>', halfWidth - 30, -40),
+      if (s.key == 'motor_protection') text('M I>', -20, -40),
+    ];
+  }
+  if (const {
+    'Antriebe / Energie',
+    'Elektronik',
+    'Anschlussklemmen',
+  }.contains(s.group)) {
+    final pins = symbolPins(s);
+    final stems = [
+      for (final p in pins)
+        if ((p['x'] as num).abs() == 60)
+          line(p['x'], p['y'], (p['x'] as num) < 0 ? -40 : 40, p['y'])
+        else if ((p['y'] as num).abs() == 60)
+          line(p['x'], p['y'], p['x'], (p['y'] as num) < 0 ? -40 : 40),
+    ];
+    if (s.key.startsWith('motor_'))
+      return [
+        ...stems,
+        if (s.key == 'motor_6terminal' || s.key == 'motor_1ph')
+          for (final p in pins.where(
+            (p) => (p['y'] as num).abs() == 60 && p['x'] != 0,
+          ))
+            line(p['x'], (p['y'] as num) < 0 ? -40 : 40, p['x'], 0),
+        circle(0, 0, 40),
+        text('M', -10, -10),
+        text(
+          s.key == 'motor_dc'
+              ? 'DC'
+              : s.key == 'motor_1ph'
+              ? '1~'
+              : '3~',
+          -10,
+          10,
+        ),
+      ];
+    if (s.key.startsWith('converter_') || s.key == 'psu_pe')
+      return [
+        ...stems,
+        rect(-40, -50, 40, 50),
+        text('~', -30, -10),
+        line(-20, 20, 20, -20),
+        text(s.key == 'converter_ac_ac' ? '~' : 'DC', 10, 10),
+        if (s.key == 'psu_pe') text('PE', -30, 30),
+      ];
+    if (s.key.startsWith('ic'))
+      return [
+        ...stems,
+        rect(
+          -40,
+          -((pins.length ~/ 2 - 1) * 20 + 10),
+          40,
+          (pins.length ~/ 2 - 1) * 20 + 10,
+        ),
+        text('IC', -10, -10),
+      ];
+    if (s.key == 'pcb_terminal2')
+      return [
+        ...stems,
+        rect(-30, -40, 30, 40),
+        circle(0, -20, 10),
+        circle(0, 20, 10),
+      ];
+    if (s.key.startsWith('transistor_'))
+      return [
+        ...stems,
+        circle(0, 0, 30),
+        line(-40, 0, 0, 0),
+        line(0, -20, 0, 20),
+        line(0, -20, 0, -40),
+        line(0, 20, 0, 40),
+        if (s.key == 'transistor_npn') ...[
+          line(0, 30, -10, 20),
+          line(0, 30, 10, 20),
+        ] else ...[
+          line(0, 10, -10, 20),
+          line(0, 10, 10, 20),
+        ],
+      ];
+    if (s.key == 'triac' || s.key == 'diac')
+      return [
+        ...stems,
+        line(-20, -20, 20, -20),
+        line(-20, 20, 20, 20),
+        line(-20, -20, 20, 20),
+        line(20, -20, -20, 20),
+        if (s.key == 'triac') line(-40, 0, -10, 10),
+      ];
+    if (const {'potentiometer', 'ldr', 'heater'}.contains(s.key))
+      return [
+        ...stems,
+        rect(-20, -30, 20, 30),
+        if (s.key == 'potentiometer') ...[
+          line(60, 0, 20, 0),
+          line(20, 0, 30, -10),
+          line(20, 0, 30, 10),
+        ],
+        if (s.key == 'ldr') ...[
+          line(-50, -40, -20, -10),
+          line(-50, -20, -20, 10),
+        ],
+        if (s.key == 'heater') text('T', -10, -10),
+      ];
+  }
+  if (s.group == 'Grundschaltungen') {
+    final stem = [line(0, -40, 0, -20), line(0, 20, 0, 40)];
+    return switch (s.key) {
+      'earth' => [
+        line(0, -40, 0, 0),
+        line(-30, 0, 30, 0),
+        line(-20, 10, 20, 10),
+        line(-10, 20, 10, 20),
+      ],
+      'fuse' => [...stem, rect(-10, -20, 10, 20), line(-10, -20, 10, 20)],
+      'resistor' => [...stem, rect(-20, -20, 20, 20)],
+      'capacitor' => [
+        line(0, -40, 0, -10),
+        line(-30, -10, 30, -10),
+        line(-30, 10, 30, 10),
+        line(0, 10, 0, 40),
+      ],
+      'diode' || 'led' => [
+        ...stem,
+        line(-20, -20, 20, -20),
+        line(-20, -20, 0, 20),
+        line(20, -20, 0, 20),
+        line(-20, 20, 20, 20),
+        if (s.key == 'led') ...[
+          line(20, -10, 40, -30),
+          line(40, -30, 30, -30),
+          line(40, -30, 40, -20),
+          line(20, 10, 40, -10),
+          line(40, -10, 30, -10),
+          line(40, -10, 40, 0),
+        ],
+      ],
+      'battery' => [
+        line(0, -40, 0, -10),
+        line(-30, -10, 30, -10),
+        line(-20, 10, 20, 10),
+        line(0, 10, 0, 40),
+        text('+', 40, -20),
+      ],
+      'transformer' => [
+        line(-40, -40, -40, -20),
+        line(-40, 20, -40, 40),
+        line(40, -40, 40, -20),
+        line(40, 20, 40, 40),
+        circle(-40, -10, 10),
+        circle(-40, 10, 10),
+        circle(40, -10, 10),
+        circle(40, 10, 10),
+        line(-10, -30, -10, 30),
+        line(10, -30, 10, 30),
+      ],
+      'lamp' => [
+        ...stem,
+        circle(0, 0, 20),
+        line(-10, -10, 10, 10),
+        line(-10, 10, 10, -10),
+      ],
+      'push_no' || 'push_nc' => [
+        ...stem,
+        circle(0, -20, 10),
+        circle(0, 20, 10),
+        line(
+          -20,
+          s.key == 'push_nc' ? -20 : 0,
+          20,
+          s.key == 'push_nc' ? -20 : 0,
+        ),
+        line(-10, -30, 10, -30),
+        if (s.key == 'push_nc') line(0, -20, 0, 20),
+      ],
+      'changeover' => [
+        line(-40, 0, -20, 0),
+        line(-20, 0, 20, -30),
+        line(20, -40, 40, -40),
+        line(20, 40, 40, 40),
+        circle(-20, 0, 10),
+        circle(20, -40, 10),
+        circle(20, 40, 10),
+      ],
+      'buzzer' => [
+        ...stem,
+        rect(-20, -20, 20, 20),
+        line(20, -20, 40, -30),
+        line(20, 20, 40, 30),
+        text('~', -10, -10),
+      ],
+      'voltmeter' || 'ammeter' => [
+        ...stem,
+        circle(0, 0, 20),
+        text(s.key == 'voltmeter' ? 'V' : 'A', -10, -10),
+      ],
+      'solar_cell' => [
+        ...stem,
+        circle(0, 0, 20),
+        text('PV', -10, -10),
+        line(-40, -30, -20, -10),
+        line(-40, -10, -20, 10),
+      ],
+      _ => <Map<String, dynamic>>[],
+    };
+  }
   if (s.group == 'Automatisierung')
     return [
       rect(

@@ -3,6 +3,126 @@ import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('general built-ins have distinct pins and valid original vectors', () {
+    const expected = <String, List<String>>{
+      'earth': ['PE'],
+      'fuse': ['1', '2'],
+      'resistor': ['1', '2'],
+      'capacitor': ['1', '2'],
+      'diode': ['A', 'K'],
+      'led': ['A', 'K'],
+      'battery': ['P', 'N'],
+      'transformer': ['P1', 'P2', 'S1', 'S2'],
+      'lamp': ['1', '2'],
+      'push_no': ['1', '2'],
+      'push_nc': ['1', '2'],
+      'changeover': ['COM', 'NO', 'NC'],
+      'buzzer': ['P', 'N'],
+      'voltmeter': ['P', 'N'],
+      'ammeter': ['P', 'N'],
+      'solar_cell': ['P', 'N'],
+    };
+    for (final entry in expected.entries) {
+      final s = symbolByKey(entry.key);
+      expect(s.ports, entry.value, reason: entry.key);
+      expect(s.allPorts, entry.value, reason: entry.key);
+      final pins = symbolPins(s);
+      expect(pins.map((p) => p['id']).toList(), entry.value);
+      expect({for (final p in pins) '${p['x']}/${p['y']}'}.length, pins.length);
+      expect(symbolGeometry(s), isNotEmpty);
+      expect(validateSymbol(symbolTemplate(s.key, 'built_in')), isNotNull);
+    }
+    expect(
+      symbolLibrary.map((s) => s.key).toSet().length,
+      symbolLibrary.length,
+    );
+    // The model has electrical ports only: a mechanical linkage must not
+    // masquerade as a conductive two-terminal component.
+    expect(symbolLibrary.any((s) => s.key == 'mechanical_link'), isFalse);
+  });
+
+  test('general symbols roundtrip with independent electrical endpoints', () {
+    final d = emptyDrawing();
+    final sid = objects(d, 'sheets').first['id'] as String;
+    final keys = [
+      'earth',
+      'fuse',
+      'resistor',
+      'capacitor',
+      'diode',
+      'led',
+      'battery',
+      'transformer',
+      'lamp',
+      'push_no',
+      'push_nc',
+      'changeover',
+      'buzzer',
+      'voltmeter',
+      'ammeter',
+      'solar_cell',
+    ];
+    for (var n = 0; n < keys.length; n++) {
+      final i = addSymbol(
+        d,
+        keys[n],
+        sid,
+        200 + (n % 8) * 120,
+        200 + (n ~/ 8) * 160,
+      );
+      final pins = symbolByKey(keys[n]).ports;
+      expect(instancePorts(d, i), pins);
+      for (final pin in pins) {
+        expect(endpointPosition(d, portRef(i['id'], pin)), isNotNull);
+      }
+    }
+    expect(validateDrawing(d), d);
+    final restored = validateDrawing(jsonDecode(canonicalJson(d)));
+    expect(canonicalJson(restored), canonicalJson(d));
+    expect(
+      nets(restored),
+      hasLength(
+        keys.fold<int>(
+          0,
+          (count, key) => count + symbolByKey(key).ports.length,
+        ),
+      ),
+    );
+  });
+
+  test(
+    'prior version 3 pinned library remains supported, not a mixed version',
+    () {
+      final old = cloneJson(pinnedLibrary());
+      old['version'] = 'libre-ecad-synthetic-3';
+      const oldIds = {
+        'supply',
+        'breaker',
+        'terminal',
+        'switch',
+        'coil',
+        'contact',
+        'motor',
+        'contact_nc',
+        'supply3',
+        'breaker3',
+        'plc',
+        'drive',
+        'safety',
+      };
+      old['symbols'] = (old['symbols'] as List)
+          .where((s) => oldIds.contains(s['id']))
+          .toList();
+      expect(supportsLibrary(old), isTrue);
+      final mixed = cloneJson(old);
+      (mixed['symbols'] as List).add((pinnedLibrary()['symbols'] as List).last);
+      expect(supportsLibrary(mixed), isFalse);
+      final changed = cloneJson(old);
+      changed['symbols'][0]['ports'] = ['not-a-pin'];
+      expect(supportsLibrary(changed), isFalse);
+    },
+  );
+
   test('custom contact port ordering does not change physical identity', () {
     final d = emptyDrawing();
     final definition = symbolTemplate('contact', 'reversed');

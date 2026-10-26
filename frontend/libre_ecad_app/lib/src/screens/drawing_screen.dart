@@ -484,6 +484,152 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
+  Future<void> revisions() async {
+    final targetSheetId = sheetId!;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, refresh) {
+          final sheet = objectById(d, 'sheets', targetSheetId);
+          final entries = (sheet['revisions'] as List? ?? []).cast<Json>();
+          return AlertDialog(
+            title: const Text('Blattrevisionen'),
+            content: SizedBox(
+              width: 540,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Revisionsstand und Datum werden manuell erfasst. Die technische Speicherversion ist davon unabhängig.',
+                  ),
+                  const SizedBox(height: 12),
+                  if (entries.isEmpty) const Text('Keine Revisionen erfasst'),
+                  for (var index = 0; index < entries.length; index++)
+                    ListTile(
+                      title: Text(
+                        '${entries[index]['revision']} · ${entries[index]['date']}',
+                      ),
+                      subtitle: entries[index]['note'] == null
+                          ? null
+                          : Text(entries[index]['note'] as String),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip:
+                                'Revision ${entries[index]['revision']} bearbeiten',
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () async {
+                              await editRevision(targetSheetId, index);
+                              if (dialogContext.mounted) refresh(() {});
+                            },
+                          ),
+                          IconButton(
+                            tooltip:
+                                'Revision ${entries[index]['revision']} entfernen',
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () async {
+                              if (!await confirm(
+                                'Revision entfernen?',
+                                'Revision ${entries[index]['revision']} vom Blatt entfernen? Das wird erst beim Speichern dauerhaft übernommen.',
+                                action: 'Revision entfernen',
+                              )) {
+                                return;
+                              }
+                              change(
+                                (drawing) =>
+                                    (objectById(
+                                              drawing,
+                                              'sheets',
+                                              targetSheetId,
+                                            )['revisions']
+                                            as List)
+                                        .removeAt(index),
+                              );
+                              if (dialogContext.mounted) refresh(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Schließen'),
+              ),
+              FilledButton.icon(
+                onPressed: entries.length >= 20
+                    ? null
+                    : () async {
+                        await editRevision(targetSheetId, null);
+                        if (dialogContext.mounted) refresh(() {});
+                      },
+                icon: const Icon(Icons.add),
+                label: const Text('Revision hinzufügen'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> editRevision(String targetSheetId, int? index) async {
+    final sheet = objectById(d, 'sheets', targetSheetId);
+    final entries = (sheet['revisions'] as List? ?? []).cast<Json>();
+    final previous = index == null ? null : entries[index];
+    final values = await fields(
+      index == null ? 'Revision hinzufügen' : 'Revision bearbeiten',
+      {
+        'Revisionsstand': previous?['revision'] as String? ?? '',
+        'Datum (JJJJ-MM-TT)': previous?['date'] as String? ?? '',
+        'Kurznotiz (optional)': previous?['note'] as String? ?? '',
+      },
+    );
+    if (values == null || !mounted) return;
+    void apply(Json drawing) {
+      final sheet = objectById(drawing, 'sheets', targetSheetId);
+      final entries = (sheet['revisions'] ??= <Json>[]) as List;
+      final entry = <String, dynamic>{
+        'revision': values['Revisionsstand'],
+        'date': values['Datum (JJJJ-MM-TT)'],
+        if (values['Kurznotiz (optional)']!.isNotEmpty)
+          'note': values['Kurznotiz (optional)'],
+      };
+      if (index == null) {
+        entries.add(entry);
+      } else {
+        entries[index] = entry;
+      }
+    }
+
+    try {
+      final draft = cloneJson(d);
+      apply(draft);
+      validateDrawing(draft);
+    } on FormatException catch (e) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Ungültige Revision'),
+          content: Text(e.message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Verstanden'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    change(apply);
+  }
+
   Future<void> calculations() async {
     final result = await Navigator.push<Json>(
       context,
@@ -1211,6 +1357,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                           ),
                                         ),
                                         IconButton(
+                                          tooltip: 'Revisionen bearbeiten',
+                                          onPressed: enabled ? revisions : null,
+                                          icon: const Icon(
+                                            Icons.history_edu_outlined,
+                                            size: 18,
+                                          ),
+                                        ),
+                                        IconButton(
                                           tooltip: 'Blatt anlegen',
                                           onPressed: enabled
                                               ? () => sheet(create: true)
@@ -1356,13 +1510,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
           icon: const Icon(Icons.receipt_long_outlined),
           label: const Text('Material / ERP'),
         ),
-        for (final group in [
+        for (final group in <String>{
           'Verteilerabgang',
           'Steuer- / Motorabgang',
           'Drehstrom',
           'Automatisierung',
           'Artikelsymbole',
-        ])
+          ...drawingSymbols(d).map((s) => s.group),
+        })
           ExpansionTile(
             key: ValueKey(group),
             initiallyExpanded: true,

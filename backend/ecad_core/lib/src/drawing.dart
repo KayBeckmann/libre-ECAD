@@ -401,7 +401,7 @@ Json validateDrawing(Object? input) {
       if (!ids.add(sym['id'])) fail('Doppelte Symbol-ID.');
     }
   }
-  final sheets = list(d, 'sheets', 50, {'id', 'number', 'title'});
+  final sheets = list(d, 'sheets', 50, {'id', 'number', 'title', 'revisions'});
   if (sheets.isEmpty) fail('Mindestens ein Blatt erforderlich.');
   final sheetIds = sheets.map((s) => s['id']).toSet(), numbers = <int>{};
   for (final s in sheets) {
@@ -409,6 +409,26 @@ Json validateDrawing(Object? input) {
     if (n is! int || n < 1 || n > 9999 || !numbers.add(n))
       fail('Blattnummer fehlt oder ist doppelt.');
     text(s, 'title');
+    if (s.containsKey('revisions')) {
+      final revisions = s['revisions'];
+      if (revisions is! List || revisions.length > 20)
+        fail('revisions: höchstens 20 Einträge erforderlich.');
+      final seen = <String>{};
+      for (final raw in revisions) {
+        final entry = map(raw, {'revision', 'date', 'note'});
+        final revision = text(entry, 'revision', max: 20);
+        if (!seen.add(revision)) fail('Doppelte Revision.');
+        final date = text(entry, 'date', max: 10);
+        final parsed = DateTime.tryParse(date);
+        if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date) ||
+            parsed == null ||
+            '${parsed.year.toString().padLeft(4, '0')}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}' !=
+                date) {
+          fail('date: gültiges ISO-Datum erforderlich.');
+        }
+        if (entry.containsKey('note')) text(entry, 'note', max: 48);
+      }
+    }
   }
   final devices = list(d, 'devices', 500, {
     'id',

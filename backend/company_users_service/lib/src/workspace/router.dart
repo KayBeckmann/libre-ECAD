@@ -584,7 +584,15 @@ class WorkspaceRouter {
       'output.pdf': base64Encode(pdf),
       for (final sheet in objects(public['drawing'], 'sheets'))
         'sheet-${sheet['number']}.svg': base64Encode(
-          utf8.encode(sheetSvg(public['drawing'], sheet['id'])),
+          utf8.encode(
+            sheetSvg(
+              public['drawing'],
+              sheet['id'],
+              projectName: public['name'] as String,
+              version: public['version'] as int,
+              reviewStatus: 'FACHLICH FESTGESCHRIEBEN',
+            ),
+          ),
         ),
     };
     final hashes = {

@@ -7,6 +7,35 @@ import 'package:company_users_service/src/workspace/pdf_output.dart';
 import 'package:company_users_service/src/workspace/git_archive.dart';
 
 void main() {
+  test('exported SVG has the same framed title and persisted revisions', () {
+    final d = emptyDrawing();
+    final sheet = objects(d, 'sheets').first;
+    sheet['title'] = 'Verteiler <West>';
+    sheet['revisions'] = [
+      {'revision': 'A', 'date': '2025-03-17', 'note': 'Prüfung & Korrektur'},
+    ];
+    final svg = sheetSvg(
+      d,
+      sheet['id'],
+      projectName: 'Projekt <Nord>',
+      version: 7,
+    );
+    expect(svg, contains('REVISION &#47; DATUM &#47; NOTIZ'));
+    expect(svg, contains('A  2025-03-17  Prüfung &amp; Korrektur'));
+    expect(svg, contains('Verteiler &lt;West&gt;'));
+    expect(svg, contains('Projekt &lt;Nord&gt;'));
+    expect(svg, contains('BLATT 1 &#47; 1'));
+    expect(svg, contains('Arbeitsstand 7'));
+    expect(svg, contains('Nicht fachlich freigegeben'));
+    expect(svg, contains('x="12" y="20" width="1176" height="760"'));
+    final approved = sheetSvg(
+      d,
+      sheet['id'],
+      reviewStatus: 'FACHLICH FESTGESCHRIEBEN',
+    );
+    expect(approved, contains('FACHLICH FESTGESCHRIEBEN'));
+    expect(approved, isNot(contains('Nicht fachlich freigegeben')));
+  });
   test(
     'SVG puts contact comb below coil and contacts reference only the coil',
     () {

@@ -6,7 +6,13 @@ import 'package:pdf/pdf.dart';
 import 'package:image/image.dart' as image;
 import 'package:pdf/widgets.dart' as pw;
 
-String sheetSvg(Json d, String sheetId) {
+String sheetSvg(
+  Json d,
+  String sheetId, {
+  String? projectName,
+  int? version,
+  String reviewStatus = 'Nicht fachlich freigegeben',
+}) {
   final out = StringBuffer(
     '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="white"/>',
   );
@@ -34,7 +40,56 @@ String sheetSvg(Json d, String sheetId) {
       '<image x="${background['x']}" y="${background['y']}" width="${background['width']}" height="${background['height']}" preserveAspectRatio="none" href="data:image/png;base64,$png"/>',
     );
   }
+  // Keep any plan image inside the original drawing field. Sheet furniture
+  // is independent of the background and never changes electrical coordinates.
+  if (background != null) {
+    for (final r in [
+      [0, 0, 1200, 60],
+      [0, 60, 40, 640],
+      [1160, 60, 40, 640],
+      [0, 700, 1200, 100],
+    ]) {
+      out.write(
+        '<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" fill="white"/>',
+      );
+    }
+  }
+  rect(12, 20, 1176, 760);
   rect(40, 60, 1120, 640);
+  line(40, 20, 40, 700);
+  line(1160, 20, 1160, 700);
+  for (var i = 1; i < 10; i++) line(40 + i * 112, 20, 40 + i * 112, 60);
+  for (var i = 1; i < 6; i++) line(12, 60 + i * 100, 40, 60 + i * 100);
+  line(12, 700, 1188, 700);
+  line(440, 700, 440, 780);
+  line(850, 700, 850, 780);
+  final sheet = objectById(d, 'sheets', sheetId);
+  final revisions = (sheet['revisions'] as List? ?? []).cast<Json>();
+  label('REVISION / DATUM / NOTIZ', 28, 716, size: 10);
+  if (revisions.isEmpty) {
+    label('Keine Revisionen erfasst', 28, 735, size: 10);
+  } else {
+    for (final entry in revisions.reversed.take(4).toList().asMap().entries) {
+      final revision = entry.value;
+      label(
+        '${revision['revision']}  ${revision['date']}${revision['note'] == null ? '' : '  ${revision['note']}'}',
+        28,
+        735 + entry.key * 14,
+        size: 10,
+      );
+    }
+  }
+  label('ZEICHNUNG', 456, 720, size: 10);
+  label(sheet['title'], 456, 752, size: 20);
+  label('PROJEKT', 866, 720, size: 10);
+  if (projectName != null) label(projectName, 866, 738, size: 14);
+  label(
+    'BLATT ${sheet['number']} / ${objects(d, 'sheets').length}${version == null ? '' : ' · Arbeitsstand $version'}',
+    866,
+    756,
+    size: 11,
+  );
+  label(reviewStatus, 866, 773, size: 10);
   if (plan != null) {
     label(
       '${planKinds[plan['kind']]} · ${plan['kind'] == 'layout'
@@ -429,7 +484,13 @@ Future<Uint8List> projectPdf(
         style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
       ),
       pw.SvgImage(
-        svg: sheetSvg(d, sheet['id']),
+        svg: sheetSvg(
+          d,
+          sheet['id'],
+          projectName: project['name'] as String,
+          version: project['version'] as int,
+          reviewStatus: status,
+        ),
         height: 650,
         customFontLookup: (_, _, _) => regular,
       ),

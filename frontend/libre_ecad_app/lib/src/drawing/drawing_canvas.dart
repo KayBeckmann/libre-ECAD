@@ -334,6 +334,36 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   }
 }
 
+/// Only persisted sheet data and the supplied project revision appear in the block.
+class SheetTitleBlockData {
+  SheetTitleBlockData.fromDrawing(
+    Json drawing,
+    String sheetId,
+    this.project,
+    int version,
+  ) : title = objectById(drawing, 'sheets', sheetId)['title'].toString(),
+      sheet =
+          '${objectById(drawing, 'sheets', sheetId)['number']} / ${objects(drawing, 'sheets').length}',
+      status = 'Arbeitsstand $version',
+      revisionRows = _rows(objectById(drawing, 'sheets', sheetId));
+
+  final String title, project, sheet, status;
+  final List<String> revisionRows;
+  final String warning = 'Nicht fachlich freigegeben';
+
+  static List<String> _rows(Json sheet) {
+    final revisions = (sheet['revisions'] as List? ?? []).cast<Json>();
+    if (revisions.isEmpty) return ['Keine Revisionen erfasst'];
+    return revisions.reversed.take(4).map((entry) {
+      final note = entry['note'];
+      return '${entry['revision']}  ${entry['date']}${note == null ? '' : '  $note'}';
+    }).toList();
+  }
+
+  @override
+  String toString() => '$title · $project · $sheet · $status · $warning';
+}
+
 class SheetPainter extends CustomPainter {
   SheetPainter(this.d, this.sheetId, this.name, this.version, this.selected);
   final Json d;
@@ -358,12 +388,47 @@ class SheetPainter extends CustomPainter {
     t.paint(c, p);
   }
 
+  void blockText(
+    Canvas c,
+    String text,
+    Rect bounds, {
+    double size = 12,
+    bool bold = false,
+    Color color = ink,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontFamily: 'monospace',
+          fontSize: size,
+          color: color,
+          fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '…',
+    )..layout(maxWidth: bounds.width);
+    c.save();
+    c.clipRect(bounds);
+    painter.paint(c, bounds.topLeft);
+    c.restore();
+  }
+
   @override
   void paint(Canvas c, Size size) {
     final plan = planFor(d, sheetId);
     if (plan?['background'] == null) {
       c.drawRect(Offset.zero & size, Paint()..color = Colors.white);
     }
+    // A background plan stays visible in the original (40,60)–(1160,700)
+    // drawing field; its margins are reserved for the sheet furniture.
+    final paper = Paint()..color = Colors.white;
+    c.drawRect(const Rect.fromLTWH(0, 0, 1200, 60), paper);
+    c.drawRect(const Rect.fromLTWH(0, 60, 40, 640), paper);
+    c.drawRect(const Rect.fromLTWH(1160, 60, 40, 640), paper);
+    c.drawRect(const Rect.fromLTWH(0, 700, 1200, 100), paper);
     final grid = Paint()
       ..color = const Color(0xffdce7e9)
       ..strokeWidth = 1;
@@ -376,34 +441,77 @@ class SheetPainter extends CustomPainter {
       ..color = ink
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
+    // Zone boundaries coincide with positionReference/columnFor: no change
+    // to drawing coordinates, routing or hit targets.
+    c.drawRect(const Rect.fromLTWH(12, 20, 1176, 760), line);
     c.drawRect(const Rect.fromLTWH(40, 60, 1120, 640), line);
-    c.drawRect(const Rect.fromLTWH(40, 700, 1120, 60), line);
+    c.drawLine(const Offset(40, 20), const Offset(40, 700), line);
+    c.drawLine(const Offset(1160, 20), const Offset(1160, 700), line);
+    for (var i = 1; i < 10; i++) {
+      final x = 40 + i * 112.0;
+      c.drawLine(Offset(x, 20), Offset(x, 60), line);
+    }
+    for (var i = 1; i < 6; i++) {
+      final y = 60 + i * 100.0;
+      c.drawLine(Offset(12, y), Offset(40, y), line);
+    }
+    c.drawLine(const Offset(12, 700), const Offset(1188, 700), line);
+    c.drawLine(const Offset(440, 700), const Offset(440, 780), line);
+    c.drawLine(const Offset(850, 700), const Offset(850, 780), line);
     for (var i = 0; i < 10; i++) {
-      label(c, '${i + 1}', Offset(88 + i * 112.0, 38));
+      blockText(c, '${i + 1}', Rect.fromLTWH(88 + i * 112.0, 33, 30, 20));
     }
     for (var i = 0; i < 6; i++) {
-      label(c, String.fromCharCode(65 + i), Offset(18, 100 + i * 100.0));
+      blockText(
+        c,
+        String.fromCharCode(65 + i),
+        Rect.fromLTWH(20, 100 + i * 100.0, 18, 20),
+      );
     }
-    final sheet = objectById(d, 'sheets', sheetId);
-    label(
+    final block = SheetTitleBlockData.fromDrawing(d, sheetId, name, version);
+    blockText(
       c,
-      '${sheet['number']}  /  ${objects(d, 'sheets').length}    ${sheet['title']}',
-      const Offset(56, 712),
-      size: 16,
+      'REVISION / DATUM / NOTIZ',
+      const Rect.fromLTWH(28, 705, 395, 15),
+      size: 10,
     );
-    label(
+    for (var i = 0; i < block.revisionRows.length; i++) {
+      blockText(
+        c,
+        block.revisionRows[i],
+        Rect.fromLTWH(28, 721 + i * 14.0, 395, 14),
+        size: 10,
+      );
+    }
+    blockText(c, 'ZEICHNUNG', const Rect.fromLTWH(456, 708, 378, 18), size: 10);
+    blockText(
       c,
-      '$name · Arbeitsstand $version · nicht fachlich freigegeben',
-      const Offset(56, 740),
+      block.title,
+      const Rect.fromLTWH(456, 732, 378, 32),
+      size: 21,
+      bold: true,
+    );
+    blockText(c, 'PROJEKT', const Rect.fromLTWH(866, 708, 306, 18), size: 10);
+    blockText(
+      c,
+      block.project,
+      const Rect.fromLTWH(866, 722, 306, 20),
+      size: 14,
+      bold: true,
+    );
+    blockText(
+      c,
+      'BLATT ${block.sheet} · ${block.status}',
+      const Rect.fromLTWH(866, 742, 306, 18),
       size: 11,
     );
-    label(
+    blockText(
       c,
-      objects(d, 'symbols').isEmpty
-          ? 'LibreECAD\nSynthetische Symbole · MIT'
-          : 'LibreECAD\nArtikelsymbole im Projektstand',
-      const Offset(850, 716),
-      size: 12,
+      block.warning,
+      const Rect.fromLTWH(866, 760, 306, 16),
+      size: 11,
+      bold: true,
+      color: const Color(0xffa33e27),
     );
     if (plan != null) {
       label(
