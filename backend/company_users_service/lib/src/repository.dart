@@ -31,7 +31,17 @@ abstract class CompanyUserRepository {
   /// Löst das Aktivierungstoken ein: setzt das Passwort, markiert das
   /// Token als benutzt. `false`, wenn das Token ungültig/abgelaufen/
   /// bereits benutzt ist — setzt dann **nichts**.
-  Future<bool> activateWithToken({required String rawToken, required String passwordHash});
+  Future<bool> activateWithToken({
+    required String rawToken,
+    required String passwordHash,
+  });
+
+  /// Atomically verify the current password and revoke all sessions on change.
+  Future<bool> changeOwnPassword({
+    required String userId,
+    required String currentPassword,
+    required String newPasswordHash,
+  });
 
   Future<void> saveSession(UserSession session);
 

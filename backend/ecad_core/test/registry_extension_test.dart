@@ -89,6 +89,69 @@ void main() {
     expect(validateDrawing(jsonDecode(canonicalJson(d))), isNotNull);
   });
 
+  test('protective contacts are frameless, small and joined to both leads', () {
+    for (final key in [
+      'mcb1',
+      'mcb2',
+      'mcb3',
+      'rcd2',
+      'rcd4',
+      'rcbo2',
+      'rcbo4',
+    ]) {
+      final source = symbolByKey(key);
+      final pins = symbolPins(source);
+      final columns = pins.length ~/ 2;
+      for (final shapes in [
+        symbolGeometry(source),
+        (symbolTemplate(key, 'probe')['primitives'] as List)
+            .cast<Map<String, dynamic>>(),
+      ]) {
+        expect(shapes.where((s) => s['kind'] == 'rect'), isEmpty, reason: key);
+        final circles = shapes.where((s) => s['kind'] == 'circle').toList();
+        expect(circles, hasLength(columns * 2), reason: key);
+        expect(
+          circles.every((s) => (s['radius'] as num) <= 5),
+          isTrue,
+          reason: key,
+        );
+        bool joins(num x, num y, num x2, num y2) => shapes.any(
+          (s) =>
+              s['kind'] == 'line' &&
+              ((s['x'] == x && s['y'] == y && s['x2'] == x2 && s['y2'] == y2) ||
+                  (s['x'] == x2 &&
+                      s['y'] == y2 &&
+                      s['x2'] == x &&
+                      s['y2'] == y)),
+        );
+        // Mechanical coupling sits between contact columns, not on a stem.
+        for (var i = 0; i < columns - 1; i++) {
+          final x = pins[i]['x'] as num;
+          expect(
+            joins(x + 10, 0, x + 30, 0),
+            isTrue,
+            reason: '$key mechanical coupling $i',
+          );
+        }
+        for (var i = 0; i < columns; i++) {
+          final x = pins[i]['x'] as num;
+          expect(joins(x, -60, x, -20), isTrue, reason: '$key upper lead $i');
+          expect(joins(x, 20, x, 60), isTrue, reason: '$key lower lead $i');
+          expect(
+            joins(x, -20, x + 10, 10),
+            isTrue,
+            reason: '$key upper contact $i',
+          );
+          expect(
+            joins(x + 10, 10, x, 20),
+            isTrue,
+            reason: '$key lower contact $i',
+          );
+        }
+      }
+    }
+  });
+
   test(
     'previous pinned revision remains readable but altered pin sets do not',
     () {

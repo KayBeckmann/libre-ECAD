@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 import '../models.dart';
@@ -16,30 +17,40 @@ class ApiException implements Exception {
 }
 
 class CompanyUsersApi {
-  CompanyUsersApi({required this.baseUrl, http.Client? httpClient}) : _http = httpClient ?? http.Client();
+  CompanyUsersApi({required this.baseUrl, http.Client? httpClient})
+    : _http = httpClient ?? http.Client();
   final Uri baseUrl;
   final http.Client _http;
 
-  Uri _endpoint(String path) => Uri.parse(
-      '${baseUrl.toString().replaceFirst(RegExp(r"/+$"), "")}/$path');
+  Uri _endpoint(String path) =>
+      Uri.parse('${baseUrl.toString().replaceFirst(RegExp(r"/+$"), "")}/$path');
 
   Map<String, String> _authHeaders(String token) => {
-        'content-type': 'application/json',
-        'authorization': 'Bearer $token',
-      };
+    'content-type': 'application/json',
+    'authorization': 'Bearer $token',
+  };
 
-  Future<Map<String, Object?>> _parse(http.Response response, {int expect = 200}) async {
-    final body = response.body.isEmpty ? <String, Object?>{} : jsonDecode(response.body) as Map<String, Object?>;
+  Future<Map<String, Object?>> _parse(
+    http.Response response, {
+    int expect = 200,
+  }) async {
+    final body = response.body.isEmpty
+        ? <String, Object?>{}
+        : jsonDecode(response.body) as Map<String, Object?>;
     if (response.statusCode != expect) {
       throw ApiException(
-        body['error'] as String? ?? 'Unerwarteter Serverfehler (HTTP ${response.statusCode}).',
+        body['error'] as String? ??
+            'Unerwarteter Serverfehler (HTTP ${response.statusCode}).',
         statusCode: response.statusCode,
       );
     }
     return body;
   }
 
-  Future<Session> login({required String username, required String password}) async {
+  Future<Session> login({
+    required String username,
+    required String password,
+  }) async {
     final response = await _http.post(
       _endpoint('auth/login'),
       headers: {'content-type': 'application/json'},
@@ -55,25 +66,63 @@ class CompanyUsersApi {
     );
   }
 
-  Future<void> activate({required String token,required String password}) async {
-    final response=await _http.post(_endpoint('auth/activate'),headers:{'content-type':'application/json'},body:jsonEncode({'token':token,'password':password})).timeout(const Duration(seconds:15));
+  Future<void> activate({
+    required String token,
+    required String password,
+  }) async {
+    final response = await _http
+        .post(
+          _endpoint('auth/activate'),
+          headers: {'content-type': 'application/json'},
+          body: jsonEncode({'token': token, 'password': password}),
+        )
+        .timeout(const Duration(seconds: 15));
     await _parse(response);
   }
+
+  Future<void> changePassword(
+    String token, {
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final response = await _http
+        .post(
+          _endpoint('me/password'),
+          headers: _authHeaders(token),
+          body: jsonEncode({
+            'currentPassword': currentPassword,
+            'newPassword': newPassword,
+            'confirmPassword': confirmPassword,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+    await _parse(response);
+  }
+
   Future<void> logout(String token) async {
     await _http.post(_endpoint('auth/logout'), headers: _authHeaders(token));
   }
 
   Future<List<CompanyUserListEntry>> listUsers(String token) async {
-    final response = await _http.get(_endpoint('users'), headers: _authHeaders(token));
+    final response = await _http.get(
+      _endpoint('users'),
+      headers: _authHeaders(token),
+    );
     final body = await _parse(response);
     final raw = body['users'] as List;
-    return raw.map((e) => CompanyUserListEntry.fromJson(e as Map<String, Object?>)).toList();
+    return raw
+        .map((e) => CompanyUserListEntry.fromJson(e as Map<String, Object?>))
+        .toList();
   }
 
   /// Gibt das Aktivierungstoken zurück — in M1 gibt es noch keinen
   /// Versandweg (siehe `docs/architecture.md`), der Admin muss es dem
   /// neuen Zeichner selbst mitteilen.
-  Future<String> createZeichner(String token, {required String username}) async {
+  Future<String> createZeichner(
+    String token, {
+    required String username,
+  }) async {
     final response = await _http.post(
       _endpoint('users'),
       headers: _authHeaders(token),
@@ -83,7 +132,11 @@ class CompanyUsersApi {
     return body['activationToken'] as String;
   }
 
-  Future<void> setUserActive(String token, {required String userId, required bool active}) async {
+  Future<void> setUserActive(
+    String token, {
+    required String userId,
+    required bool active,
+  }) async {
     final response = await _http.patch(
       _endpoint('users/$userId'),
       headers: _authHeaders(token),

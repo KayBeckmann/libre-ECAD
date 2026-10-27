@@ -11,6 +11,7 @@ import '../session_service.dart';
 import '../app_theme.dart';
 import 'article_search_demo.dart';
 import 'login_screen.dart';
+import 'settings_screen.dart';
 import 'projects_screen.dart';
 import 'articles_screen.dart';
 import 'contributions_screen.dart';
@@ -33,7 +34,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionService>().session!;
+    final session = context.watch<SessionService>().session;
+    if (session == null) return const SizedBox.shrink();
     final navigation = <Widget>[
       const ListTile(
         selected: true,
@@ -74,6 +76,12 @@ class HomeScreen extends StatelessWidget {
             builder: (_) => ContributionsScreen(session: session),
           ),
         ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.settings_outlined),
+        title: const Text('Einstellungen'),
+        onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const SettingsScreen())),
       ),
     ];
     return EcadShell(

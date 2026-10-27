@@ -16,12 +16,9 @@ Offset endpointOffset(Json d, Json ref) {
   return Offset(p.x, p.y);
 }
 
-List<Offset> wireRoute(Json d, Json wire) {
-  final a = endpointOffset(d, wire['from']), b = endpointOffset(d, wire['to']);
-  // Stable orthogonal route. No electrical meaning is attached to its bends.
-  final midY = ((a.dy + b.dy) / 40).round() * 20.0;
-  return [a, Offset(a.dx, midY), Offset(b.dx, midY), b];
-}
+List<Offset> wireRoute(Json d, Json wire) => [
+  for (final point in routedWirePoints(d, wire)) Offset(point.x, point.y),
+];
 
 class DrawingCanvas extends StatefulWidget {
   const DrawingCanvas({
@@ -40,8 +37,12 @@ class DrawingCanvas extends StatefulWidget {
     this.selectingRegion = false,
     this.region,
     this.onRegion,
+    this.panning = false,
+    this.onWireSegment,
   });
   final bool selectingRegion;
+  final bool panning;
+  final void Function(String, int, Offset)? onWireSegment;
   final Rect? region;
   final ValueChanged<Rect>? onRegion;
   final Json drawing;
@@ -91,7 +92,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
               minScale: 0.2,
               maxScale: 3,
               boundaryMargin: const EdgeInsets.all(600),
-              panEnabled: !widget.editable,
+              panEnabled: widget.panning || !widget.editable,
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: GestureDetector(
@@ -124,18 +125,20 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                           });
                         }
                       : null,
-                  onPanCancel: () => setState(() {
-                    regionDrag = null;
-                    regionStart = null;
-                  }),
-                  onTapUp: widget.editable && !widget.selectingRegion
+                  onPanCancel: widget.selectingRegion
+                      ? () => setState(() {
+                          regionDrag = null;
+                          regionStart = null;
+                        })
+                      : null,
+                  onTapUp: widget.editable && !widget.selectingRegion && !widget.panning
                       ? (e) => widget.onTap(e.localPosition)
                       : null,
                   child: SizedBox(
                     width: 1200,
                     height: 800,
                     child: IgnorePointer(
-                      ignoring: widget.selectingRegion,
+                      ignoring: widget.selectingRegion || widget.panning,
                       child: Stack(
                         children: [
                           if (background != null) ...[
@@ -165,6 +168,10 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                               ),
                             ),
                           ),
+                          if (widget.editable && widget.onWireSegment != null)
+                            for (final w in objects(d, 'wires').where((w) => w['sheetId'] == widget.sheetId))
+                              for (var n = 0; n < wireRoute(d, w).length - 1; n++)
+                                wireHandle(d, w, n),
                           for (final i in objects(
                             d,
                             'instances',
@@ -290,6 +297,35 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     final current = transform.value.getMaxScaleOnAxis();
     final scale = (current * factor).clamp(0.2, 3.0);
     transform.value = Matrix4.diagonal3Values(scale, scale, 1);
+  }
+
+  Widget wireHandle(Json d, Json wire, int segment) {
+    final route = wireRoute(d, wire);
+    final a = route[segment], b = route[segment + 1];
+    final center = (a + b) / 2;
+    if ((a - b).distance < 24) return const SizedBox.shrink();
+    Offset delta = Offset.zero;
+    return Positioned(
+      left: center.dx - 10,
+      top: center.dy - 10,
+      width: 20,
+      height: 20,
+      child: Semantics(
+        button: true,
+        identifier: 'ecad-hit-wire-${wire['id']}-$segment',
+        label: 'Leitungssegment verschieben',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanStart: (_) => delta = Offset.zero,
+          onPanUpdate: (e) => delta += e.delta / transform.value.getMaxScaleOnAxis(),
+          onPanEnd: (_) => widget.onWireSegment?.call(
+            wire['id'], segment, center + delta,
+          ),
+          child: Center(child: Container(width: 7, height: 7,
+            decoration: const BoxDecoration(color: accent, shape: BoxShape.circle))),
+        ),
+      ),
+    );
   }
 
   Widget port(Json d, Json ref, String label) {
@@ -624,6 +660,10 @@ class SheetPainter extends CustomPainter {
         continue;
       }
       final symbol = symbolByKey(i['symbol'], d);
+      c.save();
+      c.translate(x, y);
+      c.rotate((i['rotation'] as num? ?? 0) * math.pi / 180);
+      c.translate(-x, -y);
       for (final shape in symbolGeometry(symbol)) {
         final a = Offset(
           x + (shape['x'] as num).toDouble(),
@@ -656,6 +696,7 @@ class SheetPainter extends CustomPainter {
             label(c, shape['text'], a, size: 12);
         }
       }
+      c.restore();
       final labelX =
           x +
           (symbol.definition != null ||

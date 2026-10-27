@@ -170,6 +170,35 @@ class PostgresCompanyUserRepository implements CompanyUserRepository {
   });
 
   @override
+  Future<bool> changeOwnPassword({
+    required String userId,
+    required String currentPassword,
+    required String newPasswordHash,
+  }) => _db.runTx((tx) async {
+    final rows = await tx.execute(
+      Sql.named(
+        'SELECT password_hash FROM users WHERE id=@id AND active=true FOR UPDATE',
+      ),
+      parameters: {'id': userId},
+    );
+    if (rows.isEmpty ||
+        rows.first[0] == null ||
+        !Passwords.verify(currentPassword, rows.first[0] as String))
+      return false;
+    await tx.execute(
+      Sql.named(
+        'UPDATE users SET password_hash=@hash, auth_epoch=auth_epoch+1 WHERE id=@id',
+      ),
+      parameters: {'hash': newPasswordHash, 'id': userId},
+    );
+    await tx.execute(
+      Sql.named('DELETE FROM user_sessions WHERE user_id=@id'),
+      parameters: {'id': userId},
+    );
+    return true;
+  });
+
+  @override
   Future<void> saveSession(UserSession session) async {
     await _db.execute(
       Sql.named('''

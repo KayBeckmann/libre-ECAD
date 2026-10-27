@@ -659,8 +659,12 @@ Map<String, dynamic> validateSymbol(Object? input) {
         fail();
     }
     if (p['kind'] == 'circle') {
-      final r = coord(p['radius']);
-      if (r <= 0 ||
+      final r = p['radius'];
+      // Radii need finer resolution than the ten-unit placement grid.
+      if (r is! num ||
+          !r.isFinite ||
+          r <= 0 ||
+          r % 1 != 0 ||
           (p['x'] as num).abs() + r > 120 ||
           (p['y'] as num).abs() + r > 120)
         fail();
@@ -827,18 +831,19 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
     final pins = symbolPins(s), columns = s.ports.length ~/ 2;
     final halfWidth = columns * 20;
     return [
-      rect(-halfWidth, -40, halfWidth, 40),
       for (var i = 0; i < columns; i++) ...[
         line(pins[i]['x'], -60, pins[i]['x'], -20),
         line(pins[i]['x'], 20, pins[i]['x'], 60),
-        circle(pins[i]['x'], -20, 10),
-        circle(pins[i]['x'], 20, 10),
-        line((pins[i]['x'] as num) - 10, 10, (pins[i]['x'] as num) + 10, -10),
+        circle(pins[i]['x'], -20, 4),
+        circle(pins[i]['x'], 20, 4),
+        // The slanted switching path joins both contact nodes and their leads.
+        line(pins[i]['x'], -20, (pins[i]['x'] as num) + 10, 10),
+        line((pins[i]['x'] as num) + 10, 10, pins[i]['x'], 20),
       ],
       // Dashes mark mechanical coupling, never an electrical connection.
       if (columns > 1)
-        for (var x = -halfWidth + 10; x < halfWidth - 10; x += 20)
-          line(x, 30, x + 10, 30),
+        for (var i = 0; i < columns - 1; i++)
+          line((pins[i]['x'] as num) + 10, 0, (pins[i]['x'] as num) + 30, 0),
       if (s.key.startsWith('rcd') || s.key.startsWith('rcbo'))
         text('IΔ', -halfWidth + 10, -40),
       if (s.key.startsWith('mcb') || s.key.startsWith('rcbo'))
@@ -1117,8 +1122,13 @@ Map<String, dynamic> symbolTemplate(String key, String id) {
             snap(shape['y']) == snap(shape['y2'])))
           {
             for (final e in shape.entries)
-              e.key: e.key == 'radius' && snap(e.value) < 10
+              e.key:
+                  e.key == 'radius' &&
+                      s.group != 'Schutzgeräte' &&
+                      snap(e.value) < 10
                   ? 10
+                  : e.key == 'radius' && s.group == 'Schutzgeräte'
+                  ? e.value
                   : e.value is num
                   ? snap(e.value)
                   : e.value,

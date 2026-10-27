@@ -1,6 +1,7 @@
 library;
 
 export 'src/drawing.dart';
+export 'src/wire_routing.dart';
 export 'src/library.dart';
 export 'src/samples.dart';
 

@@ -238,9 +238,16 @@ Point<double> endpointPosition(Json d, Json ref) {
     final ports = instancePorts(d, i), index = ports.indexOf(ref['terminalId']);
     if (index < 0) throw FormatException('Anschluss fehlt in der Darstellung.');
     final pin = symbolPins(symbolByKey(i['symbol'], d))[index];
+    final px = (pin['x'] as num).toDouble(), py = (pin['y'] as num).toDouble();
+    final rotated = switch (i['rotation'] ?? 0) {
+      90 => Point(-py, px),
+      180 => Point(-px, -py),
+      270 => Point(py, -px),
+      _ => Point(px, py),
+    };
     return Point(
-      (i['x'] as num).toDouble() + (pin['x'] as num).toDouble(),
-      (i['y'] as num).toDouble() + (pin['y'] as num).toDouble(),
+      (i['x'] as num).toDouble() + rotated.x,
+      (i['y'] as num).toDouble() + rotated.y,
     );
   }
   final o = objectById(
@@ -465,6 +472,7 @@ Json validateDrawing(Object? input) {
     'sheetId',
     'symbol',
     'portMap',
+    'rotation',
     'x',
     'y',
   });
@@ -475,6 +483,8 @@ Json validateDrawing(Object? input) {
 
   for (final i in instances) {
     onSheet(i);
+    if (i['rotation'] != null && !{0, 90, 180, 270}.contains(i['rotation']))
+      fail('Drehung nur in 90-Grad-Schritten.');
     final device = objectById(d, 'devices', text(i, 'deviceId'));
     if (symbolByKey(text(i, 'symbol'), d).deviceType != device['type'])
       fail('Symbol passt nicht zum Gerät.');
@@ -588,7 +598,19 @@ Json validateDrawing(Object? input) {
     'cableId',
     'coreId',
     'conductor',
+    'waypoints',
   })) {
+    if (w['waypoints'] != null) {
+      final points = w['waypoints'];
+      if (points is! List || points.length > 64) fail('Ungültige Leitungspunkte.');
+      for (final point in points) {
+        if (point is! Json || point.keys.toSet().difference({'x', 'y'}).isNotEmpty ||
+            point['x'] is! num || point['y'] is! num ||
+            !(point['x'] as num).isFinite || !(point['y'] as num).isFinite ||
+            point['x'] < 0 || point['x'] > 1200 || point['y'] < 0 || point['y'] > 800)
+          fail('Ungültiger Leitungspunkt.');
+      }
+    }
     if (w['conductor'] != null &&
         !{'L1', 'L2', 'L3', 'N', 'PE'}.contains(w['conductor']))
       fail('Unbekannter Leiter.');

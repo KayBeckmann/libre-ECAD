@@ -10,14 +10,18 @@ class InMemoryCompanyUserRepository implements CompanyUserRepository {
   final List<UserSession> _sessions = [];
 
   @override
-  Future<Company> createCompany({required String id, required String name}) async {
+  Future<Company> createCompany({
+    required String id,
+    required String name,
+  }) async {
     final company = Company(id: id, name: name, active: true);
     _companies.add(company);
     return company;
   }
 
   @override
-  Future<Company?> findCompanyById(String id) async => _companies.where((c) => c.id == id).firstOrNull;
+  Future<Company?> findCompanyById(String id) async =>
+      _companies.where((c) => c.id == id).firstOrNull;
 
   @override
   Future<({AppUser user, String rawActivationToken})> createUser({
@@ -26,7 +30,13 @@ class InMemoryCompanyUserRepository implements CompanyUserRepository {
     required String username,
     required UserRole role,
   }) async {
-    final user = AppUser(id: id, companyId: companyId, username: username, role: role, active: true);
+    final user = AppUser(
+      id: id,
+      companyId: companyId,
+      username: username,
+      role: role,
+      active: true,
+    );
     _users.add(user);
 
     final rawToken = SessionTokens.generate();
@@ -46,7 +56,8 @@ class InMemoryCompanyUserRepository implements CompanyUserRepository {
       _users.where((u) => u.username == username).firstOrNull;
 
   @override
-  Future<AppUser?> findUserById(String id) async => _users.where((u) => u.id == id).firstOrNull;
+  Future<AppUser?> findUserById(String id) async =>
+      _users.where((u) => u.id == id).firstOrNull;
 
   @override
   Future<List<AppUser>> listUsersForCompany(String companyId) async =>
@@ -56,7 +67,10 @@ class InMemoryCompanyUserRepository implements CompanyUserRepository {
   Future<int> countActiveActivatedAdmins(String companyId) async => _users
       .where(
         (u) =>
-            u.companyId == companyId && u.role == UserRole.admin && u.active && u.isActivated,
+            u.companyId == companyId &&
+            u.role == UserRole.admin &&
+            u.active &&
+            u.isActivated,
       )
       .length;
 
@@ -77,9 +91,14 @@ class InMemoryCompanyUserRepository implements CompanyUserRepository {
   }
 
   @override
-  Future<bool> activateWithToken({required String rawToken, required String passwordHash}) async {
+  Future<bool> activateWithToken({
+    required String rawToken,
+    required String passwordHash,
+  }) async {
     final tokenHash = SessionTokens.hashOf(rawToken);
-    final tokenIndex = _activationTokens.indexWhere((t) => t.tokenHash == tokenHash);
+    final tokenIndex = _activationTokens.indexWhere(
+      (t) => t.tokenHash == tokenHash,
+    );
     if (tokenIndex == -1) return false;
     final token = _activationTokens[tokenIndex];
     if (!token.isValid(DateTime.now().toUtc())) return false;
@@ -101,6 +120,32 @@ class InMemoryCompanyUserRepository implements CompanyUserRepository {
       expiresAt: token.expiresAt,
       usedAt: DateTime.now().toUtc(),
     );
+    return true;
+  }
+
+  @override
+  Future<bool> changeOwnPassword({
+    required String userId,
+    required String currentPassword,
+    required String newPasswordHash,
+  }) async {
+    final index = _users.indexWhere((u) => u.id == userId);
+    if (index < 0) return false;
+    final existing = _users[index];
+    if (!existing.active ||
+        existing.passwordHash == null ||
+        !Passwords.verify(currentPassword, existing.passwordHash!))
+      return false;
+    _users[index] = AppUser(
+      id: existing.id,
+      companyId: existing.companyId,
+      username: existing.username,
+      role: existing.role,
+      active: existing.active,
+      passwordHash: newPasswordHash,
+      authEpoch: existing.authEpoch + 1,
+    );
+    _sessions.removeWhere((s) => s.userId == userId);
     return true;
   }
 

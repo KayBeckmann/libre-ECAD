@@ -37,7 +37,8 @@ const _prefsArticlesUrlKey = 'libre_ecad.global_articles_url';
 /// API-Clients teilen sich dasselbe `httpClient`, siehe
 /// [companyUsersApiFor]/[globalArticlesApiFor].
 class SessionService extends ChangeNotifier {
-  SessionService({http.Client? httpClient}) : _httpClient = httpClient ?? http.Client();
+  SessionService({http.Client? httpClient})
+    : _httpClient = httpClient ?? http.Client();
 
   final http.Client _httpClient;
 
@@ -71,10 +72,32 @@ class SessionService extends ChangeNotifier {
     await prefs.setString(_prefsArticlesUrlKey, url);
   }
 
-  Future<void> login({required String backendUrl, required String username, required String password}) async {
+  Future<void> login({
+    required String backendUrl,
+    required String username,
+    required String password,
+  }) async {
     final api = companyUsersApiFor(Uri.parse(backendUrl));
     _session = await api.login(username: username, password: password);
     await saveBackendUrl(backendUrl);
+    notifyListeners();
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final current = _session;
+    if (current == null) throw StateError('Nicht angemeldet.');
+    await companyUsersApiFor(current.backendUrl).changePassword(
+      current.token,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
+    // The server revokes all sessions. Clear local state only on success.
+    _session = null;
     notifyListeners();
   }
 

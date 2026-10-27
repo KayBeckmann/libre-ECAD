@@ -48,6 +48,7 @@ class CompanyUserRouter {
     router.post('/auth/login', _login);
     router.post('/auth/logout', _logout);
     router.get('/me', _me);
+    router.post('/me/password', _changePassword);
     router.get('/users', _listUsers);
     router.post('/users', _createZeichner);
     router.patch('/users/<id>', _setUserActive);
@@ -261,6 +262,39 @@ class CompanyUserRouter {
       'role': auth.user.role.wireValue,
       'companyName': company?.name,
     });
+  }
+
+  Future<Response> _changePassword(Request request) async {
+    final auth = await _requireUser(request);
+    if (auth == null) return jsonError('Nicht angemeldet.', status: 401);
+    Map<String, Object?> body;
+    try {
+      body = await readJson(request, maxBytes: 4096);
+    } catch (_) {
+      return jsonError('Ungültige Anfrage.');
+    }
+    final current = body['currentPassword'];
+    final next = body['newPassword'];
+    final confirm = body['confirmPassword'];
+    if (current is! String ||
+        current.isEmpty ||
+        next is! String ||
+        next.length < 8 ||
+        next.length > 1024 ||
+        confirm is! String ||
+        confirm != next ||
+        next == current) {
+      return jsonError(
+        'Passwörter prüfen: aktuelles Passwort, neues Passwort (8–1024 Zeichen) und gleiche Bestätigung erforderlich.',
+      );
+    }
+    final changed = await repository.changeOwnPassword(
+      userId: auth.user.id,
+      currentPassword: current,
+      newPasswordHash: Passwords.hash(next),
+    );
+    if (!changed) return jsonError('Aktuelles Passwort falsch.', status: 403);
+    return jsonOk({'status': 'password_changed', 'sessionsRevoked': true});
   }
 
   Future<Response> _listUsers(Request request) async {

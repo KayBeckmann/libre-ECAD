@@ -1385,6 +1385,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                       version: version,
                                       selected: selected,
                                       editable: enabled && tool != 'pan',
+                                      panning: tool == 'pan',
+                                      onWireSegment: tool == 'select' && enabled
+                                          ? (id, segment, point) => controller!
+                                              .moveWireSegment(id, segment, point)
+                                          : null,
                                       pending: pendingPort,
                                       selectingRegion: tool == 'region',
                                       region: regionSheet == sheetId
@@ -1605,6 +1610,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
             Text(
               'Position ${positionReference(d, i)} · ${i['x']}/${i['y']}',
               style: const TextStyle(fontSize: 12),
+            ),
+            TextButton.icon(
+              onPressed: enabled ? () => controller!.rotateInstance(i['id']) : null,
+              icon: const Icon(Icons.rotate_right),
+              label: Text('90° drehen (${i['rotation'] ?? 0}°)'),
             ),
             TextButton.icon(
               onPressed: enabled ? () => deviceEdit(i) : null,

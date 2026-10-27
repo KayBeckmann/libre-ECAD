@@ -7,6 +7,45 @@ import 'package:company_users_service/src/workspace/pdf_output.dart';
 import 'package:company_users_service/src/workspace/git_archive.dart';
 
 void main() {
+  test('protective glyphs keep fine contacts in SVG and PDF export', () async {
+    for (final key in [
+      'mcb1',
+      'mcb2',
+      'mcb3',
+      'rcd2',
+      'rcd4',
+      'rcbo2',
+      'rcbo4',
+    ]) {
+      final d = emptyDrawing();
+      final sid = objects(d, 'sheets').first['id'] as String;
+      addSymbol(d, key, sid, 400, 400);
+      final svg = sheetSvg(d, sid);
+      final poles = symbolPins(symbolByKey(key)).length ~/ 2;
+      expect(
+        RegExp(r'<circle cx="\d+" cy="\d+" r="4"').allMatches(svg),
+        hasLength(poles * 2),
+        reason: key,
+      );
+      for (final p in symbolPins(symbolByKey(key)).take(poles)) {
+        final x = 400 + (p['x'] as num);
+        expect(svg, contains('d="M$x 380 L${x + 10} 410"'), reason: key);
+        expect(svg, contains('d="M${x + 10} 410 L$x 420"'), reason: key);
+      }
+      final pdf = await projectPdf(
+        {
+          'id': 'protective-$key',
+          'name': 'Schutzgeräte',
+          'version': 1,
+          'drawing': d,
+        },
+        status: 'TEST',
+        stamp: 'V1',
+      );
+      expect(ascii.decode(pdf.take(4).toList()), '%PDF', reason: key);
+    }
+  });
+
   test('exported SVG has the same framed title and persisted revisions', () {
     final d = emptyDrawing();
     final sheet = objects(d, 'sheets').first;

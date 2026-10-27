@@ -129,19 +129,19 @@ String sheetSvg(
     d,
     'wires',
   ).where((w) => w['sheetId'] == sheetId && plan?['kind'] != 'layout')) {
-    final a = endpointPosition(d, w['from']), b = endpointPosition(d, w['to']);
-    final mid = ((a.y + b.y) / 40).round() * 20;
-    line(a.x, a.y, a.x, mid);
-    line(a.x, mid, b.x, mid);
-    line(b.x, mid, b.x, b.y);
+    final points = routedWirePoints(d, w);
+    for (var n = 1; n < points.length; n++) {
+      line(points[n - 1].x, points[n - 1].y, points[n].x, points[n].y);
+    }
+    final labelPoint = points.length > 1 ? points[1] : points.first;
     if (w['conductor'] != null)
-      label(w['conductor'], a.x + 6, mid - 20, size: 12);
+      label(w['conductor'], labelPoint.x + 6, labelPoint.y - 30, size: 12);
     if (w['cableId'] != null) {
       final c = objectById(d, 'cables', w['cableId']);
       final core = (c['cores'] as List).firstWhere(
         (v) => v['id'] == w['coreId'],
       );
-      label('${c['bmk']}:${core['label']}', a.x + 6, mid - 5, size: 10);
+      label('${c['bmk']}:${core['label']}', labelPoint.x + 6, labelPoint.y - 16, size: 10);
     }
   }
   for (final i in objects(
@@ -166,13 +166,23 @@ String sheetSvg(
       }
       continue;
     }
+    // Apply the same clockwise quarter-turn around the instance origin as
+    // the canvas, but emit concrete coordinates for SVG/PDF compatibility.
+    final rotation = i['rotation'] ?? 0;
+    (num, num) point(num dx, num dy) => switch (rotation) {
+      90 => (x - dy, y + dx),
+      180 => (x - dx, y - dy),
+      270 => (x + dy, y - dx),
+      _ => (x + dx, y + dy),
+    };
     for (final shape in symbolGeometry(s)) {
-      final a = x + (shape['x'] as num), b = y + (shape['y'] as num);
+      final (a, b) = point(shape['x'], shape['y']);
       switch (shape['kind']) {
         case 'line':
-          line(a, b, x + shape['x2'], y + shape['y2']);
+          final (x2, y2) = point(shape['x2'], shape['y2']);
+          line(a, b, x2, y2);
         case 'rect':
-          final x2 = x + (shape['x2'] as num), y2 = y + (shape['y2'] as num);
+          final (x2, y2) = point(shape['x2'], shape['y2']);
           rect(
             a < x2 ? a : x2,
             b < y2 ? b : y2,
