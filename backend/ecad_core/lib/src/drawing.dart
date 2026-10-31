@@ -21,6 +21,7 @@ Json emptyDrawing() => {
     {'id': newId(), 'number': 1, 'title': 'Stromlaufplan'},
   ],
   'devices': <Json>[],
+  'terminalStrips': <Json>[],
   'instances': <Json>[],
   'nodes': <Json>[],
   'continuations': <Json>[],
@@ -29,7 +30,10 @@ Json emptyDrawing() => {
 };
 
 List<Json> objects(Json d, String key) =>
-    ((key == 'symbols' ? d[key] ?? const <Json>[] : d[key]) as List)
+    ((key == 'symbols' || key == 'terminalStrips'
+                ? d[key] ?? const <Json>[]
+                : d[key])
+            as List)
         .cast<Json>();
 Json objectById(Json d, String kind, String id) => objects(d, kind).firstWhere(
   (o) => o['id'] == id,
@@ -73,16 +77,130 @@ String proposedBmk(
 }) {
   final sheet = objectById(d, 'sheets', sheetId);
   final base = '${sheet['number']}-$code${columnFor(x)}';
-  final used = objects(
-    d,
-    'devices',
-  ).where((v) => v['id'] != exceptDevice).map((v) => v['bmk']).toSet();
+  final used =
+      objects(d, 'devices')
+          .where((v) => v['id'] != exceptDevice)
+          .map((v) => (v['bmk'] as String).toUpperCase())
+          .toSet()
+        ..addAll(
+          objects(
+            d,
+            'terminalStrips',
+          ).map((s) => (s['bmk'] as String).toUpperCase()),
+        );
   var result = base, index = 0;
-  while (used.contains(result)) {
+  while (used.contains(result.toUpperCase())) {
     result = '$base.${++index}';
   }
   return result;
 }
+
+bool _validTerminalMark(String mark) =>
+    mark.isNotEmpty &&
+    mark == mark.trim() &&
+    mark.runes.length <= 3 &&
+    !mark.contains(RegExp(r'[\x00-\x1f]'));
+
+void _checkStripBmk(Json d, String bmk, {String? exceptId}) {
+  if (bmk.isEmpty ||
+      bmk != bmk.trim() ||
+      bmk.length > 80 ||
+      bmk.contains(RegExp(r'[\x00-\x1f]')) ||
+      objects(d, 'terminalStrips').any(
+        (s) =>
+            s['id'] != exceptId &&
+            (s['bmk'] as String).toUpperCase() == bmk.toUpperCase(),
+      ) ||
+      objects(
+        d,
+        'devices',
+      ).any((v) => (v['bmk'] as String).toUpperCase() == bmk.toUpperCase()) ||
+      objects(
+        d,
+        'cables',
+      ).any((v) => (v['bmk'] as String).toUpperCase() == bmk.toUpperCase())) {
+    throw FormatException('Klemmenleisten-BMK ungültig oder doppelt: $bmk');
+  }
+}
+
+/// Creates a strip independent of its terminal devices. BMKs are unique across
+/// strips, devices and cables; the returned object is also stored in [d].
+Json createTerminalStrip(Json d, String bmk, {String? label}) {
+  _checkStripBmk(d, bmk);
+  if (label != null &&
+      (label.trim().isEmpty ||
+          label.length > 160 ||
+          label.contains(RegExp(r'[\x00-\x1f]')))) {
+    throw FormatException('Ungültige Klemmenleisten-Beschreibung.');
+  }
+  final strip = <String, dynamic>{
+    'id': newId(),
+    'bmk': bmk,
+    if (label != null) 'label': label,
+  };
+  (d.putIfAbsent('terminalStrips', () => <Json>[]) as List).add(strip);
+  return strip;
+}
+
+void renameTerminalStrip(Json d, String stripId, String bmk) {
+  final strip = objectById(d, 'terminalStrips', stripId);
+  _checkStripBmk(d, bmk, exceptId: stripId);
+  strip['bmk'] = bmk;
+}
+
+/// Assigns one single-port terminal device to a strip. The device BMK, port ID,
+/// instance IDs and wire endpoint references remain unchanged.
+void assignTerminalToStrip(
+  Json d,
+  String deviceId,
+  String stripId,
+  String mark,
+) {
+  final device = objectById(d, 'devices', deviceId);
+  objectById(d, 'terminalStrips', stripId);
+  if (device['type'] != 'terminal' ||
+      (device['terminals'] as List).length != 1 ||
+      !_validTerminalMark(mark)) {
+    throw FormatException(
+      'Einpolige Klemme und Zeichen mit 1–3 Stellen erforderlich.',
+    );
+  }
+  if (objects(d, 'devices').any(
+    (v) =>
+        v['id'] != deviceId &&
+        v['terminalStripId'] == stripId &&
+        (v['terminals'] as List).first['label'] == mark,
+  )) {
+    throw FormatException('Klemmenzeichen auf Leiste doppelt: $mark');
+  }
+  device['terminalStripId'] = stripId;
+  (device['terminals'] as List).first['label'] = mark;
+}
+
+void setTerminalMark(Json d, String deviceId, String mark) {
+  final device = objectById(d, 'devices', deviceId);
+  final stripId = device['terminalStripId'];
+  if (stripId is! String)
+    throw FormatException('Klemme gehört keiner Leiste an.');
+  assignTerminalToStrip(d, deviceId, stripId, mark);
+}
+
+/// Refuses to remove a strip while any terminal still references it.
+void deleteTerminalStrip(Json d, String stripId) {
+  objectById(d, 'terminalStrips', stripId);
+  if (objects(d, 'devices').any((v) => v['terminalStripId'] == stripId)) {
+    throw FormatException('Klemmenleiste enthält noch Klemmen.');
+  }
+  (d['terminalStrips'] as List).removeWhere((v) => v['id'] == stripId);
+}
+
+/// Legacy terminals retain their own device BMK; assigned terminals display
+/// their parent strip BMK instead. Never use this for electrical identity.
+String terminalDisplayBmk(Json d, Json device) =>
+    device['terminalStripId'] == null
+    ? device['bmk'] as String
+    : objectById(d, 'terminalStrips', device['terminalStripId'])['bmk']
+          as String;
 
 Json addSymbol(
   Json d,
@@ -392,6 +510,7 @@ Json validateDrawing(Object? input) {
     'calculations',
     'sheets',
     'devices',
+    'terminalStrips',
     'instances',
     'nodes',
     'continuations',
@@ -437,6 +556,18 @@ Json validateDrawing(Object? input) {
       }
     }
   }
+  final strips = d.containsKey('terminalStrips')
+      ? list(d, 'terminalStrips', 500, {'id', 'bmk', 'label'})
+      : <Json>[];
+  final bmks = <String>{};
+  for (final strip in strips) {
+    final bmk = text(strip, 'bmk', max: 80);
+    if (bmk != bmk.trim() || !bmks.add(bmk.toUpperCase()))
+      fail('Klemmenleisten-BMK doppelt oder ungültig.');
+    if (strip.containsKey('label')) text(strip, 'label');
+  }
+  final stripIds = strips.map((s) => s['id']).toSet();
+  final marks = <String, Set<String>>{};
   final devices = list(d, 'devices', 500, {
     'id',
     'bmk',
@@ -445,8 +576,8 @@ Json validateDrawing(Object? input) {
     'terminals',
     'article',
     'channels',
+    'terminalStripId',
   });
-  final bmks = <String>{};
   for (final o in devices) {
     final bmk = text(o, 'bmk', max: 80);
     if (bmk != bmk.trim() || !bmks.add(bmk.toUpperCase()))
@@ -458,6 +589,18 @@ Json validateDrawing(Object? input) {
     final terminals = list(o, 'terminals', 128, {'id', 'label'});
     for (final t in terminals) {
       text(t, 'label', max: 40);
+    }
+    if (o.containsKey('terminalStripId')) {
+      if (type != 'terminal' ||
+          terminals.length != 1 ||
+          !stripIds.contains(o['terminalStripId']))
+        fail('Ungültige Klemmenleisten-Zuordnung.');
+      final mark = terminals.single['label'] as String;
+      if (!_validTerminalMark(mark) ||
+          !marks
+              .putIfAbsent(o['terminalStripId'] as String, () => <String>{})
+              .add(mark))
+        fail('Klemmenzeichen ungültig oder auf Leiste doppelt.');
     }
     final required = defs.first.allPorts.toSet();
     if (type == 'relay'
@@ -602,12 +745,19 @@ Json validateDrawing(Object? input) {
   })) {
     if (w['waypoints'] != null) {
       final points = w['waypoints'];
-      if (points is! List || points.length > 64) fail('Ungültige Leitungspunkte.');
+      if (points is! List || points.length > 64)
+        fail('Ungültige Leitungspunkte.');
       for (final point in points) {
-        if (point is! Json || point.keys.toSet().difference({'x', 'y'}).isNotEmpty ||
-            point['x'] is! num || point['y'] is! num ||
-            !(point['x'] as num).isFinite || !(point['y'] as num).isFinite ||
-            point['x'] < 0 || point['x'] > 1200 || point['y'] < 0 || point['y'] > 800)
+        if (point is! Json ||
+            point.keys.toSet().difference({'x', 'y'}).isNotEmpty ||
+            point['x'] is! num ||
+            point['y'] is! num ||
+            !(point['x'] as num).isFinite ||
+            !(point['y'] as num).isFinite ||
+            point['x'] < 0 ||
+            point['x'] > 1200 ||
+            point['y'] < 0 ||
+            point['y'] > 800)
           fail('Ungültiger Leitungspunkt.');
       }
     }

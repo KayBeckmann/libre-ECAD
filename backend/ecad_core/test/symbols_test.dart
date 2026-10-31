@@ -3,6 +3,177 @@ import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('thermal motor variants have independent sensing terminals and leads', () {
+    const variants = <String, List<String>>{
+      'motor_1ph_thermistor': ['L', 'N', 'PE', 'T1', 'T2'],
+      'motor_3ph_thermistor': ['U', 'V', 'W', 'PE', 'T1', 'T2'],
+    };
+    for (final entry in variants.entries) {
+      final s = symbolByKey(entry.key);
+      expect(s.group, 'Antriebe / Energie');
+      expect(s.ports, entry.value);
+      expect(s.allPorts, entry.value);
+      final pins = symbolPins(s);
+      expect(pins.map((p) => p['id']), entry.value);
+      expect({
+        for (final p in pins) '${p['x']}/${p['y']}',
+      }, hasLength(pins.length));
+      for (final shapeSet in [
+        symbolGeometry(s),
+        (symbolTemplate(entry.key, 'probe')['primitives'] as List)
+            .cast<Map<String, dynamic>>(),
+      ]) {
+        for (final pin in pins) {
+          expect(
+            shapeSet.any(
+              (shape) =>
+                  shape['kind'] == 'line' &&
+                  (shape['x'] == pin['x'] && shape['y'] == pin['y'] ||
+                      shape['x2'] == pin['x'] && shape['y2'] == pin['y']),
+            ),
+            isTrue,
+            reason: '${entry.key}:${pin['id']} has no visible lead',
+          );
+        }
+      }
+      expect(validateSymbol(symbolTemplate(entry.key, 'probe')), isNotNull);
+      final d = emptyDrawing();
+      final i = addSymbol(
+        d,
+        entry.key,
+        objects(d, 'sheets').first['id'],
+        400,
+        400,
+      );
+      expect(instancePorts(d, i), entry.value);
+      expect(nets(d), hasLength(entry.value.length));
+      final endpoints = [
+        for (final pin in entry.value) endpointKey(d, portRef(i['id'], pin)),
+      ];
+      expect(endpoints.toSet(), hasLength(entry.value.length));
+      expect(
+        canonicalJson(validateDrawing(jsonDecode(canonicalJson(d)))),
+        canonicalJson(d),
+      );
+    }
+    // The original unprotected symbols keep their historical electrical identities.
+    expect(symbolByKey('motor_1ph').ports, ['L', 'N', 'PE']);
+    expect(symbolByKey('motor').ports, ['U', 'V', 'W', 'PE']);
+  });
+
+  test('manual key and multi-position switches expose electrical throws', () {
+    const manual = <String, List<String>>{
+      'key_switch_no': ['1', '2'],
+      'key_switch_nc': ['1', '2'],
+      'stage_switch_3pos': ['COM', 'S1', 'S2'],
+      'selector_3pos': ['COM', 'P1', 'P2', 'P3'],
+    };
+    for (final entry in manual.entries) {
+      final s = symbolByKey(entry.key);
+      expect(s.group, 'Grundschaltungen');
+      expect(s.ports, entry.value);
+      expect(s.allPorts, entry.value);
+      final pins = symbolPins(s);
+      expect(pins.map((p) => p['id']), entry.value);
+      expect({
+        for (final p in pins) '${p['x']}/${p['y']}',
+      }, hasLength(pins.length));
+      for (final pin in pins) {
+        expect(
+          symbolGeometry(s).any(
+            (shape) =>
+                shape['kind'] == 'line' &&
+                (shape['x'] == pin['x'] && shape['y'] == pin['y'] ||
+                    shape['x2'] == pin['x'] && shape['y2'] == pin['y']),
+          ),
+          isTrue,
+          reason: '${entry.key}:${pin['id']} lacks a lead',
+        );
+      }
+      expect(validateSymbol(symbolTemplate(entry.key, 'manual')), isNotNull);
+      final d = emptyDrawing();
+      final i = addSymbol(
+        d,
+        entry.key,
+        objects(d, 'sheets').first['id'],
+        400,
+        400,
+      );
+      expect(instancePorts(d, i), entry.value);
+      expect(nets(d), hasLength(entry.value.length));
+      expect(validateDrawing(jsonDecode(canonicalJson(d))), isNotNull);
+    }
+  });
+
+  test(
+    'existing manual and relay contacts distinguish rest-open and rest-closed',
+    () {
+      bool lineAt(
+        List<Map<String, dynamic>> shapes,
+        num x,
+        num y,
+        num x2,
+        num y2,
+      ) => shapes.any(
+        (p) =>
+            p['kind'] == 'line' &&
+            p['x'] == x &&
+            p['y'] == y &&
+            p['x2'] == x2 &&
+            p['y2'] == y2,
+      );
+      for (final key in [
+        'switch',
+        'contact',
+        'contact_nc',
+        'push_no',
+        'push_nc',
+        'changeover',
+      ]) {
+        final s = symbolByKey(key);
+        for (final shapes in [
+          symbolGeometry(s),
+          (symbolTemplate(key, 'legacy')['primitives'] as List)
+              .cast<Map<String, dynamic>>(),
+        ]) {
+          expect(
+            shapes.where((p) => p['kind'] == 'rect'),
+            isEmpty,
+            reason: key,
+          );
+          if (key == 'changeover') {
+            expect(
+              lineAt(shapes, -20, 0, 20, 40),
+              isTrue,
+              reason: 'common rests on NC',
+            );
+            expect(
+              lineAt(shapes, 20, -40, 40, -40),
+              isTrue,
+              reason: 'NO remains separate',
+            );
+          } else {
+            expect(lineAt(shapes, 0, -40, 0, -20), isTrue, reason: key);
+            expect(lineAt(shapes, 0, 20, 0, 40), isTrue, reason: key);
+            expect(
+              lineAt(shapes, 0, 20, 0, -20),
+              key == 'contact_nc' || key == 'push_nc',
+              reason: key,
+            );
+            if (key == 'push_no' || key == 'push_nc') {
+              expect(
+                shapes.where((p) => p['kind'] == 'circle').length,
+                2,
+                reason: key,
+              );
+            }
+          }
+        }
+        expect(validateSymbol(symbolTemplate(key, 'legacy')), isNotNull);
+      }
+    },
+  );
+
   test('general built-ins have distinct pins and valid original vectors', () {
     const expected = <String, List<String>>{
       'earth': ['PE'],

@@ -703,7 +703,7 @@ class SheetPainter extends CustomPainter {
                   ['Drehstrom', 'Automatisierung'].contains(symbol.group)
               ? 140
               : 32);
-      label(c, '${device['bmk']}', Offset(labelX, y - 20), size: 14);
+      label(c, terminalDisplayBmk(d, device), Offset(labelX, y - 20), size: 14);
       label(c, '${device['label']}', Offset(labelX, y), size: 10);
       final refs = instanceReferences(
         d,
@@ -724,16 +724,19 @@ class SheetPainter extends CustomPainter {
       for (final contact in comb) {
         final cx = (contact['x'] as num).toDouble(),
             cy = (contact['y'] as num).toDouble();
-        c.drawLine(Offset(cx, cy - 15), Offset(cx, cy - 8), line);
+        // Mirror the SVG/PDF comb: NO has an air gap, NC touches its terminal.
+        final nc = contact['role'] == 'nc';
+        c.drawLine(
+          Offset(nc ? cx + 8 : cx, cy - 15),
+          Offset(nc ? cx + 8 : cx, cy - 8),
+          line,
+        );
         c.drawLine(Offset(cx, cy + 8), Offset(cx, cy + 15), line);
         c.drawLine(
           Offset(cx, cy + 8),
-          Offset(contact['role'] == 'nc' ? cx : cx + 12, cy - 8),
+          Offset(cx + 8, nc ? cy - 8 : cy - 3),
           line,
         );
-        if (contact['role'] == 'nc') {
-          c.drawLine(Offset(cx - 5, cy - 8), Offset(cx + 5, cy - 8), line);
-        }
         label(
           c,
           contact['terminals'].join('/'),

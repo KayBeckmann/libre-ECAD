@@ -590,6 +590,7 @@ class WorkspaceRouter {
               sheet['id'],
               projectName: public['name'] as String,
               version: public['version'] as int,
+              stamp: releaseId.substring(0, 8),
               reviewStatus: 'FACHLICH FESTGESCHRIEBEN',
             ),
           ),

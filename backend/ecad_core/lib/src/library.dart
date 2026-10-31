@@ -314,6 +314,43 @@ const symbolLibrary = <SymbolDefinition>[
     ['P', 'N'],
     ['P', 'N'],
   ),
+  // Keep the historical first 29 IDs in order for version-4 pinned drawings.
+  SymbolDefinition(
+    'key_switch_no',
+    'Schlüsselschalter · Schließer',
+    'Grundschaltungen',
+    'key_switch_no',
+    'S',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'key_switch_nc',
+    'Schlüsselschalter · Öffner',
+    'Grundschaltungen',
+    'key_switch_nc',
+    'S',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'stage_switch_3pos',
+    'Stufenschalter 0/1/2',
+    'Grundschaltungen',
+    'stage_switch_3pos',
+    'S',
+    ['COM', 'S1', 'S2'],
+    ['COM', 'S1', 'S2'],
+  ),
+  SymbolDefinition(
+    'selector_3pos',
+    'Wahlschalter 1/2/3',
+    'Grundschaltungen',
+    'selector_3pos',
+    'S',
+    ['COM', 'P1', 'P2', 'P3'],
+    ['COM', 'P1', 'P2', 'P3'],
+  ),
   // Independently drafted functional glyphs, not external artwork.
   SymbolDefinition(
     'mcb1',
@@ -404,6 +441,24 @@ const symbolLibrary = <SymbolDefinition>[
     'M',
     ['L', 'N', 'PE'],
     ['L', 'N', 'PE'],
+  ),
+  SymbolDefinition(
+    'motor_1ph_thermistor',
+    'Wechselstrommotor 1~ mit Thermistor T1/T2',
+    'Antriebe / Energie',
+    'motor_1ph_thermistor',
+    'M',
+    ['L', 'N', 'PE', 'T1', 'T2'],
+    ['L', 'N', 'PE', 'T1', 'T2'],
+  ),
+  SymbolDefinition(
+    'motor_3ph_thermistor',
+    'Drehstrommotor 3~ mit Thermistor T1/T2',
+    'Antriebe / Energie',
+    'motor_3ph_thermistor',
+    'M',
+    ['U', 'V', 'W', 'PE', 'T1', 'T2'],
+    ['U', 'V', 'W', 'PE', 'T1', 'T2'],
   ),
   SymbolDefinition(
     'motor_6terminal',
@@ -727,6 +782,17 @@ List<Map<String, dynamic>> symbolPins(SymbolDefinition s) {
       pins.addAll([(0, -60), (0, 60), (60, 0)]);
     } else if (s.key == 'motor_1ph') {
       pins.addAll([(-40, -60), (40, -60), (0, 60)]);
+    } else if (s.key == 'motor_1ph_thermistor') {
+      pins.addAll([(-20, -60), (20, -60), (0, 60), (80, -20), (80, 20)]);
+    } else if (s.key == 'motor_3ph_thermistor') {
+      pins.addAll([
+        (-20, -60),
+        (0, -60),
+        (20, -60),
+        (0, 60),
+        (80, -20),
+        (80, 20),
+      ]);
     } else {
       pins.addAll([(0, -60), (0, 60)]);
     }
@@ -745,6 +811,8 @@ List<Map<String, dynamic>> symbolPins(SymbolDefinition s) {
       'earth' => [(0, -40)],
       'transformer' => [(-40, -40), (-40, 40), (40, -40), (40, 40)],
       'changeover' => [(-40, 0), (40, -40), (40, 40)],
+      'stage_switch_3pos' => [(-60, 0), (60, -30), (60, 30)],
+      'selector_3pos' => [(-60, 0), (60, -40), (60, 0), (60, 40)],
       _ => [(0, -40), (0, 40)],
     };
     return [
@@ -836,14 +904,13 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
         line(pins[i]['x'], 20, pins[i]['x'], 60),
         circle(pins[i]['x'], -20, 4),
         circle(pins[i]['x'], 20, 4),
-        // The slanted switching path joins both contact nodes and their leads.
-        line(pins[i]['x'], -20, (pins[i]['x'] as num) + 10, 10),
-        line((pins[i]['x'] as num) + 10, 10, pins[i]['x'], 20),
+        // Resting open: the lower blade stops clear of the upper fixed node.
+        line(pins[i]['x'], 20, (pins[i]['x'] as num) + 20, -10),
       ],
       // Dashes mark mechanical coupling, never an electrical connection.
       if (columns > 1)
         for (var i = 0; i < columns - 1; i++)
-          line((pins[i]['x'] as num) + 10, 0, (pins[i]['x'] as num) + 30, 0),
+          line((pins[i]['x'] as num) + 20, 10, (pins[i]['x'] as num) + 30, 10),
       if (s.key.startsWith('rcd') || s.key.startsWith('rcbo'))
         text('IΔ', -halfWidth + 10, -40),
       if (s.key.startsWith('mcb') || s.key.startsWith('rcbo'))
@@ -864,6 +931,22 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
         else if ((p['y'] as num).abs() == 60)
           line(p['x'], p['y'], p['x'], (p['y'] as num) < 0 ? -40 : 40),
     ];
+    if (s.key == 'motor_1ph_thermistor' || s.key == 'motor_3ph_thermistor')
+      return [
+        for (final p in pins.where((p) => p['id'] != 'T1' && p['id'] != 'T2'))
+          line(p['x'], p['y'], p['x'], (p['y'] as num) < 0 ? -30 : 30),
+        circle(0, 0, 30),
+        text('M', -10, -10),
+        text(s.key == 'motor_1ph_thermistor' ? '1~' : '3~', -10, 10),
+        // The thermal sensing circuit is drawn outside the motor outline.
+        // Neither of its leads touches a winding or protective-earth lead.
+        line(80, -20, 60, -20),
+        line(60, -20, 60, -10),
+        rect(50, -10, 70, 10),
+        line(50, 10, 70, -10),
+        line(60, 10, 60, 20),
+        line(60, 20, 80, 20),
+      ];
     if (s.key.startsWith('motor_'))
       return [
         ...stems,
@@ -1011,25 +1094,42 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
       ],
       'push_no' || 'push_nc' => [
         ...stem,
-        circle(0, -20, 10),
-        circle(0, 20, 10),
-        line(
-          -20,
-          s.key == 'push_nc' ? -20 : 0,
-          20,
-          s.key == 'push_nc' ? -20 : 0,
-        ),
-        line(-10, -30, 10, -30),
-        if (s.key == 'push_nc') line(0, -20, 0, 20),
+        circle(0, -20, 4),
+        circle(0, 20, 4),
+        line(0, 20, s.key == 'push_nc' ? 0 : 20, -20),
+        // Manual push actuator, not a third conductive pin.
+        line(-30, -10, -10, -10),
+        line(-20, -20, -20, 0),
       ],
       'changeover' => [
         line(-40, 0, -20, 0),
-        line(-20, 0, 20, -30),
+        line(-20, 0, 20, 40),
         line(20, -40, 40, -40),
         line(20, 40, 40, 40),
         circle(-20, 0, 10),
         circle(20, -40, 10),
         circle(20, 40, 10),
+      ],
+      'key_switch_no' || 'key_switch_nc' => [
+        ...stem,
+        circle(0, -20, 4),
+        circle(0, 20, 4),
+        line(0, 20, s.key == 'key_switch_nc' ? 0 : 20, -20),
+        // Key/actuator mark is not an additional electrical terminal.
+        line(-30, -10, -10, -10),
+        circle(-30, -10, 8),
+      ],
+      'stage_switch_3pos' || 'selector_3pos' => [
+        line(-60, 0, -40, 0),
+        circle(-40, 0, 4),
+        // One movable contact indicates selection; alternatives are not wired
+        // together. Stage 0 has no throw, unlike the three active selector positions.
+        line(-40, 0, 20, -20),
+        for (final p in symbolPins(s).skip(1)) ...[
+          line(40, p['y'], 60, p['y']),
+          circle(40, p['y'], 4),
+        ],
+        text(s.key == 'stage_switch_3pos' ? '0/1/2' : '1/2/3', -20, 40),
       ],
       'buzzer' => [
         ...stem,
@@ -1089,13 +1189,12 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
       for (var x = -40; x < 40; x += 10) line(x, 0, x + 4, 0),
     ];
   return [
-    line(0, -40, 0, -18),
-    line(0, 18, 0, 40),
+    line(0, -40, 0, -20),
+    line(0, 20, 0, 40),
     if (s.key == 'switch' || s.isContact) ...[
-      line(0, 18, s.role == 'nc' ? 0 : 20, -18),
-      circle(0, -18, 2),
-      circle(0, 18, 2),
-      if (s.role == 'nc') line(-10, -18, 10, -18),
+      line(0, 20, s.role == 'nc' ? 0 : 20, s.role == 'nc' ? -20 : -10),
+      circle(0, -20, 4),
+      circle(0, 20, 4),
     ] else ...[
       rect(-22, -18, 22, 18),
       text(s.code, -7, -9),

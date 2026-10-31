@@ -66,13 +66,17 @@ Json documentData(Json project) {
         for (final t in dev['terminals'])
           {
             'id': '${dev['id']}:${t['id']}',
-            'bmk': dev['bmk'],
+            'bmk': terminalDisplayBmk(d, dev),
+            if (dev['terminalStripId'] != null)
+              'terminalStripId': dev['terminalStripId'],
+            'deviceId': dev['id'],
             'terminal': t['label'],
             'connections': connections
                 .where(
                   (w) =>
-                      w['from'] == '${dev['bmk']}:${t['label']}' ||
-                      w['to'] == '${dev['bmk']}:${t['label']}',
+                      w['from'] ==
+                          '${terminalDisplayBmk(d, dev)}:${t['label']}' ||
+                      w['to'] == '${terminalDisplayBmk(d, dev)}:${t['label']}',
                 )
                 .map((w) => '${w['from']} -> ${w['to']}')
                 .join('; '),
@@ -104,7 +108,7 @@ String endpointName(Json d, Json ref) {
     final t = (dev['terminals'] as List).firstWhere(
       (t) => t['id'] == ref['terminalId'],
     );
-    return '${dev['bmk']}:${t['label']}';
+    return '${terminalDisplayBmk(d, dev)}:${t['label']}';
   }
   final o = objectById(
     d,

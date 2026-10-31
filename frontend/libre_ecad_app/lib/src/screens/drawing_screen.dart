@@ -16,6 +16,98 @@ import '../drawing/drawing_canvas.dart';
 import '../drawing/drawing_controller.dart';
 import '../models.dart';
 
+/// Display order only; persisted symbol keys and IDs remain unchanged.
+List<String> orderedPaletteGroups(Json drawing) {
+  const preferred = [
+    'Verteilerabgang',
+    'Steuer- / Motorabgang',
+    'Drehstrom',
+    'Automatisierung',
+    'Grundschaltungen',
+    'Schutzgeräte',
+    'Antriebe / Energie',
+    'Elektronik',
+    'Anschlussklemmen',
+  ];
+  final available = drawingSymbols(drawing).map((s) => s.group).toSet()
+    ..add('Artikelsymbole');
+  return [
+    ...preferred.where(available.contains),
+    ...(available.difference(preferred.toSet()).toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()))),
+  ];
+}
+
+List<SymbolDefinition> orderedPaletteSymbols(
+  Json drawing,
+  String group,
+  String query,
+) =>
+    drawingSymbols(drawing)
+        .where(
+          (s) =>
+              s.group == group &&
+              s.name.toLowerCase().contains(query.toLowerCase()),
+        )
+        .toList()
+      ..sort((a, b) {
+        final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        return byName != 0 ? byName : a.key.compareTo(b.key);
+      });
+
+/// A strip groups distinct devices; their electrical port ID remains '1'.
+void assignTerminalStrip(
+  Json drawing,
+  Json device,
+  String stripBmk,
+  String mark,
+) {
+  if (device['type'] != 'terminal' ||
+      (device['terminals'] as List).length != 1 ||
+      device['terminals'][0]['id'] != '1') {
+    throw const FormatException(
+      'Nur einzelne Klemmen mit Anschluss-ID 1 zuordnen.',
+    );
+  }
+  final strips = (drawing['terminalStrips'] ??= <Json>[]) as List;
+  final bmk = stripBmk.trim(), label = mark.trim();
+  if (bmk.isEmpty) {
+    device.remove('terminalStripId');
+    return;
+  }
+  if (label.isEmpty || label.runes.length > 3) {
+    throw const FormatException('Klemmenmarkierung: 1 bis 3 Zeichen.');
+  }
+  final existing = strips.cast<Json>().where(
+    (s) => (s['bmk'] as String).toUpperCase() == bmk.toUpperCase(),
+  );
+  final strip = existing.isEmpty
+      ? createTerminalStrip(drawing, bmk)
+      : existing.first;
+  assignTerminalToStrip(drawing, device['id'], strip['id'], label);
+}
+
+String nextTerminalMark(Json drawing, String stripId) {
+  final used = objects(drawing, 'devices')
+      .where((v) => v['terminalStripId'] == stripId)
+      .map((v) => '${v['terminals'][0]['label']}')
+      .toSet();
+  for (var n = 1; n <= 999; n++) {
+    if (!used.contains('$n')) return '$n';
+  }
+  throw const FormatException('Keine freie numerische Markierung (1–999).');
+}
+
+String terminalDisplayName(Json drawing, Json device) {
+  final id = device['terminalStripId'];
+  if (id == null) return '${device['bmk']}';
+  final strips = (drawing['terminalStrips'] as List? ?? []).cast<Json>();
+  final matches = strips.where((s) => s['id'] == id);
+  return matches.isEmpty
+      ? '${device['bmk']}'
+      : '${matches.first['bmk']}:${device['terminals'][0]['label']}';
+}
+
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -958,7 +1050,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Future<void> deviceEdit(Json i) async {
     final device = objectById(d, 'devices', i['deviceId']);
     final values = await fields('Betriebsmittel bearbeiten', {
-      'BMK': device['bmk'],
+      if (device['terminalStripId'] == null) 'BMK': device['bmk'],
       'Bezeichnung': device['label'],
       for (final t in device['terminals'] as List)
         'Anschluss ${t['id']}': t['label'],
@@ -966,12 +1058,41 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (values == null || !mounted) return;
     change((d) {
       final device = objectById(d, 'devices', i['deviceId']);
-      device['bmk'] = values['BMK'];
+      if (device['terminalStripId'] == null) device['bmk'] = values['BMK'];
       device['label'] = values['Bezeichnung'];
       for (final t in device['terminals'] as List) {
         t['label'] = values['Anschluss ${t['id']}'];
       }
     });
+  }
+
+  Future<void> terminalEdit(Json i) async {
+    final device = objectById(d, 'devices', i['deviceId']);
+    final strips = (d['terminalStrips'] as List? ?? []).cast<Json>();
+    final current = strips.where((s) => s['id'] == device['terminalStripId']);
+    final suggestion = current.isNotEmpty
+        ? current.first
+        : strips.isNotEmpty
+        ? strips.first
+        : null;
+    final alreadyMember = current.isNotEmpty;
+    final values = await fields('Klemme einer Leiste zuordnen', {
+      'Klemmenleiste (leer = lösen)': suggestion?['bmk'] ?? 'X1',
+      'Markierung (max. 3 Zeichen)': alreadyMember
+          ? device['terminals'][0]['label']
+          : suggestion == null
+          ? '1'
+          : nextTerminalMark(d, suggestion['id']),
+    });
+    if (values == null || !mounted) return;
+    change(
+      (drawing) => assignTerminalStrip(
+        drawing,
+        objectById(drawing, 'devices', i['deviceId']),
+        values['Klemmenleiste (leer = lösen)']!,
+        values['Markierung (max. 3 Zeichen)']!,
+      ),
+    );
   }
 
   Future<void> cable(Json wire) async {
@@ -1387,8 +1508,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                       editable: enabled && tool != 'pan',
                                       panning: tool == 'pan',
                                       onWireSegment: tool == 'select' && enabled
-                                          ? (id, segment, point) => controller!
-                                              .moveWireSegment(id, segment, point)
+                                          ? (id, segment, point) =>
+                                                controller!.moveWireSegment(
+                                                  id,
+                                                  segment,
+                                                  point,
+                                                )
                                           : null,
                                       pending: pendingPort,
                                       selectingRegion: tool == 'region',
@@ -1515,14 +1640,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           icon: const Icon(Icons.receipt_long_outlined),
           label: const Text('Material / ERP'),
         ),
-        for (final group in <String>{
-          'Verteilerabgang',
-          'Steuer- / Motorabgang',
-          'Drehstrom',
-          'Automatisierung',
-          'Artikelsymbole',
-          ...drawingSymbols(d).map((s) => s.group),
-        })
+        for (final group in orderedPaletteGroups(d))
           ExpansionTile(
             key: ValueKey(group),
             initiallyExpanded: true,
@@ -1532,9 +1650,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             children: [
-              for (final s in drawingSymbols(d).where(
-                (s) => s.group == group && s.name.toLowerCase().contains(query),
-              ))
+              for (final s in orderedPaletteSymbols(d, group, query))
                 ListTile(
                   dense: true,
                   contentPadding: const EdgeInsets.only(left: 6),
@@ -1561,7 +1677,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
   String endpointLabel(Json ref) {
     if (ref['kind'] == 'port') {
       final i = objectById(d, 'instances', ref['instanceId']);
-      return '${objectById(d, 'devices', i['deviceId'])['bmk']}:${ref['terminalId']}';
+      final device = objectById(d, 'devices', i['deviceId']);
+      return device['terminalStripId'] != null
+          ? terminalDisplayName(d, device)
+          : '${device['bmk']}:${ref['terminalId']}';
     }
     if (ref['kind'] == 'continuation') {
       return objectById(d, 'continuations', ref['id'])['label'];
@@ -1598,7 +1717,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
             )
           else ...[
             Text(
-              device!['bmk'],
+              terminalDisplayName(d, device!),
               style: const TextStyle(
                 fontSize: 24,
                 fontFamily: 'monospace',
@@ -1606,13 +1725,21 @@ class _DrawingScreenState extends State<DrawingScreen> {
               ),
             ),
             Text(device['label']),
+            if (i['symbol'] == 'terminal')
+              TextButton.icon(
+                onPressed: enabled ? () => terminalEdit(i) : null,
+                icon: const Icon(Icons.view_week_outlined),
+                label: const Text('Klemmenleiste / Markierung'),
+              ),
             const SizedBox(height: 6),
             Text(
               'Position ${positionReference(d, i)} · ${i['x']}/${i['y']}',
               style: const TextStyle(fontSize: 12),
             ),
             TextButton.icon(
-              onPressed: enabled ? () => controller!.rotateInstance(i['id']) : null,
+              onPressed: enabled
+                  ? () => controller!.rotateInstance(i['id'])
+                  : null,
               icon: const Icon(Icons.rotate_right),
               label: Text('90° drehen (${i['rotation'] ?? 0}°)'),
             ),
@@ -1621,30 +1748,32 @@ class _DrawingScreenState extends State<DrawingScreen> {
               icon: const Icon(Icons.edit_outlined, size: 16),
               label: const Text('Kennung / Anschlüsse'),
             ),
-            TextButton(
-              onPressed: enabled
-                  ? () async {
-                      final proposal = proposedBmk(
-                        d,
-                        i['sheetId'],
-                        symbolByKey(i['symbol'], d).code,
-                        i['x'],
-                        exceptDevice: device['id'],
-                      );
-                      if (await confirm(
-                            'BMK-Vorschlag übernehmen?',
-                            '${device['bmk']} -> $proposal. Alle Darstellungen erhalten dieselbe Kennung.',
-                          ) &&
-                          mounted) {
-                        change(
-                          (d) => objectById(d, 'devices', device['id'])['bmk'] =
-                              proposal,
+            if (device['terminalStripId'] == null)
+              TextButton(
+                onPressed: enabled
+                    ? () async {
+                        final proposal = proposedBmk(
+                          d,
+                          i['sheetId'],
+                          symbolByKey(i['symbol'], d).code,
+                          i['x'],
+                          exceptDevice: device['id'],
                         );
+                        if (await confirm(
+                              'BMK-Vorschlag übernehmen?',
+                              '${device['bmk']} -> $proposal. Alle Darstellungen erhalten dieselbe Kennung.',
+                            ) &&
+                            mounted) {
+                          change(
+                            (d) =>
+                                objectById(d, 'devices', device['id'])['bmk'] =
+                                    proposal,
+                          );
+                        }
                       }
-                    }
-                  : null,
-              child: const Text('BMK aus Position vorschlagen'),
-            ),
+                    : null,
+                child: const Text('BMK aus Position vorschlagen'),
+              ),
             TextButton.icon(
               onPressed: enabled && !api.isOffline
                   ? () => assignArticle(device)

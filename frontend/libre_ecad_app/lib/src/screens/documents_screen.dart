@@ -7,6 +7,61 @@ import '../api/workspace_api.dart';
 import '../models.dart';
 import '../export/pdf_download.dart';
 
+/// Natural order keeps X2 before X24/X100 and terminal 2 before 10.
+int compareTerminalLabels(String left, String right) {
+  final a = RegExp(r'\d+|\D+')
+      .allMatches(left.toLowerCase())
+      .map((m) => m.group(0)!)
+      .toList();
+  final b = RegExp(r'\d+|\D+')
+      .allMatches(right.toLowerCase())
+      .map((m) => m.group(0)!)
+      .toList();
+  for (var i = 0; i < a.length && i < b.length; i++) {
+    final ad = RegExp(r'^\d+$').hasMatch(a[i]);
+    final bd = RegExp(r'^\d+$').hasMatch(b[i]);
+    if (ad && bd) {
+      final an = a[i].replaceFirst(RegExp(r'^0+(?=\d)'), '');
+      final bn = b[i].replaceFirst(RegExp(r'^0+(?=\d)'), '');
+      final size = an.length.compareTo(bn.length);
+      if (size != 0) return size;
+      final value = an.compareTo(bn);
+      if (value != 0) return value;
+    } else {
+      final value = a[i].compareTo(b[i]);
+      if (value != 0) return value;
+    }
+  }
+  return a.length.compareTo(b.length);
+}
+
+/// Document rows expose terminalStripId and the strip's display BMK.
+Map<String, List<Json>> groupedTerminalRows(List<dynamic> rows) {
+  final result = <String, List<Json>>{};
+  for (final value in rows) {
+    final row = value as Json;
+    final id = row['terminalStripId'];
+    final key = id is String && id.isNotEmpty
+        ? '${row['bmk']}'
+        : 'Ohne Klemmenleiste';
+    result.putIfAbsent(key, () => []).add(row);
+  }
+  final names = result.keys.toList()
+    ..sort((a, b) {
+      if (a == 'Ohne Klemmenleiste') return 1;
+      if (b == 'Ohne Klemmenleiste') return -1;
+      return compareTerminalLabels(a, b);
+    });
+  return {
+    for (final name in names)
+      name: result[name]!
+        ..sort(
+          (a, b) =>
+              compareTerminalLabels('${a['terminal']}', '${b['terminal']}'),
+        ),
+  };
+}
+
 class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({
     super.key,
@@ -388,11 +443,14 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
               'number': 'Blatt',
               'title': 'Titel',
             }),
-            table('Klemmenliste', data['terminals'], {
-              'bmk': 'BMK',
-              'terminal': 'Anschluss',
-              'connections': 'Verbindungen',
-            }),
+            for (final entry in groupedTerminalRows(
+              data['terminals'] as List,
+            ).entries)
+              table('Klemmenliste · ${entry.key}', entry.value, {
+                if (entry.key == 'Ohne Klemmenleiste') 'bmk': 'BMK',
+                'terminal': 'Markierung / Anschluss',
+                'connections': 'Verbindungen',
+              }),
             table('Verbindungsliste', data['connections'], {
               'sheet': 'Blatt',
               'from': 'Von',

@@ -6,6 +6,49 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:libre_ecad_app/src/drawing/drawing_canvas.dart';
 
 void main() {
+  test(
+    'canvas linked NO gap and NC joined blade preserve the comb labels',
+    () async {
+      final drawing = sampleDrawing('three-phase');
+      final coil = objects(
+        drawing,
+        'instances',
+      ).firstWhere((i) => symbolByKey(i['symbol'], drawing).role == 'coil');
+      final comb = relayContactComb(drawing, coil);
+      final no = comb.firstWhere((c) => c['role'] != 'nc');
+      final nc = comb.firstWhere((c) => c['role'] == 'nc');
+      expect(no['terminals'], isNotEmpty);
+      expect(nc['terminals'], isNotEmpty);
+      expect(no['position'], isNotEmpty);
+      expect(nc['position'], isNotEmpty);
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      SheetPainter(
+        drawing,
+        coil['sheetId'],
+        'P',
+        1,
+        null,
+      ).paint(canvas, const Size(1200, 800));
+      final image = await recorder.endRecording().toImage(1200, 800);
+      addTearDown(image.dispose);
+      final pixels = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      int redAt(int x, int y) => pixels.getUint8((y * 1200 + x) * 4);
+      final nx = (no['x'] as num).toInt(), ny = (no['y'] as num).toInt();
+      final cx = (nc['x'] as num).toInt(), cy = (nc['y'] as num).toInt();
+      expect(redAt(nx, ny - 4), 255, reason: 'NO visible air gap');
+      expect(redAt(nx + 4, ny + 2), lessThan(200), reason: 'NO moving blade');
+      expect(
+        redAt(cx + 8, cy - 11),
+        lessThan(200),
+        reason: 'NC upper terminal',
+      );
+      expect(redAt(cx + 4, cy), lessThan(200), reason: 'NC closed blade');
+    },
+  );
+
   test('background stays visible only inside the drawing field', () async {
     final drawing = emptyDrawing();
     final sheetId = objects(drawing, 'sheets').first['id'] as String;

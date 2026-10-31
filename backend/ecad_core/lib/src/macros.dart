@@ -15,7 +15,8 @@ Json insertMacro(Json target, Json source, {Json? provenance}) {
     'cables',
   ];
   final mappings = {
-    for (final k in [...keys, 'symbols']) k: <String, String>{},
+    for (final k in [...keys, 'symbols', 'terminalStrips'])
+      k: <String, String>{},
   };
   for (final k in mappings.keys) {
     for (final o in (incoming[k] as List? ?? []).cast<Json>())
@@ -38,6 +39,26 @@ Json insertMacro(Json target, Json source, {Json? provenance}) {
       'id': mappings['symbols']![s['id']],
     });
   }
+  for (final strip in objects(incoming, 'terminalStrips')) {
+    var bmk = '$number-${strip['bmk']}', suffix = 0;
+    bool taken(String candidate) =>
+        [
+          ...objects(d, 'terminalStrips'),
+          ...objects(d, 'devices'),
+          ...objects(d, 'cables'),
+        ].any(
+          (item) =>
+              (item['bmk'] as String).toUpperCase() == candidate.toUpperCase(),
+        );
+    while (taken(bmk)) {
+      bmk = '$number-${strip['bmk']}.${++suffix}';
+    }
+    (d.putIfAbsent('terminalStrips', () => <Json>[]) as List).add({
+      ...strip,
+      'id': mappings['terminalStrips']![strip['id']],
+      'bmk': bmk,
+    });
+  }
   for (final device in objects(incoming, 'devices')) {
     final first = objects(
       incoming,
@@ -57,6 +78,9 @@ Json insertMacro(Json target, Json source, {Json? provenance}) {
     };
     if (type.startsWith('custom_'))
       copy['type'] = 'custom_${mappings['symbols']![type.substring(7)]}';
+    if (copy['terminalStripId'] != null)
+      copy['terminalStripId'] =
+          mappings['terminalStrips']![copy['terminalStripId']];
     if (copy['channels'] != null)
       copy['channels'] = [
         for (final c in (copy['channels'] as List).cast<Json>())
@@ -240,6 +264,15 @@ Json extractMacroRegion(
       original,
       'devices',
     ).where((dev) => deviceIds.contains(dev['id'])).toList()
+    ..['terminalStrips'] = objects(original, 'terminalStrips')
+        .where(
+          (strip) => objects(original, 'devices').any(
+            (dev) =>
+                deviceIds.contains(dev['id']) &&
+                dev['terminalStripId'] == strip['id'],
+          ),
+        )
+        .toList()
     ..['nodes'] = nodes
     ..['wires'] = wires
     ..['cables'] = cables

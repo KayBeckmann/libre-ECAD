@@ -4,6 +4,46 @@ import 'package:test/test.dart';
 
 void main() {
   test(
+    'terminal strips survive macro extraction and get fresh identities on insert',
+    () {
+      final source = emptyDrawing();
+      final sheet = objects(source, 'sheets').first['id'] as String;
+      final first = addSymbol(source, 'terminal', sheet, 200, 200);
+      final second = addSymbol(source, 'terminal', sheet, 400, 200);
+      final strip = createTerminalStrip(source, 'X1');
+      assignTerminalToStrip(source, first['deviceId'], strip['id'], '1');
+      assignTerminalToStrip(source, second['deviceId'], strip['id'], 'PE');
+      final region = extractMacroRegion(source, sheet, 100, 100, 500, 300);
+      expect(objects(region, 'terminalStrips'), hasLength(1));
+      expect(objects(region, 'devices').map((d) => d['terminalStripId']), [
+        strip['id'],
+        strip['id'],
+      ]);
+      final target = emptyDrawing();
+      createTerminalStrip(target, 'X1');
+      final inserted = insertMacro(target, region);
+      final groups = objects(inserted, 'terminalStrips');
+      expect(groups, hasLength(2));
+      final copiedStrip = groups.singleWhere(
+        (s) => s['id'] != objects(target, 'terminalStrips').single['id'],
+      );
+      expect(copiedStrip['bmk'], isNot('X1'));
+      expect(objects(inserted, 'devices').map((d) => d['terminalStripId']), [
+        copiedStrip['id'],
+        copiedStrip['id'],
+      ]);
+      expect(
+        objects(
+          inserted,
+          'devices',
+        ).map((d) => (d['terminals'] as List).single['label']),
+        containsAll(['1', 'PE']),
+      );
+      expect(validateDrawing(inserted), inserted);
+    },
+  );
+
+  test(
     'both macro use cases clone all identities, contacts, continuations and cables without joining networks',
     () {
       for (final kind in ['distribution', 'motor', 'three-phase']) {

@@ -11,6 +11,7 @@ String sheetSvg(
   String sheetId, {
   String? projectName,
   int? version,
+  String? stamp,
   String reviewStatus = 'Nicht fachlich freigegeben',
 }) {
   final out = StringBuffer(
@@ -81,15 +82,17 @@ String sheetSvg(
   }
   label('ZEICHNUNG', 456, 720, size: 10);
   label(sheet['title'], 456, 752, size: 20);
+  label('Symbolherkunft siehe Projektstand.', 456, 775, size: 8);
   label('PROJEKT', 866, 720, size: 10);
-  if (projectName != null) label(projectName, 866, 738, size: 14);
+  if (projectName != null) label(projectName, 866, 735, size: 14);
   label(
     'BLATT ${sheet['number']} / ${objects(d, 'sheets').length}${version == null ? '' : ' · Arbeitsstand $version'}',
     866,
-    756,
+    750,
     size: 11,
   );
-  label(reviewStatus, 866, 773, size: 10);
+  label('$reviewStatus${stamp == null ? '' : ' · $stamp'}', 866, 763, size: 10);
+  label('Keine Normprüfung oder Konformitätsaussage.', 866, 775, size: 8);
   if (plan != null) {
     label(
       '${planKinds[plan['kind']]} · ${plan['kind'] == 'layout'
@@ -141,7 +144,12 @@ String sheetSvg(
       final core = (c['cores'] as List).firstWhere(
         (v) => v['id'] == w['coreId'],
       );
-      label('${c['bmk']}:${core['label']}', labelPoint.x + 6, labelPoint.y - 16, size: 10);
+      label(
+        '${c['bmk']}:${core['label']}',
+        labelPoint.x + 6,
+        labelPoint.y - 16,
+        size: 10,
+      );
     }
   }
   for (final i in objects(
@@ -201,7 +209,7 @@ String sheetSvg(
                 ['Drehstrom', 'Automatisierung'].contains(s.group)
             ? 140
             : 32);
-    label(dev['bmk'], labelX, y - 8, size: 14);
+    label(terminalDisplayBmk(d, dev), labelX, y - 8, size: 14);
     label(dev['label'], labelX, y + 10, size: 10);
     final refs = instanceReferences(d, i).map((v) => v['position']).join(', ');
     if (refs.isNotEmpty && s.role != 'coil')
@@ -211,10 +219,12 @@ String sheetSvg(
       label('Kontaktkamm', comb.first['x'] - 16, y + 52, size: 10);
     for (final contact in comb) {
       final num cx = contact['x'], cy = contact['y'];
-      line(cx, cy - 15, cx, cy - 8);
+      // Approximate NO/NC convention: the slanted blade is separated from
+      // the NO fixed contact, while the NC blade touches its offset terminal.
+      final nc = contact['role'] == 'nc';
+      line(nc ? cx + 8 : cx, cy - 15, nc ? cx + 8 : cx, cy - 8);
       line(cx, cy + 8, cx, cy + 15);
-      line(cx, cy + 8, contact['role'] == 'nc' ? cx : cx + 12, cy - 8);
-      if (contact['role'] == 'nc') line(cx - 5, cy - 8, cx + 5, cy - 8);
+      line(cx, cy + 8, cx + 8, nc ? cy - 8 : cy - 3);
       label(contact['terminals'].join('/'), cx + 18, cy - 8, size: 10);
       label(
         contact['role'] == 'nc' ? 'Öffner' : 'Schließer',
@@ -488,23 +498,27 @@ Future<Uint8List> projectPdf(
     entries.add(
       '${doc.document.pdfPageList.pages.length + 1}   Blatt ${sheet['number']} - ${oneLine(sheet['title'])}',
     );
-    page([
-      pw.Text(
-        'Blatt ${sheet['number']} - ${oneLine(sheet['title'])}',
-        style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-      ),
-      pw.SvgImage(
-        svg: sheetSvg(
-          d,
-          sheet['id'],
-          projectName: project['name'] as String,
-          version: project['version'] as int,
-          reviewStatus: status,
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a3.landscape,
+        margin: const pw.EdgeInsets.all(10),
+        build: (_) => pw.Center(
+          child: pw.SvgImage(
+            svg: sheetSvg(
+              d,
+              sheet['id'],
+              projectName: project['name'] as String,
+              version: project['version'] as int,
+              stamp: stamp,
+              reviewStatus: status,
+            ),
+            width: 1170,
+            height: 780,
+            customFontLookup: (_, _, _) => regular,
+          ),
         ),
-        height: 650,
-        customFontLookup: (_, _, _) => regular,
       ),
-    ]);
+    );
   }
   for (final entry in tables.entries) {
     entries.add('${doc.document.pdfPageList.pages.length + 1}   ${entry.key}');
