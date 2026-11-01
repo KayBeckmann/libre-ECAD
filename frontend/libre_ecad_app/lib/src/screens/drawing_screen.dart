@@ -15,6 +15,9 @@ import '../api/workspace_api.dart';
 import '../drawing/drawing_canvas.dart';
 import '../drawing/drawing_controller.dart';
 import '../models.dart';
+import '../session_service.dart';
+
+import 'package:provider/provider.dart';
 
 /// Display order only; persisted symbol keys and IDs remain unchanged.
 String paletteGroup(SymbolDefinition s) {
@@ -156,6 +159,36 @@ String terminalDisplayName(Json drawing, Json device) {
       : '${matches.first['bmk']}:${device['terminals'][0]['label']}';
 }
 
+Json placeCatalogArticle(
+  Json drawing,
+  String sheetId,
+  num x,
+  num y,
+  GlobalArticleSearchHit hit,
+) {
+  final key = hit.symbolKey;
+  if (hit.source != 'catalog' ||
+      key == null ||
+      !drawingSymbols(drawing).any((symbol) => symbol.key == key)) {
+    throw const FormatException('Kein passendes Schaltsymbol zugeordnet.');
+  }
+  final instance = addSymbol(drawing, key, sheetId, x, y);
+  objectById(
+    drawing,
+    'devices',
+    instance['deviceId'],
+  )['article'] = articleSnapshot({
+    'id': hit.id,
+    'version': hit.version,
+    'articleNumber': hit.articleNumber,
+    'name': hit.name,
+    'manufacturerName': hit.manufacturerName,
+    'origin': hit.origin ?? 'Unbekannte Katalogquelle',
+    'license': hit.license ?? 'Ungeklärt – redaktionelle Katalogdaten',
+  });
+  return instance;
+}
+
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -176,6 +209,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Timer? heartbeat;
   String? error, sheetId, selected, pendingDevice;
   String name = '', tool = 'select', query = '';
+  Timer? catalogDebounce;
+  int catalogQueryVersion = 0;
+  List<GlobalArticleSearchHit>? catalogResults;
+  String? catalogError;
+  bool catalogBusy = false;
+  GlobalArticleSearchHit? pendingArticle;
   Rect? macroRegion;
   String? regionSheet;
   Json? pendingPort;
@@ -193,10 +232,46 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   @override
   void dispose() {
+    catalogDebounce?.cancel();
     heartbeat?.cancel();
     controller?.dispose();
     if (widget.api == null) api.close();
     super.dispose();
+  }
+
+  void searchLibrary(String value) {
+    final text = value.trim();
+    catalogDebounce?.cancel();
+    final version = ++catalogQueryVersion;
+    setState(() {
+      query = text.toLowerCase();
+      catalogResults = null;
+      catalogError = null;
+      catalogBusy = text.isNotEmpty;
+    });
+    if (text.isEmpty) return;
+    catalogDebounce = Timer(const Duration(milliseconds: 250), () async {
+      try {
+        final session = context.read<SessionService>();
+        final url = await session.loadGlobalArticlesUrl();
+        final results = await session
+            .globalArticlesApiFor(Uri.parse(url))
+            .search(text, source: 'catalog');
+        if (mounted && version == catalogQueryVersion) {
+          setState(() {
+            catalogResults = results;
+            catalogBusy = false;
+          });
+        }
+      } catch (e) {
+        if (mounted && version == catalogQueryVersion) {
+          setState(() {
+            catalogError = 'Herstellerkatalog nicht erreichbar: $e';
+            catalogBusy = false;
+          });
+        }
+      }
+    });
   }
 
   void refresh() {
@@ -866,6 +941,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       if (key != null) {
         setState(() {
           tool = 'place:$key';
+          pendingArticle = null;
           pendingDevice = null;
           pendingPort = null;
         });
@@ -949,18 +1025,24 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (tool.startsWith('place:')) {
       String? created;
       change((d) {
-        created = addSymbol(
-          d,
-          tool.substring(6),
-          sheetId!,
-          x,
-          y,
-          deviceId: pendingDevice,
-        )['id'];
+        created =
+            (pendingArticle != null &&
+                pendingDevice == null &&
+                pendingArticle!.symbolKey == tool.substring(6)
+            ? placeCatalogArticle(d, sheetId!, x, y, pendingArticle!)
+            : addSymbol(
+                d,
+                tool.substring(6),
+                sheetId!,
+                x,
+                y,
+                deviceId: pendingDevice,
+              ))['id'];
       });
       setState(() {
         selected = created;
         pendingDevice = null;
+        pendingArticle = null;
         tool = 'select';
       });
     } else if (tool == 'node') {
@@ -1405,6 +1487,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                     onSelected: enabled
                                         ? (_) => setState(() {
                                             tool = mode.$1;
+                                            pendingArticle = null;
                                             pendingPort = null;
                                             pendingDevice = null;
                                           })
@@ -1647,8 +1730,43 @@ class _DrawingScreenState extends State<DrawingScreen> {
             prefixIcon: Icon(Icons.search),
             isDense: true,
           ),
-          onChanged: (v) => setState(() => query = v.toLowerCase()),
+          onChanged: searchLibrary,
         ),
+        if (catalogBusy) const LinearProgressIndicator(),
+        if (catalogError != null) Text(catalogError!),
+        if (catalogResults != null && query.isNotEmpty) ...[
+          Text(
+            'Hersteller · ${catalogResults!.length} Treffer',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          for (final hit in catalogResults!.take(50))
+            ListTile(
+              dense: true,
+              title: Text('${hit.articleNumber} · ${hit.name}'),
+              subtitle: Text(
+                '${hit.manufacturerName ?? 'Unbekannt'} / ${hit.category ?? 'Ohne Typ'}${hit.symbolKey == null
+                    ? ' · Schaltsymbol fehlt'
+                    : !drawingSymbols(d).any((symbol) => symbol.key == hit.symbolKey)
+                    ? ' · Schaltsymbol nicht in dieser Zeichnung'
+                    : ''}',
+              ),
+              enabled:
+                  enabled &&
+                  hit.symbolKey != null &&
+                  drawingSymbols(d)
+                      .any((symbol) => symbol.key == hit.symbolKey),
+              onTap: () => setState(() {
+                tool = 'place:${hit.symbolKey}';
+                pendingArticle = hit;
+                pendingDevice = null;
+                pendingPort = null;
+              }),
+            ),
+          if (catalogResults!.length > 50)
+            const Text(
+              'Weitere Treffer: Suche mit Artikelnummer oder genauerer Bezeichnung eingrenzen.',
+            ),
+        ],
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: enabled && !api.isOffline ? importArticleSymbol : null,
@@ -1708,6 +1826,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   selected: tool == 'place:${s.key}',
                   onTap: () => setState(() {
                     tool = 'place:${s.key}';
+                    pendingArticle = null;
                     pendingDevice = null;
                     pendingPort = null;
                   }),
@@ -1915,6 +2034,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
               onChanged: enabled
                   ? (key) => setState(() {
                       tool = 'place:$key';
+                      pendingArticle = null;
                       pendingDevice = device['id'];
                       pendingPort = null;
                     })
