@@ -33,6 +33,40 @@ void main() {
     expect(row['typeName'], 'Leitungsschutzschalter 1-polig');
     expect(row['type'], 'mcb1'); // machine-readable key stays unchanged
   });
+  test('material combines identical catalog articles and lists every BMK', () {
+    final d = emptyDrawing();
+    final sheet = objects(d, 'sheets').first['id'] as String;
+    Json add(String bmk, {String? manufacturer, String? number}) {
+      final instance = addSymbol(d, 'mcb1', sheet, 200, 200);
+      final device = objectById(d, 'devices', instance['deviceId']);
+      device['bmk'] = bmk;
+      if (number != null) {
+        device['article'] = articleSnapshot({
+          'id': 'catalog-$manufacturer-demo', 'version': 1,
+          'articleNumber': number, 'name': 'TEST-B16/1',
+          'manufacturerName': manufacturer, 'license': 'Ungeklärt',
+          'origin': 'Testkatalog Seite 1',
+        });
+      }
+      return device;
+    }
+    add('Q2', manufacturer: 'FIKTIV', number: 'DEMO-236');
+    add('Q1', manufacturer: 'FIKTIV', number: 'DEMO-236');
+    add('Q3', manufacturer: 'ANDERS', number: 'DEMO-236');
+    add('Q4');
+    add('Q5');
+    final material = (documentData({
+      'id': 'p', 'name': 'Test', 'version': 1, 'drawing': d,
+    })['material'] as List).cast<Json>();
+    expect(material.length, 4);
+    final grouped = material.singleWhere((row) => row['bmk'] == 'Q1; Q2');
+    expect(grouped['quantity'], 2);
+    expect(grouped['articleNumber'], 'DEMO-236');
+    expect(grouped['label'], 'TEST-B16/1');
+    expect(material.where((row) => row['bmk'] == 'Q3').single['quantity'], 1);
+    expect(material.where((row) => row['bmk'] == 'Q4').single['quantity'], 1);
+    expect(material.where((row) => row['bmk'] == 'Q5').single['quantity'], 1);
+  });
   test('lists count shared relay once and retain connections', () {
     final d = sampleDrawing('motor');
     final data = documentData({

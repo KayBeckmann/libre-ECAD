@@ -30,7 +30,7 @@ Json documentData(Json project) {
           '${b['sheet']}/${b['from']}/${b['to']}',
         ),
       );
-  final material = [
+  final material = <Json>[
     for (final device in objects(d, 'devices'))
       {
         'id': device['id'],
@@ -51,6 +51,46 @@ Json documentData(Json project) {
             .join(', '),
       },
   ]..sort((a, b) => (a['bmk'] as String).compareTo(b['bmk'] as String));
+  final groupedMaterial = <Json>[];
+  final byArticle = <(String, String, String, String), Json>{};
+  for (final row in material) {
+    final article = row['article'];
+    if (article is! Map) {
+      groupedMaterial.add(row);
+      continue;
+    }
+    final number = '${article['number'] ?? ''}'.trim();
+    final manufacturer = '${article['manufacturer'] ?? ''}'.trim();
+    final id = '${article['id'] ?? ''}'.trim();
+    if ((number.isEmpty && id.isEmpty) ||
+        (manufacturer.isEmpty && id.isEmpty)) {
+      groupedMaterial.add(row);
+      continue;
+    }
+    // A catalog number alone is not unique across manufacturers. For legacy
+    // snapshots lacking either field, only the same article ID may merge.
+    final key = (
+      manufacturer.isNotEmpty && number.isNotEmpty ? manufacturer : 'id:$id',
+      number.isNotEmpty ? number : 'id:$id',
+      '${row['type']}',
+      '${row['label']}',
+    );
+    final existing = byArticle[key];
+    if (existing == null) {
+      byArticle[key] = row;
+      groupedMaterial.add(row);
+    } else {
+      existing['quantity'] = (existing['quantity'] as int) +
+          (row['quantity'] as int);
+      existing['bmk'] = '${existing['bmk']}; ${row['bmk']}';
+      final position = '${row['positions'] ?? ''}';
+      if (position.isNotEmpty) {
+        existing['positions'] = '${existing['positions'] ?? ''}'.isEmpty
+            ? position
+            : '${existing['positions']}; $position';
+      }
+    }
+  }
   return {
     'version': project['version'],
     'projectId': project['id'],
@@ -63,7 +103,7 @@ Json documentData(Json project) {
     ],
     'sheets': sheets,
     'connections': connections,
-    'material': material,
+    'material': groupedMaterial,
     'terminals': [
       for (final dev in objects(
         d,

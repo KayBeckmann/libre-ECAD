@@ -15,4 +15,16 @@ void main() {
     expect(row['articleNumber'], 'DEMO-236');
     expect(row['type'], 'Leitungsschutzschalter 1-polig');
   });
+  test('material table ends with semicolon-joined BMKs', () {
+    expect(materialTableFields.keys.toList(), [
+      'articleNumber', 'label', 'type', 'quantity', 'positions', 'bmk',
+    ]);
+    expect(materialTableFields.values.last, 'BMK');
+    final row = displayMaterialRow({
+      'bmk': 'Q1; Q2', 'label': 'TEST-B16/1', 'type': 'mcb1',
+      'quantity': 2, 'articleNumber': 'DEMO-236',
+    });
+    expect(row['bmk'], 'Q1; Q2');
+    expect(row['quantity'], 2);
+  });
 }

@@ -62,6 +62,15 @@ Map<String, List<Json>> groupedTerminalRows(List<dynamic> rows) {
   };
 }
 
+const materialTableFields = <String, String>{
+  'articleNumber': 'Art.-Nr.',
+  'label': 'Bezeichnung',
+  'type': 'Typ',
+  'quantity': 'Anzahl',
+  'positions': 'Positionen',
+  'bmk': 'BMK',
+};
+
 Json displayMaterialRow(Json row) {
   final article = row['article'];
   final name = article is Map ? article['name'] : null;
@@ -479,14 +488,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
               'connections': 'Verbindungen',
             }),
             table('Materialliste',
-                (data['material'] as List).map((r) => displayMaterialRow(r as Json)).toList(), {
-              'bmk': 'BMK',
-              'articleNumber': 'Art.-Nr.',
-              'label': 'Bezeichnung',
-              'type': 'Typ',
-              'quantity': 'Anzahl',
-              'positions': 'Positionen',
-            }),
+                (data['material'] as List).map((r) => displayMaterialRow(r as Json)).toList(),
+                materialTableFields),
           ],
         ],
       ),

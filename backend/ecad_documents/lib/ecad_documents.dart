@@ -260,6 +260,18 @@ String sheetSvg(
   return out.toString();
 }
 
+List<List<String>> materialPdfTable(Json data) => [
+  ['Bezeichnung / Art.-Nr.', 'Typ', 'Anzahl', 'Positionen', 'BMK'],
+  for (final m in data['material'])
+    [
+      '${m['label']}${m['articleNumber'] == null ? '' : ' · ${m['articleNumber']}'}',
+      '${m['typeName'] ?? m['type']}',
+      '${m['quantity']}',
+      '${m['positions']}',
+      '${m['bmk']}',
+    ],
+];
+
 Future<Uint8List> projectPdf(
   Json project, {
   required String status,
@@ -361,17 +373,7 @@ Future<Uint8List> projectPdf(
       for (final c in data['cables'])
         ['${c['bmk']}', '${c['core']}', '${c['color']}', '${c['connections']}'],
     ],
-    'Materialliste': [
-      ['BMK', 'Bezeichnung / Art.-Nr.', 'Typ', 'Anzahl', 'Positionen'],
-      for (final m in data['material'])
-        [
-          '${m['bmk']}',
-          '${m['label']}${m['articleNumber'] == null ? '' : ' · ${m['articleNumber']}'}',
-          '${m['typeName'] ?? m['type']}',
-          '${m['quantity']}',
-          '${m['positions']}',
-        ],
-    ],
+    'Materialliste': materialPdfTable(data),
   };
   // Bound individual rows so they can split across pages without losing long text.
   List<String> textParts(String text) {

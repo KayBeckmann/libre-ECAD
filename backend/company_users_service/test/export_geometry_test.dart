@@ -3,9 +3,22 @@ import 'dart:math';
 
 import 'package:company_users_service/src/workspace/pdf_output.dart';
 import 'package:ecad_core/ecad_core.dart';
+import 'package:ecad_documents/ecad_documents.dart' show materialPdfTable;
 import 'package:test/test.dart';
 
 void main() {
+  test('PDF material has quantity and BMK in the final column', () {
+    final rows = materialPdfTable({
+      'material': [
+        {'bmk': 'Q1; Q2', 'label': 'TEST-B16/1',
+          'articleNumber': 'DEMO-236', 'typeName': 'Leitungsschutzschalter',
+          'quantity': 2, 'positions': '1/1; 1/2'},
+      ],
+    });
+    expect(rows.first.last, 'BMK');
+    expect(rows.singleWhere((r) => r.contains('2')).last, 'Q1; Q2');
+    expect(rows.last, contains('2'));
+  });
   test('existing catalog-linked model prints beside symbol', () {
     final d = emptyDrawing();
     final sheet = objects(d, 'sheets').first['id'] as String;
