@@ -1891,7 +1891,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(device['label']),
+            Text(deviceDisplayLabel(device)),
             if (i['symbol'] == 'terminal')
               TextButton.icon(
                 onPressed: enabled ? () => terminalEdit(i) : null,

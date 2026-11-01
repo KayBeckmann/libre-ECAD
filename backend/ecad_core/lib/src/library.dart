@@ -1006,6 +1006,29 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
     'text': t,
   };
   if (s.group == 'Schutzgeräte') {
+    // One shared 1-pole MCB glyph, independently drawn from the circuit style
+    // illustrated for Eaton PXL on catalog print page 82. Existing port IDs
+    // and coordinates stay unchanged for already saved project drawings.
+    if (s.key == 'mcb1') return [
+      line(0, -60, 0, -35),
+      line(-7, -42, 7, -28),
+      line(-7, -28, 7, -42),
+      line(-3, -22, 6, -22),
+      line(-10, -29, 0, 20),
+      circle(0, 20, 4),
+      line(0, 20, 0, 60),
+      // Thermal bimetal qualifier, left of the contact blade.
+      line(-30, -15, -25, -15),
+      line(-25, -15, -25, -10),
+      line(-25, -10, -20, -10),
+      line(-20, -10, -20, -18),
+      line(-20, -18, -10, -20),
+      // Magnetic instantaneous-trip arrow; these are not electrical pins.
+      line(-28, 5, -20, 0),
+      line(-28, 5, -20, 10),
+      line(-20, 0, -20, 10),
+      line(-20, 2, -10, 4),
+    ];
     final pins = symbolPins(s), columns = s.ports.length ~/ 2;
     final halfWidth = columns * 20;
     return [

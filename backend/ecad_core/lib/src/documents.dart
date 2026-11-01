@@ -35,8 +35,14 @@ Json documentData(Json project) {
       {
         'id': device['id'],
         'bmk': device['bmk'],
-        'label': device['label'],
+        'label': deviceDisplayLabel(device),
         'type': device['type'],
+        'typeName': objects(d, 'instances')
+            .where((i) => i['deviceId'] == device['id'])
+            .map((i) => symbolByKey(i['symbol'], d).name)
+            .firstOrNull ?? device['type'],
+        if (device['article']?['number'] != null)
+          'articleNumber': device['article']['number'],
         'quantity': 1,
         if (device['article'] != null) 'article': device['article'],
         'positions': objects(d, 'instances')

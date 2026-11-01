@@ -22,7 +22,7 @@ void main() {
     companyName: 'TEST',
     backendUrl: Uri.parse('http://localhost'),
   );
-  testWidgets('Bauteil suchen findet Eaton PXL aus dem globalen Katalog', (
+  testWidgets('Bauteil suchen findet PXL-Katalogtreffer', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1440, 1000);
@@ -49,11 +49,11 @@ void main() {
         jsonEncode({
           'results': [
             {
-              'id': 'catalog-eaton-demo',
+              'id': 'catalog-fiktiv-demo',
               'articleNumber': 'DEMO-236',
-              'name': 'PXL-B16/1',
+              'name': 'PXL-DEMO/1',
               'source': 'catalog',
-              'manufacturerName': 'EATON',
+              'manufacturerName': 'FIKTIV',
               'category': 'Leitungsschutzschalter',
               'symbolKey': 'mcb1',
               'version': 1,
@@ -78,8 +78,8 @@ void main() {
       'pxl',
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('PXL-B16/1'), findsOneWidget);
-    await tester.tap(find.textContaining('PXL-B16/1'));
+    expect(find.textContaining('PXL-DEMO/1'), findsOneWidget);
+    await tester.tap(find.textContaining('PXL-DEMO/1'));
     await tester.pumpAndSettle();
     await tester.tapAt(tester.getCenter(find.byType(DrawingCanvas)));
     await tester.pumpAndSettle();
@@ -92,11 +92,11 @@ void main() {
     final drawing = emptyDrawing();
     final sheet = objects(drawing, 'sheets').single['id'] as String;
     const hit = GlobalArticleSearchHit(
-      id: 'catalog-eaton-demo',
+      id: 'catalog-fiktiv-demo',
       articleNumber: 'DEMO-236',
-      name: 'PXL-B16/1',
+      name: 'PXL-DEMO/1',
       source: 'catalog',
-      manufacturerName: 'EATON',
+      manufacturerName: 'FIKTIV',
       category: 'Leitungsschutzschalter',
       symbolKey: 'mcb1',
       origin: 'Testkatalog Seite 1',
@@ -111,7 +111,7 @@ void main() {
     );
     expect(device['article']['id'], hit.id);
     expect(device['article']['number'], hit.articleNumber);
-    expect(device['article']['manufacturer'], 'EATON');
+    expect(device['article']['manufacturer'], 'FIKTIV');
     expect(validateDrawing(drawing), isA<Json>());
     expect(
       () => placeCatalogArticle(

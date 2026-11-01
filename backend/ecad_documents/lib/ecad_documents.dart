@@ -205,7 +205,7 @@ String sheetSvg(
     }
     final labelX = x + symbolDeviceLabelOffset(s);
     label(terminalDisplayBmk(d, dev), labelX, y - 8, size: 14);
-    label(dev['label'], labelX, y + 10, size: 10);
+    label(deviceDisplayLabel(dev), labelX, y + 10, size: 10);
     final refs = instanceReferences(d, i).map((v) => v['position']).join(', ');
     if (refs.isNotEmpty && s.role != 'coil')
       label('Ref. $refs', labelX, y + 27, size: 10);
@@ -362,12 +362,12 @@ Future<Uint8List> projectPdf(
         ['${c['bmk']}', '${c['core']}', '${c['color']}', '${c['connections']}'],
     ],
     'Materialliste': [
-      ['BMK', 'Bezeichnung', 'Typ', 'Anzahl', 'Positionen'],
+      ['BMK', 'Bezeichnung / Art.-Nr.', 'Typ', 'Anzahl', 'Positionen'],
       for (final m in data['material'])
         [
           '${m['bmk']}',
-          '${m['label']}',
-          '${m['type']}',
+          '${m['label']}${m['articleNumber'] == null ? '' : ' · ${m['articleNumber']}'}',
+          '${m['typeName'] ?? m['type']}',
           '${m['quantity']}',
           '${m['positions']}',
         ],

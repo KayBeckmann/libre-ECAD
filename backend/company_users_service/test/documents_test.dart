@@ -23,7 +23,7 @@ void main() {
 
   test('protective glyphs keep fine contacts in SVG and PDF export', () async {
     for (final key in [
-      'mcb1',
+      // The one-pole PXL-style glyph has its own geometry/export assertions.
       'mcb2',
       'mcb3',
       'rcd2',

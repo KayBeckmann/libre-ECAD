@@ -6,6 +6,23 @@ import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('existing catalog-linked model prints beside symbol', () {
+    final d = emptyDrawing();
+    final sheet = objects(d, 'sheets').first['id'] as String;
+    final instance = addSymbol(d, 'mcb1', sheet, 200, 200);
+    final dev = objectById(d, 'devices', instance['deviceId']);
+    dev['article'] = articleSnapshot({
+      'id': 'catalog-fiktiv-demo', 'version': 1,
+      'articleNumber': 'DEMO-236', 'name': 'TEST-B16/1',
+      'manufacturerName': 'FIKTIV', 'license': 'Ungeklärt',
+      'origin': 'Testkatalog Seite 1',
+    });
+    final svg = sheetSvg(d, sheet);
+    expect(svg, contains('TEST-B16&#47;1'));
+    expect(svg, contains('M190 171 L200 220')); // moving contact
+    expect(svg, contains('M172 205 L180 200')); // magnetic arrow
+    expect(svg, contains('M172 205 L180 210')); // arrowhead
+  });
   test('new functional glyphs and FI/LS labels reach SVG and PDF', () async {
     final d = emptyDrawing();
     final sheet = objects(d, 'sheets').first['id'] as String;

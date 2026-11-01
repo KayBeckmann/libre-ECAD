@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:ecad_core/ecad_core.dart';
 import 'package:provider/provider.dart';
 
 import '../api/workspace_api.dart';
 import '../models.dart';
 import '../session_service.dart';
+
+String catalogSymbolDescription(GlobalArticleSearchHit hit) {
+  final key = hit.symbolKey;
+  if (key == null) return 'Noch nicht zugeordnet';
+  return symbolLibrary.where((s) => s.key == key).firstOrNull?.name ??
+      'Schaltsymbol nicht in der Bibliothek';
+}
 
 /// Separate global catalog search. Its failure never clears local libraries.
 class ArticleSearchDemo extends StatefulWidget {
@@ -89,7 +97,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SelectableText(
-                    'Version ${hit.version}\nLizenz: ${hit.license ?? "Nicht geklärt"}\nHerkunft: ${hit.origin ?? "Keine Quellenangabe"}\nTyp: ${hit.category ?? "Nicht klassifiziert"}\nSymbol: ${hit.symbolKey ?? "Noch nicht zugeordnet"}\nNamensnennung: ${hit.attribution ?? "–"}\n${hit.identityVerification == "identity-only" ? "Herstelleridentität zum Freigabezeitpunkt geprüft." : "Keine Identitätsprüfung."} Technische Angaben ungeprüft.',
+                    'Version ${hit.version}\nLizenz: ${hit.license ?? "Nicht geklärt"}\nHerkunft: ${hit.origin ?? "Keine Quellenangabe"}\nTyp: ${hit.category ?? "Nicht klassifiziert"}\nSymbol: ${catalogSymbolDescription(hit)}\nNamensnennung: ${hit.attribution ?? "–"}\n${hit.identityVerification == "identity-only" ? "Herstelleridentität zum Freigabezeitpunkt geprüft." : "Keine Identitätsprüfung."} Technische Angaben ungeprüft.',
                   ),
                   const SizedBox(height: 16),
                   const Text('Öffentliche Historie'),
@@ -248,7 +256,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
                 onTap: () => details(hit),
                 title: Text('${hit.articleNumber} · ${hit.name}'),
                 subtitle: Text(
-                  '${labels[hit.source] ?? hit.source}${hit.manufacturerName == null ? '' : ' / ${hit.manufacturerName}'}${hit.category == null ? '' : ' / ${hit.category}'}${hit.symbolKey == null && hit.source == 'catalog' ? ' · Symbol noch nicht zugeordnet' : ''} · Version ${hit.version}',
+                  '${labels[hit.source] ?? hit.source}${hit.manufacturerName == null ? '' : ' / ${hit.manufacturerName}'}${hit.category == null ? '' : ' / ${hit.category}'}${hit.source == 'catalog' ? ' · Symbol: ${catalogSymbolDescription(hit)}' : ''} · Version ${hit.version}',
                 ),
                 trailing: hit.source == 'catalog'
                     ? null

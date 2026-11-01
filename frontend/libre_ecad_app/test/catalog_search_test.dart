@@ -17,6 +17,7 @@ void main() {
     });
     expect(hit.category, 'Schutzgeräte');
     expect(hit.symbolKey, 'mcb1');
+    expect(catalogSymbolDescription(hit), 'Leitungsschutzschalter 1-polig');
   });
   testWidgets(
     'Herstellerkatalog ist Standardbereich der globalen Bauteilsuche',

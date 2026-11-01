@@ -699,7 +699,7 @@ class SheetPainter extends CustomPainter {
       c.restore();
       final labelX = x + symbolDeviceLabelOffset(symbol);
       label(c, terminalDisplayBmk(d, device), Offset(labelX, y - 20), size: 14);
-      label(c, '${device['label']}', Offset(labelX, y), size: 10);
+      label(c, deviceDisplayLabel(device), Offset(labelX, y), size: 10);
       final refs = instanceReferences(
         d,
         i,

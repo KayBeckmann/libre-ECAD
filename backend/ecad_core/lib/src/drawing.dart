@@ -194,6 +194,15 @@ void deleteTerminalStrip(Json d, String stripId) {
   (d['terminalStrips'] as List).removeWhere((v) => v['id'] == stripId);
 }
 
+String deviceDisplayLabel(Json device) {
+  final article = device['article'];
+  if (article is Map && article['name'] is String &&
+      (article['name'] as String).trim().isNotEmpty) {
+    return article['name'] as String;
+  }
+  return device['label'] as String;
+}
+
 /// Legacy terminals retain their own device BMK; assigned terminals display
 /// their parent strip BMK instead. Never use this for electrical identity.
 String terminalDisplayBmk(Json d, Json device) =>

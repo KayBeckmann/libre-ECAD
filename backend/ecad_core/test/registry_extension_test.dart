@@ -190,7 +190,8 @@ void main() {
     'protective contacts show an open blade and isolated upper terminal',
     () {
       for (final key in [
-        'mcb1',
+        // mcb1 follows the Eaton PXL-style standalone circuit glyph, tested
+        // separately with its own fixed contact and thermal/magnetic marks.
         'mcb2',
         'mcb3',
         'rcd2',
