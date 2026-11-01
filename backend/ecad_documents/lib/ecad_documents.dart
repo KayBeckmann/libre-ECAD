@@ -137,22 +137,20 @@ String sheetSvg(
     for (var n = 1; n < points.length; n++) {
       line(points[n - 1].x, points[n - 1].y, points[n].x, points[n].y);
     }
-    final labelPoint = points.length > 1 ? points[1] : points.first;
-    if (potentials[w['id']] != null)
-      label(potentials[w['id']], labelPoint.x + 6, labelPoint.y - 44, size: 12);
-    if (w['conductor'] != null)
-      label(w['conductor'], labelPoint.x + 6, labelPoint.y - 30, size: 12);
+    final captions = <String>[
+      if (potentials[w['id']] != null) potentials[w['id']]!,
+      if (w['conductor'] != null) w['conductor'] as String,
+    ];
     if (w['cableId'] != null) {
       final c = objectById(d, 'cables', w['cableId']);
       final core = (c['cores'] as List).firstWhere(
         (v) => v['id'] == w['coreId'],
       );
-      label(
-        '${c['bmk']}:${core['label']}',
-        labelPoint.x + 6,
-        labelPoint.y - 16,
-        size: 10,
-      );
+      captions.add('${c['bmk']}:${core['label']}');
+    }
+    if (captions.isNotEmpty) {
+      final position = wireLabelPosition(points);
+      label(captions.join(' · '), position.x, position.y, size: 11);
     }
   }
   for (final i in objects(
@@ -247,11 +245,14 @@ String sheetSvg(
   ).where((o) => o['sheetId'] == sheetId)) {
     final num x = o['x'], y = o['y'];
     final outgoing = continuationIsOutgoing(d, o);
-    line(outgoing ? x - 10 : x + 10, y - 9,
-        outgoing ? x + 10 : x - 10, y);
-    line(outgoing ? x + 10 : x - 10, y,
-        outgoing ? x - 10 : x + 10, y + 9);
-    label(continuationCaption(d, o, potentials: potentials), x + 16, y + 4, size: 11);
+    line(outgoing ? x - 10 : x + 10, y - 9, outgoing ? x + 10 : x - 10, y);
+    line(outgoing ? x + 10 : x - 10, y, outgoing ? x - 10 : x + 10, y + 9);
+    label(
+      continuationCaption(d, o, potentials: potentials),
+      x + 16,
+      y + 4,
+      size: 11,
+    );
   }
   out.write('</svg>');
   return out.toString();

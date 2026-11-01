@@ -3,16 +3,41 @@ import 'dart:math';
 
 import 'package:company_users_service/src/workspace/pdf_output.dart';
 import 'package:ecad_core/ecad_core.dart';
-import 'package:ecad_documents/ecad_documents.dart' show materialPdfTable, connectionPdfRows;
+import 'package:ecad_documents/ecad_documents.dart'
+    show materialPdfTable, connectionPdfRows;
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'wire potential and cable BMK share one caption beside the route in SVG',
+    () {
+      final d = sampleDrawing('motor');
+      final wire = objects(d, 'wires').firstWhere((w) => w['cableId'] != null);
+      setNetPotential(d, wire['id'], '+24V Steuerung');
+      final core = (objectById(d, 'cables', wire['cableId'])['cores'] as List)
+          .firstWhere((c) => c['id'] == wire['coreId']);
+      final cable = objectById(d, 'cables', wire['cableId']);
+      final p = wireLabelPosition(routedWirePoints(d, wire));
+      final svg = sheetSvg(d, wire['sheetId']);
+      expect(svg, contains('<text x="${p.x}" y="${p.y}" font-size="11"'));
+      expect(svg, contains('+24V Steuerung ·'));
+      expect(svg, contains('${cable['bmk']}:${core['label']}'));
+    },
+  );
   test('PDF connection rows include the cross-sheet net potential', () {
     final d = sampleDrawing('motor');
     final end = objects(d, 'continuations').first;
-    final wire = objects(d, 'wires').firstWhere((w) => w['to']['id'] == end['id']);
+    final wire = objects(
+      d,
+      'wires',
+    ).firstWhere((w) => w['to']['id'] == end['id']);
     setNetPotential(d, wire['id'], '+24V Steuerung');
-    final data = documentData({'id': 'p', 'name': 'Test', 'version': 1, 'drawing': d});
+    final data = documentData({
+      'id': 'p',
+      'name': 'Test',
+      'version': 1,
+      'drawing': d,
+    });
     final rows = connectionPdfRows(data);
     expect(rows.first, contains('Potential'));
     expect(rows.where((row) => row.contains('+24V Steuerung')), hasLength(2));
@@ -26,7 +51,10 @@ void main() {
     final from = positionReference(d, ends.first).replaceAll('/', '&#47;');
     expect(sheetSvg(d, sourceSheet), contains('Nach $to'));
     expect(sheetSvg(d, targetSheet), contains('Von $from'));
-    final wire = objects(d, 'wires').firstWhere((w) => w['to']['id'] == ends.first['id']);
+    final wire = objects(
+      d,
+      'wires',
+    ).firstWhere((w) => w['to']['id'] == ends.first['id']);
     setNetPotential(d, wire['id'], '+24V Steuerung');
     expect(sheetSvg(d, sourceSheet), contains('Nach $to · +24V Steuerung'));
     expect(sheetSvg(d, targetSheet), contains('Von $from · +24V Steuerung'));
@@ -37,15 +65,26 @@ void main() {
     final instance = addSymbol(d, 'mcb1', sheet, 200, 200);
     instance['rotation'] = 90;
     final bmk = objectById(d, 'devices', instance['deviceId'])['bmk'];
-    final expectedX = 200 + symbolDeviceLabelOffset(symbolByKey('mcb1'), rotation: 90);
-    expect(sheetSvg(d, sheet), contains('<text x="$expectedX" y="192" font-size="14" fill="#203d4c">$bmk</text>'));
+    final expectedX =
+        200 + symbolDeviceLabelOffset(symbolByKey('mcb1'), rotation: 90);
+    expect(
+      sheetSvg(d, sheet),
+      contains(
+        '<text x="$expectedX" y="192" font-size="14" fill="#203d4c">$bmk</text>',
+      ),
+    );
   });
   test('PDF material has quantity and BMK in the final column', () {
     final rows = materialPdfTable({
       'material': [
-        {'bmk': 'Q1; Q2', 'label': 'TEST-B16/1',
-          'articleNumber': 'DEMO-236', 'typeName': 'Leitungsschutzschalter',
-          'quantity': 2, 'positions': '1/1; 1/2'},
+        {
+          'bmk': 'Q1; Q2',
+          'label': 'TEST-B16/1',
+          'articleNumber': 'DEMO-236',
+          'typeName': 'Leitungsschutzschalter',
+          'quantity': 2,
+          'positions': '1/1; 1/2',
+        },
       ],
     });
     expect(rows.first.last, 'BMK');
@@ -58,9 +97,12 @@ void main() {
     final instance = addSymbol(d, 'mcb1', sheet, 200, 200);
     final dev = objectById(d, 'devices', instance['deviceId']);
     dev['article'] = articleSnapshot({
-      'id': 'catalog-fiktiv-demo', 'version': 1,
-      'articleNumber': 'DEMO-236', 'name': 'TEST-B16/1',
-      'manufacturerName': 'FIKTIV', 'license': 'Ungeklärt',
+      'id': 'catalog-fiktiv-demo',
+      'version': 1,
+      'articleNumber': 'DEMO-236',
+      'name': 'TEST-B16/1',
+      'manufacturerName': 'FIKTIV',
+      'license': 'Ungeklärt',
       'origin': 'Testkatalog Seite 1',
     });
     final svg = sheetSvg(d, sheet);

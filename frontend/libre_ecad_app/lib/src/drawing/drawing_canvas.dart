@@ -131,7 +131,10 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                           regionStart = null;
                         })
                       : null,
-                  onTapUp: widget.editable && !widget.selectingRegion && !widget.panning
+                  onTapUp:
+                      widget.editable &&
+                          !widget.selectingRegion &&
+                          !widget.panning
                       ? (e) => widget.onTap(e.localPosition)
                       : null,
                   child: SizedBox(
@@ -169,8 +172,15 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                             ),
                           ),
                           if (widget.editable && widget.onWireSegment != null)
-                            for (final w in objects(d, 'wires').where((w) => w['sheetId'] == widget.sheetId))
-                              for (var n = 0; n < wireRoute(d, w).length - 1; n++)
+                            for (final w in objects(
+                              d,
+                              'wires',
+                            ).where((w) => w['sheetId'] == widget.sheetId))
+                              for (
+                                var n = 0;
+                                n < wireRoute(d, w).length - 1;
+                                n++
+                              )
                                 wireHandle(d, w, n),
                           for (final i in objects(
                             d,
@@ -317,12 +327,20 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onPanStart: (_) => delta = Offset.zero,
-          onPanUpdate: (e) => delta += e.delta / transform.value.getMaxScaleOnAxis(),
-          onPanEnd: (_) => widget.onWireSegment?.call(
-            wire['id'], segment, center + delta,
+          onPanUpdate: (e) =>
+              delta += e.delta / transform.value.getMaxScaleOnAxis(),
+          onPanEnd: (_) =>
+              widget.onWireSegment?.call(wire['id'], segment, center + delta),
+          child: Center(
+            child: Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                color: accent,
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
-          child: Center(child: Container(width: 7, height: 7,
-            decoration: const BoxDecoration(color: accent, shape: BoxShape.circle))),
         ),
       ),
     );
@@ -609,23 +627,22 @@ class SheetPainter extends CustomPainter {
           ..strokeWidth = 2
           ..style = PaintingStyle.stroke,
       );
-      if (potentials[w['id']] != null) {
-        label(c, potentials[w['id']]!, points[1] + const Offset(6, -44), size: 12);
-      }
-      if (w['conductor'] != null) {
-        label(c, w['conductor'], points[1] + const Offset(6, -30), size: 12);
-      }
+      final captions = <String>[
+        if (potentials[w['id']] != null) potentials[w['id']]!,
+        if (w['conductor'] != null) w['conductor'] as String,
+      ];
       if (w['cableId'] != null) {
         final cable = objectById(d, 'cables', w['cableId']);
         final core = (cable['cores'] as List).firstWhere(
           (o) => o['id'] == w['coreId'],
         );
-        label(
-          c,
-          '${cable['bmk']}:${core['label']}',
-          points[1] + const Offset(6, -16),
-          size: 10,
-        );
+        captions.add('${cable['bmk']}:${core['label']}');
+      }
+      if (captions.isNotEmpty) {
+        final p = wireLabelPosition([
+          for (final point in points) math.Point(point.dx, point.dy),
+        ]);
+        label(c, captions.join(' · '), Offset(p.x, p.y), size: 11);
       }
     }
     for (final i in objects(
@@ -701,7 +718,9 @@ class SheetPainter extends CustomPainter {
         }
       }
       c.restore();
-      final labelX = x + symbolDeviceLabelOffset(symbol, rotation: i['rotation'] as num? ?? 0);
+      final labelX =
+          x +
+          symbolDeviceLabelOffset(symbol, rotation: i['rotation'] as num? ?? 0);
       label(c, terminalDisplayBmk(d, device), Offset(labelX, y - 20), size: 14);
       label(c, deviceDisplayLabel(device), Offset(labelX, y), size: 10);
       final refs = instanceReferences(
@@ -782,8 +801,12 @@ class SheetPainter extends CustomPainter {
           ..lineTo(p.dx + (outgoing ? -10 : 10), p.dy + 9),
         line,
       );
-      label(c, continuationCaption(d, o, potentials: potentials),
-          p + const Offset(16, -8), size: 11);
+      label(
+        c,
+        continuationCaption(d, o, potentials: potentials),
+        p + const Offset(16, -8),
+        size: 11,
+      );
     }
   }
 

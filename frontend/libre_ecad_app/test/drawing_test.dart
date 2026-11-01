@@ -22,9 +22,51 @@ void main() {
     companyName: 'TEST',
     backendUrl: Uri.parse('http://localhost'),
   );
-  testWidgets('Bauteil suchen findet PXL-Katalogtreffer', (
+  testWidgets('page references are searchable and open the creation dialog', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(1440, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = WorkspaceApi(
+      session,
+      client: MockClient(
+        (r) async => http.Response(
+          jsonEncode({
+            'projectName': 'Verweise',
+            'version': 1,
+            'drawing': sampleDrawing('motor'),
+          }),
+          200,
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DrawingScreen(session: session, projectId: 'p', api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Bauteil suchen'),
+      'seitenverweis',
+    );
+    await tester.pumpAndSettle();
+    final entry = find.text('Seitenverweis / Blattfortsetzung');
+    expect(entry, findsOneWidget);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(find.text('Blattfortsetzung anlegen'), findsOneWidget);
+    await tester.tap(find.text('Fortsetzung anlegen'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Nach ', skipOffstage: false), findsWidgets);
+    expect(find.text('Seitenverweis hinzufügen', skipOffstage: false), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 2));
+    api.close();
+  });
+  testWidgets('Bauteil suchen findet PXL-Katalogtreffer', (tester) async {
     tester.view.physicalSize = const Size(1440, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -132,28 +174,51 @@ void main() {
     );
     expect(objects(drawing, 'instances'), hasLength(1));
   });
-  testWidgets('wire menu accepts a free-text potential for both pages', (tester) async {
+  testWidgets('wire menu accepts a free-text potential for both pages', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1600, 1100);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final drawing = sampleDrawing('motor');
-    final api = WorkspaceApi(session, client: MockClient((r) async => http.Response(
-      jsonEncode({'projectName': 'Netze', 'version': 1, 'drawing': drawing}), 200,
-    )));
-    await tester.pumpWidget(MaterialApp(
-      home: DrawingScreen(session: session, projectId: 'p', api: api),
-    ));
+    final api = WorkspaceApi(
+      session,
+      client: MockClient(
+        (r) async => http.Response(
+          jsonEncode({
+            'projectName': 'Netze',
+            'version': 1,
+            'drawing': drawing,
+          }),
+          200,
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DrawingScreen(session: session, projectId: 'p', api: api),
+      ),
+    );
     await tester.pumpAndSettle();
     final continuationWire = find.textContaining('TEST-Signal').first;
     await tester.ensureVisible(continuationWire);
-    final tile = find.ancestor(of: continuationWire, matching: find.byType(ListTile));
-    final menu = find.descendant(of: tile, matching: find.byTooltip('Verbindung bearbeiten'));
+    final tile = find.ancestor(
+      of: continuationWire,
+      matching: find.byType(ListTile),
+    );
+    final menu = find.descendant(
+      of: tile,
+      matching: find.byTooltip('Verbindung bearbeiten'),
+    );
     await tester.tap(menu);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Potential frei eingeben / entfernen'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, 'Potential (leer = entfernen)'), '+24V Steuerung');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Potential (leer = entfernen)'),
+      '+24V Steuerung',
+    );
     await tester.tap(find.text('Übernehmen'));
     await tester.pumpAndSettle();
     expect(find.textContaining('+24V Steuerung · '), findsWidgets);

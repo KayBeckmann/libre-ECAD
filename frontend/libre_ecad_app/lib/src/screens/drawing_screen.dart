@@ -1109,7 +1109,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
       );
       return;
     }
-    final signal = TextEditingController(text: 'Verweis ${objects(d, 'continuations').length ~/ 2 + 1}');
+    final signal = TextEditingController(
+      text: 'Verweis ${objects(d, 'continuations').length ~/ 2 + 1}',
+    );
     var target = others.first['id'] as String;
     final values = await showDialog<Map<String, String>>(
       context: context,
@@ -1123,7 +1125,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
               TextField(
                 controller: signal,
                 maxLength: 160,
-                decoration: const InputDecoration(labelText: 'Verbindungskennung (intern)'),
+                decoration: const InputDecoration(
+                  labelText: 'Verbindungskennung (intern)',
+                ),
               ),
               DropdownButtonFormField<String>(
                 initialValue: target,
@@ -1308,7 +1312,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
       {
         'X [Raster 20]': '${point['x']}',
         'Y [Raster 20]': '${point['y']}',
-        if (kind == 'continuations') 'Verbindungskennung (intern)': point['label'],
+        if (kind == 'continuations')
+          'Verbindungskennung (intern)': point['label'],
       },
     );
     if (values == null || !mounted) return;
@@ -1734,6 +1739,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
           ),
           onChanged: searchLibrary,
         ),
+        if (query.isEmpty ||
+            'seitenverweis blattverweis blattfortsetzung verweis potentialpfeil'
+                .contains(query))
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.compare_arrows),
+            title: const Text('Seitenverweis / Blattfortsetzung'),
+            subtitle: const Text('Pfeile Von/Nach auf zwei Blättern anlegen'),
+            onTap: enabled ? continuation : null,
+          ),
         if (catalogBusy) const LinearProgressIndicator(),
         if (catalogError != null) Text(catalogError!),
         if (catalogResults != null && query.isNotEmpty) ...[
@@ -2112,13 +2127,21 @@ class _DrawingScreenState extends State<DrawingScreen> {
                         }
                       }
                       if (action == 'potential') {
-                        final values = await fields('Potential des gesamten Netzes', {
-                          'Potential (leer = entfernen)': potentials[w['id']] ?? '',
-                        });
+                        final values = await fields(
+                          'Potential des gesamten Netzes',
+                          {
+                            'Potential (leer = entfernen)':
+                                potentials[w['id']] ?? '',
+                          },
+                        );
                         if (values != null && mounted) {
-                          change((d) => setNetPotential(
-                            d, w['id'], values['Potential (leer = entfernen)']!,
-                          ));
+                          change(
+                            (d) => setNetPotential(
+                              d,
+                              w['id'],
+                              values['Potential (leer = entfernen)']!,
+                            ),
+                          );
                         }
                       }
                       if (action.startsWith('conductor:')) {
@@ -2195,11 +2218,21 @@ class _DrawingScreenState extends State<DrawingScreen> {
           for (final kind in ['nodes', 'continuations'])
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
+              initiallyExpanded: kind == 'continuations',
               title: Text(
-                kind == 'nodes' ? 'Knoten' : 'Blattfortsetzungen',
+                kind == 'nodes'
+                    ? 'Knoten'
+                    : 'Seitenverweise / Blattfortsetzungen',
                 style: const TextStyle(fontSize: 13),
               ),
               children: [
+                if (kind == 'continuations')
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.add, size: 18),
+                    title: const Text('Seitenverweis hinzufügen'),
+                    onTap: enabled ? continuation : null,
+                  ),
                 for (final o in objects(
                   d,
                   kind,
@@ -2210,7 +2243,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     title: Text(
                       kind == 'nodes'
                           ? 'Knoten ${shortObjectId(o['id'])}'
-                          : o['label'],
+                          : continuationCaption(d, o),
                       style: const TextStyle(fontSize: 11),
                     ),
                     subtitle: Text('${o['x']}/${o['y']}'),
