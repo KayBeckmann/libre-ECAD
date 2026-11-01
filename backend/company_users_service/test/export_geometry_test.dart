@@ -6,6 +6,34 @@ import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('new functional glyphs and FI/LS labels reach SVG and PDF', () async {
+    final d = emptyDrawing();
+    final sheet = objects(d, 'sheets').first['id'] as String;
+    for (final (n, key) in [
+      'rcbo4',
+      'thermal_bimetal_nc',
+      'rotary_no',
+      'coil_on_delay',
+      'contact_on_delay_no',
+    ].indexed) {
+      addSymbol(d, key, sheet, 200 + n * 140, 400);
+    }
+    final svg = sheetSvg(d, sheet);
+    expect(svg, contains('IΔ'));
+    expect(svg, contains('I&gt;'));
+    expect(svg, contains('tON'));
+    expect(
+      svg,
+      contains('x="${200 + symbolDeviceLabelOffset(symbolByKey('rcbo4'))}"'),
+    );
+    final pdf = await projectPdf(
+      {'id': 'symbols', 'name': 'Symbols', 'version': 1, 'drawing': d},
+      status: 'TEST',
+      stamp: 'V1',
+    );
+    expect(ascii.decode(pdf.take(4).toList()), '%PDF');
+  });
+
   test(
     'rotated symbol primitives follow each quarter-turn in SVG and PDF',
     () async {

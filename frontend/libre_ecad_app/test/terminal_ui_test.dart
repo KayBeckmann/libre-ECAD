@@ -99,18 +99,23 @@ void main() {
     'palette groups and symbols are ordered without changing symbol keys',
     () {
       final groups = orderedPaletteGroups(emptyDrawing());
-      expect(groups.first, 'Verteilerabgang');
-      expect(
-        groups.indexOf('Steuer- / Motorabgang'),
-        lessThan(groups.indexOf('Drehstrom')),
-      );
+      expect(groups.first, 'Motoren');
+      expect(groups.take(7), [
+        'Motoren',
+        'Schutzgeräte',
+        'Schalter / Taster',
+        'Schütze / Relais',
+        'Elektronik',
+        'Transformatoren / Netzteile',
+        'Automatisierung',
+      ]);
       expect(
         groups.indexOf('Elektronik'),
-        lessThan(groups.indexOf('Anschlussklemmen')),
+        lessThan(groups.indexOf('Anschlüsse / Versorgung')),
       );
       final symbols = orderedPaletteSymbols(
         emptyDrawing(),
-        'Verteilerabgang',
+        'Anschlüsse / Versorgung',
         '',
       );
       expect(
@@ -121,6 +126,36 @@ void main() {
         ),
       );
       expect(symbols.any((s) => s.key == 'terminal'), isTrue);
+      final all = [
+        for (final group in groups)
+          ...orderedPaletteSymbols(emptyDrawing(), group, ''),
+      ];
+      expect(
+        all.map((s) => s.key).toSet(),
+        symbolLibrary.map((s) => s.key).toSet(),
+      );
+      expect(all, hasLength(symbolLibrary.length));
+      for (final entry in <String, List<String>>{
+        'Motoren': ['motor', 'motor_dc', 'motor_1ph_thermistor'],
+        'Schutzgeräte': ['breaker', 'breaker3', 'fuse', 'rcbo4'],
+        'Schalter / Taster': ['switch', 'push_no', 'selector_3pos'],
+        'Schütze / Relais': ['coil', 'contact', 'contact_nc'],
+        'Elektronik': ['resistor', 'diode', 'ic8'],
+        'Transformatoren / Netzteile': ['transformer', 'psu_pe'],
+      }.entries) {
+        final found = orderedPaletteSymbols(
+          emptyDrawing(),
+          entry.key,
+          '',
+        ).map((s) => s.key).toSet();
+        expect(found, containsAll(entry.value), reason: entry.key);
+      }
+      final custom = emptyDrawing();
+      custom['symbols'] = [symbolTemplate('switch', 'pal-test')];
+      expect(
+        orderedPaletteSymbols(custom, 'Artikelsymbole', '').single.key,
+        'custom_pal-test',
+      );
     },
   );
 

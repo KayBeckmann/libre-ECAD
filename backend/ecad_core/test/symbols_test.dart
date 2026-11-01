@@ -3,6 +3,83 @@ import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('drive feed enters above and motor leaves below the FU block', () {
+    final drive = symbolByKey('drive');
+    const expected = <String, (int, int)>{
+      'L1': (-60, -100),
+      'L2': (-20, -100),
+      'L3': (20, -100),
+      'PE': (60, -100),
+      'U': (-60, 100),
+      'V': (-20, 100),
+      'W': (20, 100),
+      'PE_OUT': (60, 100),
+      'DI1': (-100, -20),
+      'DI2': (-100, 20),
+      'DO1': (100, -20),
+      'ETH': (100, 20),
+    };
+    expect(drive.ports.toSet(), expected.keys.toSet());
+    final pins = {for (final p in symbolPins(drive)) p['id'] as String: p};
+    final template = symbolTemplate('drive', 'drive-example');
+    expect(validateSymbol(template), isNotNull);
+    expect(
+      {for (final p in template['ports'] as List) p['id']: (p['x'], p['y'])},
+      {for (final entry in expected.entries) entry.key: entry.value},
+    );
+    final glyph = symbolGeometry(drive);
+    for (final entry in expected.entries) {
+      final (x, y) = entry.value;
+      expect(
+        (pins[entry.key]!['x'], pins[entry.key]!['y']),
+        (x, y),
+        reason: entry.key,
+      );
+      expect(
+        glyph.any(
+          (g) =>
+              g['kind'] == 'line' &&
+              (g['x'] == x && g['y'] == y || g['x2'] == x && g['y2'] == y),
+        ),
+        isTrue,
+        reason: '${entry.key} has no visible lead',
+      );
+    }
+    expect(
+      glyph.any(
+        (g) =>
+            g['kind'] == 'rect' &&
+            g['x'] == -80 &&
+            g['y'] == -80 &&
+            g['x2'] == 80 &&
+            g['y2'] == 80,
+      ),
+      isTrue,
+    );
+    expect(glyph.any((g) => g['kind'] == 'text' && g['text'] == 'FU'), isTrue);
+    final drawing = emptyDrawing();
+    final instance = addSymbol(
+      drawing,
+      'drive',
+      objects(drawing, 'sheets').first['id'],
+      400,
+      400,
+    );
+    for (final entry in expected.entries) {
+      final (x, y) = entry.value;
+      expect(
+        endpointPosition(drawing, portRef(instance['id'], entry.key)),
+        isNotNull,
+        reason: '${entry.key} lost its electrical endpoint',
+      );
+      expect((pins[entry.key]!['x'], pins[entry.key]!['y']), (x, y));
+    }
+    expect(
+      canonicalJson(validateDrawing(jsonDecode(canonicalJson(drawing)))),
+      canonicalJson(drawing),
+    );
+  });
+
   test('thermal motor variants have independent sensing terminals and leads', () {
     const variants = <String, List<String>>{
       'motor_1ph_thermistor': ['L', 'N', 'PE', 'T1', 'T2'],

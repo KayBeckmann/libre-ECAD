@@ -203,12 +203,7 @@ String sheetSvg(
           label(shape['text'], a, b + 10, size: 12);
       }
     }
-    final labelX =
-        x +
-        (s.definition != null ||
-                ['Drehstrom', 'Automatisierung'].contains(s.group)
-            ? 140
-            : 32);
+    final labelX = x + symbolDeviceLabelOffset(s);
     label(terminalDisplayBmk(d, dev), labelX, y - 8, size: 14);
     label(dev['label'], labelX, y + 10, size: 10);
     final refs = instanceReferences(d, i).map((v) => v['position']).join(', ');

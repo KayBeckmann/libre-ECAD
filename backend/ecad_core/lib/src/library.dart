@@ -18,7 +18,9 @@ class SymbolDefinition {
       definition?['role'] ??
       switch (key) {
         'coil' => 'coil',
+        'coil_on_delay' || 'coil_off_delay' => 'coil',
         'contact' => 'no',
+        'contact_on_delay_no' || 'contact_off_delay_no' => 'no',
         'contact_nc' => 'nc',
         _ => 'generic',
       };
@@ -604,6 +606,79 @@ const symbolLibrary = <SymbolDefinition>[
     ['1', '2'],
     ['1', '2'],
   ),
+  // Functional variants drawn independently; no standard vector artwork embedded.
+  SymbolDefinition(
+    'thermal_no',
+    'Temperaturschalter · Schließer',
+    'Grundschaltungen',
+    'switch',
+    'S',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'thermal_bimetal_nc',
+    'Bimetall · thermischer Öffner',
+    'Grundschaltungen',
+    'switch',
+    'S',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'rotary_no',
+    'Drehschalter · Schließer',
+    'Grundschaltungen',
+    'switch',
+    'S',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'switch_maintained_no',
+    'Schalter · rastender Schließer',
+    'Grundschaltungen',
+    'switch',
+    'S',
+    ['1', '2'],
+    ['1', '2'],
+  ),
+  SymbolDefinition(
+    'coil_on_delay',
+    'Zeitrelais · anzugverzögert',
+    'Steuer- / Motorabgang',
+    'relay',
+    'K',
+    ['A1', 'A2'],
+    ['A1', 'A2', '13', '14'],
+  ),
+  SymbolDefinition(
+    'coil_off_delay',
+    'Zeitrelais · abfallverzögert',
+    'Steuer- / Motorabgang',
+    'relay',
+    'K',
+    ['A1', 'A2'],
+    ['A1', 'A2', '13', '14'],
+  ),
+  SymbolDefinition(
+    'contact_on_delay_no',
+    'Relaiskontakt · anzugverzögerter Schließer',
+    'Steuer- / Motorabgang',
+    'relay',
+    'K',
+    ['13', '14'],
+    ['A1', 'A2', '13', '14'],
+  ),
+  SymbolDefinition(
+    'contact_off_delay_no',
+    'Relaiskontakt · abfallverzögerter Schließer',
+    'Steuer- / Motorabgang',
+    'relay',
+    'K',
+    ['13', '14'],
+    ['A1', 'A2', '13', '14'],
+  ),
 ];
 
 Iterable<SymbolDefinition> drawingSymbols(Map<String, dynamic> d) sync* {
@@ -749,6 +824,16 @@ Map<String, dynamic> validateSymbol(Object? input) {
   return input;
 }
 
+/// Keep device annotations beyond the widest pole and its functional labels.
+num symbolDeviceLabelOffset(SymbolDefinition s) {
+  if (s.definition != null ||
+      const {'Drehstrom', 'Automatisierung'}.contains(s.group)) {
+    return 140;
+  }
+  if (s.group == 'Schutzgeräte') return (s.ports.length ~/ 2) * 20 + 60;
+  return 32;
+}
+
 List<Map<String, dynamic>> symbolPins(SymbolDefinition s) {
   if (s.definition != null)
     return (s.definition!['ports'] as List).cast<Map<String, dynamic>>();
@@ -830,6 +915,31 @@ List<Map<String, dynamic>> symbolPins(SymbolDefinition s) {
     ];
   }
   if (s.group == 'Automatisierung') {
+    if (s.key == 'drive') {
+      const positions = <String, (int, int)>{
+        'L1': (-60, -100),
+        'L2': (-20, -100),
+        'L3': (20, -100),
+        'PE': (60, -100),
+        'U': (-60, 100),
+        'V': (-20, 100),
+        'W': (20, 100),
+        'PE_OUT': (60, 100),
+        'DI1': (-100, -20),
+        'DI2': (-100, 20),
+        'DO1': (100, -20),
+        'ETH': (100, 20),
+      };
+      return [
+        for (final id in s.ports)
+          {
+            'id': id,
+            'label': id,
+            'x': positions[id]!.$1,
+            'y': positions[id]!.$2,
+          },
+      ];
+    }
     final half = s.ports.length ~/ 2;
     return [
       for (var n = 0; n < s.ports.length; n++)
@@ -912,9 +1022,9 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
         for (var i = 0; i < columns - 1; i++)
           line((pins[i]['x'] as num) + 20, 10, (pins[i]['x'] as num) + 30, 10),
       if (s.key.startsWith('rcd') || s.key.startsWith('rcbo'))
-        text('IΔ', -halfWidth + 10, -40),
+        text('IΔ', -halfWidth - 30, -40),
       if (s.key.startsWith('mcb') || s.key.startsWith('rcbo'))
-        text('I>', halfWidth - 30, -40),
+        text('I>', halfWidth + 10, -40),
       if (s.key == 'motor_protection') text('M I>', -20, -40),
     ];
   }
@@ -1101,6 +1211,30 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
         line(-30, -10, -10, -10),
         line(-20, -20, -20, 0),
       ],
+      'thermal_no' ||
+      'thermal_bimetal_nc' ||
+      'rotary_no' ||
+      'switch_maintained_no' => [
+        ...stem,
+        circle(0, -20, 4),
+        circle(0, 20, 4),
+        line(
+          0,
+          20,
+          s.key == 'thermal_bimetal_nc' ? 0 : 20,
+          s.key == 'thermal_bimetal_nc' ? -20 : -10,
+        ),
+        // Non-conductive functional qualifier, left of the contact gap.
+        text(
+          s.key == 'rotary_no'
+              ? 'D'
+              : s.key == 'switch_maintained_no'
+              ? 'R'
+              : 'T',
+          -40,
+          0,
+        ),
+      ],
       'changeover' => [
         line(-40, 0, -20, 0),
         line(-20, 0, 20, 40),
@@ -1153,7 +1287,18 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
       _ => <Map<String, dynamic>>[],
     };
   }
-  if (s.group == 'Automatisierung')
+  if (s.group == 'Automatisierung') {
+    if (s.key == 'drive')
+      return [
+        rect(-80, -80, 80, 80),
+        text('FU', -12, -10),
+        text('3~', -10, 14),
+        for (final p in symbolPins(s))
+          if ((p['y'] as num).abs() == 100)
+            line(p['x'], p['y'], p['x'], (p['y'] as num) < 0 ? -80 : 80)
+          else
+            line(p['x'], p['y'], (p['x'] as num) < 0 ? -80 : 80, p['y']),
+      ];
     return [
       rect(
         -60,
@@ -1165,6 +1310,7 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
       for (final p in symbolPins(s))
         line(p['x'], p['y'], (p['x'] as num) < 0 ? -60 : 60, p['y']),
     ];
+  }
   if (s.key == 'terminal') return [circle(0, 0, 8), line(-5, 0, 5, 0)];
   if (s.key == 'motor')
     return [
@@ -1195,9 +1341,13 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
       line(0, 20, s.role == 'nc' ? 0 : 20, s.role == 'nc' ? -20 : -10),
       circle(0, -20, 4),
       circle(0, 20, 4),
+      if (s.key == 'contact_on_delay_no' || s.key == 'contact_off_delay_no')
+        text(s.key == 'contact_on_delay_no' ? 'tON' : 'tOFF', -60, 0),
     ] else ...[
       rect(-22, -18, 22, 18),
       text(s.code, -7, -9),
+      if (s.key == 'coil_on_delay' || s.key == 'coil_off_delay')
+        text(s.key == 'coil_on_delay' ? 'tON' : 'tOFF', -60, 18),
     ],
   ];
 }

@@ -3,6 +3,103 @@ import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'four-pole FI/LS functional labels clear all current-carrying poles',
+    () {
+      final s = symbolByKey('rcbo4');
+      final xs = symbolPins(s).take(4).map((p) => p['x'] as num).toList();
+      for (final geometry in [
+        symbolGeometry(s),
+        (symbolTemplate(s.key, 'rcbo-probe')['primitives'] as List)
+            .cast<Map<String, dynamic>>(),
+      ]) {
+        final labels = geometry.where((p) => p['kind'] == 'text').toList();
+        expect(labels.map((p) => p['text']), containsAll(['IΔ', 'I>']));
+        expect((labels.first['x'] as num) + 25, lessThan(xs.first));
+        expect(labels.last['x'], greaterThan(xs.last + 15));
+      }
+      expect(validateSymbol(symbolTemplate(s.key, 'rcbo-probe')), isNotNull);
+      expect(symbolDeviceLabelOffset(s), greaterThan(110));
+    },
+  );
+
+  test(
+    'thermal and maintained actuator variants expose separate terminals',
+    () {
+      final d = emptyDrawing();
+      final sheet = objects(d, 'sheets').first['id'];
+      for (final key in [
+        'thermal_no',
+        'thermal_bimetal_nc',
+        'rotary_no',
+        'switch_maintained_no',
+      ]) {
+        final s = symbolByKey(key);
+        expect(s.ports, ['1', '2']);
+        expect(s.allPorts, ['1', '2']);
+        expect(symbolPins(s).map((p) => p['id']), ['1', '2']);
+        expect(symbolGeometry(s).where((p) => p['kind'] == 'line'), isNotEmpty);
+        expect(validateSymbol(symbolTemplate(key, 'probe')), isNotNull);
+        final instance = addSymbol(d, key, sheet, 400, 400);
+        expect(instancePorts(d, instance), ['1', '2']);
+        expect(
+          endpointKey(d, portRef(instance['id'], '1')),
+          isNot(endpointKey(d, portRef(instance['id'], '2'))),
+        );
+      }
+      expect(validateDrawing(jsonDecode(canonicalJson(d))), isNotNull);
+    },
+  );
+
+  test('timed relay coils and contacts preserve role and linked pole IDs', () {
+    const variants = {
+      'coil_on_delay': 'coil',
+      'coil_off_delay': 'coil',
+      'contact_on_delay_no': 'no',
+      'contact_off_delay_no': 'no',
+    };
+    for (final entry in variants.entries) {
+      final s = symbolByKey(entry.key);
+      expect(s.role, entry.value);
+      expect(s.ports, entry.value == 'coil' ? ['A1', 'A2'] : ['13', '14']);
+      expect(validateSymbol(symbolTemplate(s.key, 'probe')), isNotNull);
+    }
+    final d = emptyDrawing(), sheet = objects(d, 'sheets').first['id'];
+    final coil = addSymbol(d, 'coil_on_delay', sheet, 200, 200);
+    final early = addSymbol(
+      d,
+      'contact_on_delay_no',
+      sheet,
+      400,
+      200,
+      deviceId: coil['deviceId'],
+    );
+    final late = addSymbol(
+      d,
+      'contact_off_delay_no',
+      sheet,
+      600,
+      200,
+      deviceId: coil['deviceId'],
+    );
+    expect(instancePorts(d, early), ['13', '14']);
+    expect(instancePorts(d, late), ['23', '24']);
+    expect(validateDrawing(jsonDecode(canonicalJson(d))), isNotNull);
+  });
+
+  test(
+    'legacy version-five pinned drawings remain readable after extension',
+    () {
+      expect(pinnedLibrary()['version'], 'libre-ecad-synthetic-6');
+      final old = cloneJson(pinnedLibrary());
+      old['version'] = 'libre-ecad-synthetic-5';
+      old['symbols'] = (old['symbols'] as List).take(61).toList();
+      expect(supportsLibrary(old), isTrue);
+      old['symbols'][0]['ports'] = ['wrong'];
+      expect(supportsLibrary(old), isFalse);
+    },
+  );
+
   const expected = <String, List<String>>{
     'mcb1': ['1', '2'],
     'mcb2': ['1', '3', '2', '4'],

@@ -697,12 +697,7 @@ class SheetPainter extends CustomPainter {
         }
       }
       c.restore();
-      final labelX =
-          x +
-          (symbol.definition != null ||
-                  ['Drehstrom', 'Automatisierung'].contains(symbol.group)
-              ? 140
-              : 32);
+      final labelX = x + symbolDeviceLabelOffset(symbol);
       label(c, terminalDisplayBmk(d, device), Offset(labelX, y - 20), size: 14);
       label(c, '${device['label']}', Offset(labelX, y), size: 10);
       final refs = instanceReferences(

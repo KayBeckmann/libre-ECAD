@@ -17,19 +17,67 @@ import '../drawing/drawing_controller.dart';
 import '../models.dart';
 
 /// Display order only; persisted symbol keys and IDs remain unchanged.
+String paletteGroup(SymbolDefinition s) {
+  if (s.definition != null) return 'Artikelsymbole';
+  if (s.key == 'motor' || s.key.startsWith('motor_')) {
+    return 'Motoren';
+  }
+  if (s.key == 'thermal_bimetal_nc' ||
+      s.group == 'Schutzgeräte' ||
+      {'breaker', 'breaker3', 'fuse'}.contains(s.key)) {
+    return 'Schutzgeräte';
+  }
+  if ({
+    'switch',
+    'push_no',
+    'push_nc',
+    'changeover',
+    'key_switch_no',
+    'key_switch_nc',
+    'stage_switch_3pos',
+    'selector_3pos',
+    'thermal_no',
+    'rotary_no',
+    'switch_maintained_no',
+  }.contains(s.key)) {
+    return 'Schalter / Taster';
+  }
+  if (s.deviceType == 'relay') {
+    return 'Schütze / Relais';
+  }
+  if (s.group == 'Elektronik' ||
+      {'resistor', 'capacitor', 'diode', 'led'}.contains(s.key)) {
+    return 'Elektronik';
+  }
+  if ({
+    'transformer',
+    'converter_ac_ac',
+    'converter_ac_dc',
+    'psu_pe',
+  }.contains(s.key)) {
+    return 'Transformatoren / Netzteile';
+  }
+  if (s.group == 'Automatisierung') return 'Automatisierung';
+  if ({'lamp', 'buzzer', 'voltmeter', 'ammeter', 'heater'}.contains(s.key)) {
+    return 'Verbraucher / Messgeräte';
+  }
+  return 'Anschlüsse / Versorgung';
+}
+
 List<String> orderedPaletteGroups(Json drawing) {
   const preferred = [
-    'Verteilerabgang',
-    'Steuer- / Motorabgang',
-    'Drehstrom',
-    'Automatisierung',
-    'Grundschaltungen',
+    'Motoren',
     'Schutzgeräte',
-    'Antriebe / Energie',
+    'Schalter / Taster',
+    'Schütze / Relais',
     'Elektronik',
-    'Anschlussklemmen',
+    'Transformatoren / Netzteile',
+    'Automatisierung',
+    'Anschlüsse / Versorgung',
+    'Verbraucher / Messgeräte',
+    'Artikelsymbole',
   ];
-  final available = drawingSymbols(drawing).map((s) => s.group).toSet()
+  final available = drawingSymbols(drawing).map(paletteGroup).toSet()
     ..add('Artikelsymbole');
   return [
     ...preferred.where(available.contains),
@@ -46,7 +94,7 @@ List<SymbolDefinition> orderedPaletteSymbols(
     drawingSymbols(drawing)
         .where(
           (s) =>
-              s.group == group &&
+              paletteGroup(s) == group &&
               s.name.toLowerCase().contains(query.toLowerCase()),
         )
         .toList()

@@ -42,23 +42,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Grundschaltungen'),
-      350,
-      scrollable: find
-          .descendant(
-            of: find.byType(ListView),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Grundschaltungen'), findsOneWidget);
-    expect(
-      find.text('Schutzleiter / Erde', skipOffstage: false),
-      findsOneWidget,
-    );
-    expect(find.text('Photovoltaikzelle', skipOffstage: false), findsOneWidget);
     final palette = find
         .descendant(
           of: find.byType(ListView),
@@ -66,10 +49,13 @@ void main() {
         )
         .first;
     for (final category in [
+      'Motoren',
       'Schutzgeräte',
-      'Antriebe / Energie',
+      'Schalter / Taster',
+      'Schütze / Relais',
       'Elektronik',
-      'Anschlussklemmen',
+      'Transformatoren / Netzteile',
+      'Anschlüsse / Versorgung',
     ]) {
       await tester.scrollUntilVisible(
         find.text(category),
@@ -78,6 +64,11 @@ void main() {
       );
       expect(find.text(category), findsOneWidget);
     }
+    expect(
+      find.text('Schutzleiter / Erde', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(find.text('Photovoltaikzelle', skipOffstage: false), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     api.close();
   });

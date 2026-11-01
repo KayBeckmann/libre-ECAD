@@ -331,7 +331,7 @@ List<Json> drawingFindings(Object? input) {
 }
 
 Json pinnedLibrary() => {
-  'version': 'libre-ecad-synthetic-5',
+  'version': 'libre-ecad-synthetic-6',
   'license': 'MIT',
   'images': <String>[],
   'symbols': [
@@ -358,6 +358,7 @@ bool supportsLibrary(Object? raw) {
         'libre-ecad-synthetic-2',
         'libre-ecad-synthetic-3',
         'libre-ecad-synthetic-4',
+        'libre-ecad-synthetic-5',
       ].contains(raw['version']) ||
       raw['symbols'] is! List)
     return false;
@@ -378,6 +379,9 @@ bool supportsLibrary(Object? raw) {
     ],
     if (raw['version'] == 'libre-ecad-synthetic-4') ...[
       for (final s in symbolLibrary.take(29)) s.key,
+    ],
+    if (raw['version'] == 'libre-ecad-synthetic-5') ...[
+      for (final s in symbolLibrary.take(61)) s.key,
     ],
     if (raw['version'] == 'libre-ecad-synthetic-3') ...[
       'contact_nc',
