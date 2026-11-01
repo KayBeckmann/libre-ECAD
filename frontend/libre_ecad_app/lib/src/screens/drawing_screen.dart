@@ -1109,7 +1109,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       );
       return;
     }
-    final signal = TextEditingController(text: 'Signal');
+    final signal = TextEditingController(text: 'Verweis ${objects(d, 'continuations').length ~/ 2 + 1}');
     var target = others.first['id'] as String;
     final values = await showDialog<Map<String, String>>(
       context: context,
@@ -1123,7 +1123,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
               TextField(
                 controller: signal,
                 maxLength: 160,
-                decoration: const InputDecoration(labelText: 'Signalname'),
+                decoration: const InputDecoration(labelText: 'Verbindungskennung (intern)'),
               ),
               DropdownButtonFormField<String>(
                 initialValue: target,
@@ -1140,7 +1140,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Erzeugt zwei zusammengehörige Enden. Beide Enden anschließend mit dem Werkzeug Verbinden an die jeweiligen Anschlüsse anschließen.',
+                'Erzeugt einen Ausgangspfeil auf diesem Blatt und einen Eingangspfeil auf dem Zielblatt. Beide Enden mit Verbinden anschließen. Potentiale kannst du später an einer beliebigen verbundenen Leitung frei eingeben.',
               ),
             ],
           ),
@@ -1172,6 +1172,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           'y': 600,
           'linkId': link,
           'label': values['Signalname'],
+          'direction': sid == sheetId ? 'out' : 'in',
         });
       }
     });
@@ -1296,6 +1297,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         'from': pointRef('node', node['id'] as String),
         'to': end,
         if (w['conductor'] != null) 'conductor': w['conductor'],
+        if (w['potential'] != null) 'potential': w['potential'],
       });
     });
   }
@@ -1306,7 +1308,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       {
         'X [Raster 20]': '${point['x']}',
         'Y [Raster 20]': '${point['y']}',
-        if (kind == 'continuations') 'Signalname': point['label'],
+        if (kind == 'continuations') 'Verbindungskennung (intern)': point['label'],
       },
     );
     if (values == null || !mounted) return;
@@ -1319,7 +1321,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           d,
           kind,
         ).where((c) => c['linkId'] == o['linkId'])) {
-          c['label'] = values['Signalname'];
+          c['label'] = values['Verbindungskennung (intern)'];
         }
       }
     });
@@ -1856,6 +1858,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Widget inspector(bool enabled) {
+    final potentials = netPotentials(d);
     final views = objects(d, 'instances').where((i) => i['id'] == selected);
     final i = views.isEmpty ? null : views.first;
     final device = i == null ? null : objectById(d, 'devices', i['deviceId']);
@@ -2082,7 +2085,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                   title: Text(
-                    '${w['conductor'] == null ? '' : '${w['conductor']} · '}${endpointLabel(w['from'])} -> ${endpointLabel(w['to'])}',
+                    '${potentials[w['id']] == null ? '' : '${potentials[w['id']]} · '}${w['conductor'] == null ? '' : '${w['conductor']} · '}${endpointLabel(w['from'])} -> ${endpointLabel(w['to'])}',
                     style: const TextStyle(fontSize: 11),
                   ),
                   subtitle: w['cableId'] == null
@@ -2108,6 +2111,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           );
                         }
                       }
+                      if (action == 'potential') {
+                        final values = await fields('Potential des gesamten Netzes', {
+                          'Potential (leer = entfernen)': potentials[w['id']] ?? '',
+                        });
+                        if (values != null && mounted) {
+                          change((d) => setNetPotential(
+                            d, w['id'], values['Potential (leer = entfernen)']!,
+                          ));
+                        }
+                      }
                       if (action.startsWith('conductor:')) {
                         change((d) {
                           final wire = objectById(d, 'wires', w['id']);
@@ -2130,6 +2143,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       }
                     },
                     itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'potential',
+                        child: Text('Potential frei eingeben / entfernen'),
+                      ),
                       PopupMenuItem(
                         value: 'conductor:L1',
                         child: Text('Leiter L1'),

@@ -476,6 +476,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
               }),
             table('Verbindungsliste', data['connections'], {
               'sheet': 'Blatt',
+              'potential': 'Potential',
               'from': 'Von',
               'to': 'Nach',
               'cable': 'Kabel',

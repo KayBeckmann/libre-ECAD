@@ -67,6 +67,17 @@ void main() {
     expect(material.where((row) => row['bmk'] == 'Q4').single['quantity'], 1);
     expect(material.where((row) => row['bmk'] == 'Q5').single['quantity'], 1);
   });
+  test('connection list shows net potential on both linked sheets', () {
+    final d = sampleDrawing('motor');
+    final end = objects(d, 'continuations').first;
+    final wire = objects(d, 'wires').firstWhere((w) => w['to']['id'] == end['id']);
+    setNetPotential(d, wire['id'], '24V-AUX');
+    final rows = (documentData({'id': 'p', 'name': 'Test', 'version': 1,
+      'drawing': d})['connections'] as List).cast<Json>();
+    final linked = rows.where((r) => '${r['from']} ${r['to']}'.contains('TEST-Signal')).toList();
+    expect(linked.length, 2);
+    expect(linked.map((r) => r['potential']), everyElement('24V-AUX'));
+  });
   test('lists count shared relay once and retain connections', () {
     final d = sampleDrawing('motor');
     final data = documentData({

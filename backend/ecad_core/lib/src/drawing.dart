@@ -448,6 +448,60 @@ List<Json> nets(Json d) {
   }).toList()..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
 }
 
+/// Resolve one name across all explicit connections, including page links.
+Map<String, String> netPotentials(Json d) {
+  final wires = {for (final w in objects(d, 'wires')) w['id']: w};
+  final result = <String, String>{};
+  for (final net in nets(d)) {
+    final ids = net['wireIds'] as List;
+    final name = ids.map((id) => wires[id]?['potential'])
+        .whereType<String>().firstOrNull;
+    if (name == null) continue;
+    for (final id in ids) result[id as String] = name;
+    for (final endpoint in net['endpoints'] as List) {
+      result[endpoint as String] = name;
+    }
+  }
+  return result;
+}
+
+String? wirePotential(Json d, Json wire) => netPotentials(d)[wire['id']];
+
+/// A potential belongs to the whole electrical net, not only one segment.
+void setNetPotential(Json d, String wireId, String value) {
+  final trimmed = value.trim();
+  if (trimmed.length > 80 || trimmed.contains(RegExp(r'[\x00-\x1f]')))
+    throw const FormatException('Potential: höchstens 80 Zeichen ohne Zeilenumbruch.');
+  objectById(d, 'wires', wireId);
+  final net = nets(d).firstWhere((n) => (n['wireIds'] as List).contains(wireId));
+  for (final id in net['wireIds'] as List) {
+    final wire = objectById(d, 'wires', id);
+    if (trimmed.isEmpty) {
+      wire.remove('potential');
+    } else {
+      wire['potential'] = trimmed;
+    }
+  }
+}
+
+bool continuationIsOutgoing(Json d, Json end) {
+  if (end['direction'] == 'out') return true;
+  if (end['direction'] == 'in') return false;
+  final pair = objects(d, 'continuations')
+      .where((c) => c['linkId'] == end['linkId']).toList();
+  return pair.first['id'] == end['id']; // Legacy pair order: source, target.
+}
+
+String continuationCaption(Json d, Json end, {Map<String, String>? potentials}) {
+  final other = objects(d, 'continuations').firstWhere(
+    (c) => c['linkId'] == end['linkId'] && c['id'] != end['id'],
+  );
+  final reference = '${continuationIsOutgoing(d, end) ? 'Nach' : 'Von'} ${positionReference(d, other)}';
+  final key = endpointKey(d, pointRef('continuation', end['id']));
+  final potential = (potentials ?? netPotentials(d))[key];
+  return potential == null ? reference : '$reference · $potential';
+}
+
 List<Json> crossReferences(Json d, String deviceId) => [
   for (final i in objects(
     d,
@@ -690,10 +744,13 @@ Json validateDrawing(Object? input) {
     'y',
     'linkId',
     'label',
+    'direction',
   })) {
     onSheet(c);
     id(c, 'linkId');
     text(c, 'label');
+    if (c['direction'] != null && !{'out', 'in'}.contains(c['direction']))
+      fail('Fortsetzungsrichtung ungültig.');
     links.putIfAbsent(c['linkId'], () => []).add(c);
   }
   for (final pair in links.values) {
@@ -703,6 +760,11 @@ Json validateDrawing(Object? input) {
       );
     if (pair[0]['label'] != pair[1]['label'])
       fail('Fortsetzungsbeschriftung muss übereinstimmen.');
+    if (pair.any((c) => c['direction'] != null) &&
+        {pair[0]['direction'], pair[1]['direction']}.difference({'out', 'in'}).isNotEmpty)
+      fail('Fortsetzung braucht Quelle und Ziel.');
+    if (pair[0]['direction'] != null && pair[0]['direction'] == pair[1]['direction'])
+      fail('Fortsetzung braucht Quelle und Ziel.');
   }
   final cables = list(d, 'cables', 500, {'id', 'bmk', 'cores'});
   for (final cable in cables) {
@@ -750,6 +812,7 @@ Json validateDrawing(Object? input) {
     'cableId',
     'coreId',
     'conductor',
+    'potential',
     'waypoints',
   })) {
     if (w['waypoints'] != null) {
@@ -773,6 +836,10 @@ Json validateDrawing(Object? input) {
     if (w['conductor'] != null &&
         !{'L1', 'L2', 'L3', 'N', 'PE'}.contains(w['conductor']))
       fail('Unbekannter Leiter.');
+    if (w['potential'] != null) {
+      final potential = text(w, 'potential', max: 80);
+      if (potential != potential.trim()) fail('Potential hat Leerzeichen am Rand.');
+    }
     final sheet = text(w, 'sheetId');
     if (!sheetIds.contains(sheet)) fail('Leitungsblatt fehlt.');
     final from = w['from'], to = w['to'];
@@ -789,6 +856,13 @@ Json validateDrawing(Object? input) {
       if (!usedCores.add('${cable['id']}:$core'))
         fail('Kabelader mehrfach belegt.');
     }
+  }
+  for (final net in nets(d)) {
+    final names = (net['wireIds'] as List)
+        .map((id) => objectById(d, 'wires', id)['potential'])
+        .whereType<String>()
+        .toSet();
+    if (names.length > 1) fail('Widersprüchliche Potentiale im selben Netz.');
   }
   validatePlanning(d);
   validateCalculations(d);

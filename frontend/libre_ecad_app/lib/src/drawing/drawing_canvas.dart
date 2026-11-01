@@ -592,6 +592,7 @@ class SheetPainter extends CustomPainter {
         );
       }
     }
+    final potentials = netPotentials(d);
     for (final w in objects(
       d,
       'wires',
@@ -608,6 +609,9 @@ class SheetPainter extends CustomPainter {
           ..strokeWidth = 2
           ..style = PaintingStyle.stroke,
       );
+      if (potentials[w['id']] != null) {
+        label(c, potentials[w['id']]!, points[1] + const Offset(6, -44), size: 12);
+      }
       if (w['conductor'] != null) {
         label(c, w['conductor'], points[1] + const Offset(6, -30), size: 12);
       }
@@ -697,7 +701,7 @@ class SheetPainter extends CustomPainter {
         }
       }
       c.restore();
-      final labelX = x + symbolDeviceLabelOffset(symbol);
+      final labelX = x + symbolDeviceLabelOffset(symbol, rotation: i['rotation'] as num? ?? 0);
       label(c, terminalDisplayBmk(d, device), Offset(labelX, y - 20), size: 14);
       label(c, deviceDisplayLabel(device), Offset(labelX, y), size: 10);
       final refs = instanceReferences(
@@ -770,23 +774,16 @@ class SheetPainter extends CustomPainter {
       'continuations',
     ).where((o) => o['sheetId'] == sheetId)) {
       final p = Offset((o['x'] as num).toDouble(), (o['y'] as num).toDouble());
-      final other = objects(
-        d,
-        'continuations',
-      ).firstWhere((v) => v['linkId'] == o['linkId'] && v['id'] != o['id']);
+      final outgoing = continuationIsOutgoing(d, o);
       c.drawPath(
         Path()
-          ..moveTo(p.dx - 10, p.dy - 9)
-          ..lineTo(p.dx + 10, p.dy)
-          ..lineTo(p.dx - 10, p.dy + 9),
+          ..moveTo(p.dx + (outgoing ? -10 : 10), p.dy - 9)
+          ..lineTo(p.dx + (outgoing ? 10 : -10), p.dy)
+          ..lineTo(p.dx + (outgoing ? -10 : 10), p.dy + 9),
         line,
       );
-      label(
-        c,
-        '${o['label']} -> ${positionReference(d, other)}',
-        p + const Offset(16, -8),
-        size: 11,
-      );
+      label(c, continuationCaption(d, o, potentials: potentials),
+          p + const Offset(16, -8), size: 11);
     }
   }
 

@@ -3,6 +3,19 @@ import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('BMK offset follows the visible glyph rather than a fixed pole margin', () {
+    final singlePole = symbolDeviceLabelOffset(symbolByKey('mcb1'));
+    expect(singlePole, inInclusiveRange(18, 26));
+    final multiPole = symbolDeviceLabelOffset(symbolByKey('rcbo4'));
+    expect(multiPole, inInclusiveRange(110, 139));
+    final motor = symbolDeviceLabelOffset(symbolByKey('motor'));
+    expect(motor, greaterThanOrEqualTo(68));
+  });
+  test('rotated glyphs leave the BMK clear of the turned terminals', () {
+    final single = symbolByKey('mcb1');
+    expect(symbolDeviceLabelOffset(single, rotation: 90), greaterThanOrEqualTo(72));
+    expect(symbolDeviceLabelOffset(single, rotation: 270), greaterThanOrEqualTo(72));
+  });
   test(
     'four-pole FI/LS functional labels clear all current-carrying poles',
     () {

@@ -8,12 +8,14 @@ Json documentData(Json project) {
   final d = validateDrawing(project['drawing']);
   final sheets = objects(d, 'sheets')
     ..sort((a, b) => (a['number'] as int).compareTo(b['number'] as int));
+  final potentials = netPotentials(d);
   final connections =
       <Json>[
         for (final w in objects(d, 'wires'))
           {
             'id': w['id'],
             if (w['conductor'] != null) 'conductor': w['conductor'],
+            if (potentials[w['id']] != null) 'potential': potentials[w['id']],
             'sheet': objectById(d, 'sheets', w['sheetId'])['number'],
             'from': endpointName(d, w['from']),
             'to': endpointName(d, w['to']),

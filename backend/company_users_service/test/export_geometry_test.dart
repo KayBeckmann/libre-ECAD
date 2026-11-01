@@ -3,10 +3,43 @@ import 'dart:math';
 
 import 'package:company_users_service/src/workspace/pdf_output.dart';
 import 'package:ecad_core/ecad_core.dart';
-import 'package:ecad_documents/ecad_documents.dart' show materialPdfTable;
+import 'package:ecad_documents/ecad_documents.dart' show materialPdfTable, connectionPdfRows;
 import 'package:test/test.dart';
 
 void main() {
+  test('PDF connection rows include the cross-sheet net potential', () {
+    final d = sampleDrawing('motor');
+    final end = objects(d, 'continuations').first;
+    final wire = objects(d, 'wires').firstWhere((w) => w['to']['id'] == end['id']);
+    setNetPotential(d, wire['id'], '+24V Steuerung');
+    final data = documentData({'id': 'p', 'name': 'Test', 'version': 1, 'drawing': d});
+    final rows = connectionPdfRows(data);
+    expect(rows.first, contains('Potential'));
+    expect(rows.where((row) => row.contains('+24V Steuerung')), hasLength(2));
+  });
+  test('cross-page arrows show from/to and updated potential in SVG', () {
+    final d = sampleDrawing('motor');
+    final ends = objects(d, 'continuations');
+    final sourceSheet = ends.first['sheetId'] as String;
+    final targetSheet = ends.last['sheetId'] as String;
+    final to = positionReference(d, ends.last).replaceAll('/', '&#47;');
+    final from = positionReference(d, ends.first).replaceAll('/', '&#47;');
+    expect(sheetSvg(d, sourceSheet), contains('Nach $to'));
+    expect(sheetSvg(d, targetSheet), contains('Von $from'));
+    final wire = objects(d, 'wires').firstWhere((w) => w['to']['id'] == ends.first['id']);
+    setNetPotential(d, wire['id'], '+24V Steuerung');
+    expect(sheetSvg(d, sourceSheet), contains('Nach $to · +24V Steuerung'));
+    expect(sheetSvg(d, targetSheet), contains('Von $from · +24V Steuerung'));
+  });
+  test('rotated BMK stays beside the rotated symbol in SVG', () {
+    final d = emptyDrawing();
+    final sheet = objects(d, 'sheets').first['id'] as String;
+    final instance = addSymbol(d, 'mcb1', sheet, 200, 200);
+    instance['rotation'] = 90;
+    final bmk = objectById(d, 'devices', instance['deviceId'])['bmk'];
+    final expectedX = 200 + symbolDeviceLabelOffset(symbolByKey('mcb1'), rotation: 90);
+    expect(sheetSvg(d, sheet), contains('<text x="$expectedX" y="192" font-size="14" fill="#203d4c">$bmk</text>'));
+  });
   test('PDF material has quantity and BMK in the final column', () {
     final rows = materialPdfTable({
       'material': [

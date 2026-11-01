@@ -128,6 +128,7 @@ String sheetSvg(
   for (var r = 0; r < 6; r++) {
     label(String.fromCharCode(65 + r), 18, 110 + r * 100);
   }
+  final potentials = netPotentials(d);
   for (final w in objects(
     d,
     'wires',
@@ -137,6 +138,8 @@ String sheetSvg(
       line(points[n - 1].x, points[n - 1].y, points[n].x, points[n].y);
     }
     final labelPoint = points.length > 1 ? points[1] : points.first;
+    if (potentials[w['id']] != null)
+      label(potentials[w['id']], labelPoint.x + 6, labelPoint.y - 44, size: 12);
     if (w['conductor'] != null)
       label(w['conductor'], labelPoint.x + 6, labelPoint.y - 30, size: 12);
     if (w['cableId'] != null) {
@@ -203,7 +206,7 @@ String sheetSvg(
           label(shape['text'], a, b + 10, size: 12);
       }
     }
-    final labelX = x + symbolDeviceLabelOffset(s);
+    final labelX = x + symbolDeviceLabelOffset(s, rotation: rotation);
     label(terminalDisplayBmk(d, dev), labelX, y - 8, size: 14);
     label(deviceDisplayLabel(dev), labelX, y + 10, size: 10);
     final refs = instanceReferences(d, i).map((v) => v['position']).join(', ');
@@ -243,22 +246,29 @@ String sheetSvg(
     'continuations',
   ).where((o) => o['sheetId'] == sheetId)) {
     final num x = o['x'], y = o['y'];
-    line(x - 10, y - 9, x + 10, y);
-    line(x + 10, y, x - 10, y + 9);
-    final other = objects(
-      d,
-      'continuations',
-    ).firstWhere((v) => v['linkId'] == o['linkId'] && v['id'] != o['id']);
-    label(
-      '${o['label']} -> ${positionReference(d, other)}',
-      x + 16,
-      y + 4,
-      size: 11,
-    );
+    final outgoing = continuationIsOutgoing(d, o);
+    line(outgoing ? x - 10 : x + 10, y - 9,
+        outgoing ? x + 10 : x - 10, y);
+    line(outgoing ? x + 10 : x - 10, y,
+        outgoing ? x - 10 : x + 10, y + 9);
+    label(continuationCaption(d, o, potentials: potentials), x + 16, y + 4, size: 11);
   }
   out.write('</svg>');
   return out.toString();
 }
+
+List<List<String>> connectionPdfRows(Json data) => [
+  ['Blatt', 'Leiter', 'Potential', 'Von', 'Nach', 'Kabel / Ader'],
+  for (final w in data['connections'])
+    [
+      '${w['sheet']}',
+      '${w['conductor'] ?? ''}',
+      '${w['potential'] ?? ''}',
+      '${w['from']}',
+      '${w['to']}',
+      '${w['cable']} / ${w['core']}',
+    ],
+];
 
 List<List<String>> materialPdfTable(Json data) => [
   ['Bezeichnung / Art.-Nr.', 'Typ', 'Anzahl', 'Positionen', 'BMK'],
@@ -357,17 +367,7 @@ Future<Uint8List> projectPdf(
       for (final t in data['terminals'])
         ['${t['bmk']}', '${t['terminal']}', '${t['connections']}'],
     ],
-    'Verbindungsliste': [
-      ['Blatt', 'Leiter', 'Von', 'Nach', 'Kabel / Ader'],
-      for (final w in data['connections'])
-        [
-          '${w['sheet']}',
-          '${w['conductor'] ?? ''}',
-          '${w['from']}',
-          '${w['to']}',
-          '${w['cable']} / ${w['core']}',
-        ],
-    ],
+    'Verbindungsliste': connectionPdfRows(data),
     'Kabel- und Aderliste': [
       ['Kabel', 'Ader', 'Farbe', 'Verbindungen'],
       for (final c in data['cables'])
