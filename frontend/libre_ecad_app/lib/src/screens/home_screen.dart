@@ -9,7 +9,6 @@ import '../api/company_users_api.dart';
 import '../models.dart';
 import '../session_service.dart';
 import '../app_theme.dart';
-import 'article_search_demo.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'projects_screen.dart';
@@ -192,14 +191,6 @@ class HomeScreen extends StatelessWidget {
             )
           else
             const _ZeichnerPlaceholder(),
-          const SizedBox(height: 16),
-          FutureBuilder<String>(
-            future: context.read<SessionService>().loadGlobalArticlesUrl(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const SizedBox.shrink();
-              return ArticleSearchDemo(globalArticlesUrl: snapshot.data!);
-            },
-          ),
         ],
       ),
     );

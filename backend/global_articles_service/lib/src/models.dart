@@ -1,22 +1,23 @@
-/// M1.2 — drei getrennte Bereiche des einen logisch globalen
-/// Artikelstamms (Brainstorming: "Allgemeine Artikel, Hersteller-
-/// Daten ... je Hersteller, User-Uploads"). Kein Upload in M1 — nur
-/// Lesen/Suchen von Testdaten.
-enum ArticleSource { general, manufacturer, userUpload }
+/// Bereiche des globalen Artikelstamms. `catalog` kennzeichnet redaktionell
+/// aus öffentlichen Quellen erfasste Daten; es ist keine verifizierte
+/// Hersteller-Einreichung (`manufacturer`).
+enum ArticleSource { general, manufacturer, catalog, userUpload }
 
 extension ArticleSourceJson on ArticleSource {
   String get wireValue => switch (this) {
-        ArticleSource.general => 'general',
-        ArticleSource.manufacturer => 'manufacturer',
-        ArticleSource.userUpload => 'userUpload',
-      };
+    ArticleSource.general => 'general',
+    ArticleSource.manufacturer => 'manufacturer',
+    ArticleSource.catalog => 'catalog',
+    ArticleSource.userUpload => 'userUpload',
+  };
 
   static ArticleSource fromWire(String value) => switch (value) {
-        'general' => ArticleSource.general,
-        'manufacturer' => ArticleSource.manufacturer,
-        'userUpload' => ArticleSource.userUpload,
-        _ => throw ArgumentError('Unbekannte ArticleSource: $value'),
-      };
+    'general' => ArticleSource.general,
+    'manufacturer' => ArticleSource.manufacturer,
+    'catalog' => ArticleSource.catalog,
+    'userUpload' => ArticleSource.userUpload,
+    _ => throw ArgumentError('Unbekannte ArticleSource: $value'),
+  };
 }
 
 class Article {
@@ -27,11 +28,16 @@ class Article {
     required this.source,
     required this.version,
     this.manufacturerName,
+    this.category,
+    this.symbolKey,
+    this.origin,
   }) : assert(
-          source != ArticleSource.manufacturer || manufacturerName != null,
-          'Hersteller-Artikel brauchen einen manufacturerName (siehe Roadmap: '
-          '"verifizierte Herstellerdaten je Hersteller").',
-        );
+         (source != ArticleSource.manufacturer &&
+                 source != ArticleSource.catalog) ||
+             manufacturerName != null,
+         'Hersteller-Artikel brauchen einen manufacturerName (siehe Roadmap: '
+         '"verifizierte Herstellerdaten je Hersteller").',
+       );
 
   final String id;
   final String articleNumber;
@@ -41,14 +47,26 @@ class Article {
   /// Nur bei [ArticleSource.manufacturer] gesetzt — "innerhalb eines
   /// eigenen Bereichs je Hersteller" (Brainstorming).
   final String? manufacturerName;
+
+  /// Fachliche Typgruppe; kein von einem Hersteller verifizierter Beitrag.
+  final String? category;
+
+  /// Wiederverwendbarer Bibliotheksschlüssel, null für reine Aufbauartikel.
+  final String? symbolKey;
+
+  /// Nachprüfbare, redaktionelle Quellenangabe zur Artikelvariante.
+  final String? origin;
   final int version;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'articleNumber': articleNumber,
-        'name': name,
-        'source': source.wireValue,
-        'manufacturerName': manufacturerName,
-        'version': version,
-      };
+    'id': id,
+    'articleNumber': articleNumber,
+    'name': name,
+    'source': source.wireValue,
+    'manufacturerName': manufacturerName,
+    'category': category,
+    'symbolKey': symbolKey,
+    'origin': origin,
+    'version': version,
+  };
 }

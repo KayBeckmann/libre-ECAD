@@ -92,6 +92,12 @@ void main() {
         findsOneWidget,
         reason: 'Admin sieht die Benutzerverwaltung',
       );
+      for (var i = 0; i < 5; i++) {
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -1000));
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('Globaler Artikelkatalog'), findsNothing,
+          reason: 'Die Startseite darf die Bauteilsuche nicht enthalten.');
     },
   );
 

@@ -23,6 +23,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
   static const labels = {
     'general': 'Allgemeine Artikel',
     'manufacturer': 'Hersteller',
+    'catalog': 'Herstellerkataloge',
     'userUpload': 'User-Uploads',
   };
   @override
@@ -48,7 +49,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
       final hits = await api.search(
         query.text.trim(),
         source: source,
-        manufacturer: source == 'manufacturer'
+        manufacturer: source == 'manufacturer' || source == 'catalog'
             ? manufacturer.text.trim()
             : null,
       );
@@ -74,10 +75,10 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
       final entries=await context.read<SessionService>().globalArticlesApiFor(Uri.parse(widget.globalArticlesUrl)).history(hit.id);
       if(!mounted)return;
       await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(title:Text(hit.name),content:SizedBox(width:600,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
-        SelectableText('Version ${hit.version}\nLizenz: ${hit.license??"Ungeklärte Beispieldaten"}\nHerkunft: ${hit.origin??"Synthetischer Katalog"}\nNamensnennung: ${hit.attribution??"–"}\n${hit.identityVerification=="identity-only"?"Herstelleridentität zum Freigabezeitpunkt geprüft.":"Keine Identitätsprüfung."} Technische Angaben ungeprüft.'),
+        SelectableText('Version ${hit.version}\nLizenz: ${hit.license??"Nicht geklärt"}\nHerkunft: ${hit.origin??"Keine Quellenangabe"}\nTyp: ${hit.category??"Nicht klassifiziert"}\nSymbol: ${hit.symbolKey??"Noch nicht zugeordnet"}\nNamensnennung: ${hit.attribution??"–"}\n${hit.identityVerification=="identity-only"?"Herstelleridentität zum Freigabezeitpunkt geprüft.":"Keine Identitätsprüfung."} Technische Angaben ungeprüft.'),
         const SizedBox(height:16),const Text('Öffentliche Historie'),
         for(final e in entries)ListTile(title:Text(e['event']=='withdrawn'?'Zurückgezogen':'Version ${e['article']['version']} veröffentlicht'),subtitle:Text('${e['at']} · ${e['reason']??e['article']?['license']??""}')),
-        if(entries.isEmpty)const Text('Synthetischer Bestand ohne Beitragshistorie.'),
+        if(entries.isEmpty) Text(hit.source == 'catalog' ? 'Redaktioneller Katalogbestand ohne Beitragshistorie.' : 'Synthetischer Bestand ohne Beitragshistorie.'),
       ]))),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Schließen'))]));
     }catch(e){if(mounted){setState(()=>error=e.toString());}}
   }
@@ -157,7 +158,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
                     error = null;
                   }),
           ),
-          if (source == 'manufacturer')
+          if (source == 'manufacturer' || source == 'catalog')
             TextField(
               controller: manufacturer,
               decoration: const InputDecoration(
@@ -200,9 +201,9 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
                 onTap:()=>details(hit),
                 title: Text('${hit.articleNumber} · ${hit.name}'),
                 subtitle: Text(
-                  '${labels[hit.source]}${hit.manufacturerName == null ? '' : ' / ${hit.manufacturerName}'} · Version ${hit.version}',
+                  '${labels[hit.source] ?? hit.source}${hit.manufacturerName == null ? '' : ' / ${hit.manufacturerName}'}${hit.category == null ? '' : ' / ${hit.category}'}${hit.symbolKey == null && hit.source == 'catalog' ? ' · Symbol noch nicht zugeordnet' : ''} · Version ${hit.version}',
                 ),
-                trailing: IconButton(
+                trailing: hit.source == 'catalog' ? null : IconButton(
                   tooltip: 'In persönlichen Stamm kopieren',
                   onPressed: () => copy(hit),
                   icon: const Icon(Icons.copy_outlined),
