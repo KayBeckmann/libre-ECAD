@@ -106,9 +106,12 @@ class EcadShell extends StatelessWidget {
                   child: const Icon(Icons.electrical_services, color: ecadGold),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'LibreECAD',
-                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+                const Expanded(
+                  child: Text(
+                    'LibreECAD',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),

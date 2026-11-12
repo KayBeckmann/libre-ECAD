@@ -130,25 +130,33 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         ? _NavMode.rail
         : _NavMode.bottom;
 
-    final content = IndexedStack(
-      index: current,
-      children: [
-        for (var i = 0; i < sections.length; i++)
-          if (visited.contains(i))
-            NavigatorPopHandler(
-              enabled: i == current,
-              onPopWithResult: (_) => keyFor(i).currentState?.maybePop(),
-              child: Navigator(
-                key: keyFor(i),
-                onGenerateRoute: (settings) => MaterialPageRoute(
-                  settings: settings,
-                  builder: sections[i].builder,
+    // Eigener Semantik-Container: Der `ModalBarrier` jeder Route im
+    // verschachtelten Navigator blockiert sonst die Semantik aller zuvor
+    // gezeichneten Geschwister, also der Seitenleiste bzw. Rail
+    // (Screenreader und Browser-Abnahme sähen keine Navigation).
+    final content = Semantics(
+      container: true,
+      explicitChildNodes: true,
+      child: IndexedStack(
+        index: current,
+        children: [
+          for (var i = 0; i < sections.length; i++)
+            if (visited.contains(i))
+              NavigatorPopHandler(
+                enabled: i == current,
+                onPopWithResult: (_) => keyFor(i).currentState?.maybePop(),
+                child: Navigator(
+                  key: keyFor(i),
+                  onGenerateRoute: (settings) => MaterialPageRoute(
+                    settings: settings,
+                    builder: sections[i].builder,
+                  ),
                 ),
-              ),
-            )
-          else
-            const SizedBox.shrink(),
-      ],
+              )
+            else
+              const SizedBox.shrink(),
+        ],
+      ),
     );
 
     return Scaffold(
@@ -216,9 +224,12 @@ class _Brand extends StatelessWidget {
           children: [
             mark,
             const SizedBox(width: 12),
-            const Text(
-              'LibreECAD',
-              style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+            const Expanded(
+              child: Text(
+                'LibreECAD',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
