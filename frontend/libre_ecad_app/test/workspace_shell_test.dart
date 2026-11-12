@@ -83,6 +83,24 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('wide: sidebar can be hidden and restored without losing page', (
+    tester,
+  ) async {
+    await signIn(tester, width: 1600);
+    await tester.tap(find.widgetWithText(ListTile, 'Projekte'));
+    await tester.pumpAndSettle();
+    expect(projectsPage, findsOneWidget);
+    await tester.tap(find.byTooltip('Menüleiste ausblenden'));
+    await tester.pumpAndSettle();
+    expect(find.text('ELEKTROPLANUNG'), findsNothing);
+    expect(find.widgetWithText(ListTile, 'Artikelbibliothek'), findsNothing);
+    expect(projectsPage, findsOneWidget);
+    await tester.tap(find.byTooltip('Menüleiste einblenden'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ListTile, 'Artikelbibliothek'), findsOneWidget);
+    expect(projectsPage, findsOneWidget);
+  });
+
   testWidgets('narrow: bottom navigation instead of a sidebar', (tester) async {
     await signIn(tester, width: 800);
     expect(find.byType(NavigationBar), findsOneWidget);

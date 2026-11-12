@@ -28,6 +28,17 @@ class AutomationRouter {
     for (final method in ['GET', 'POST']) {
       r.add(
         method,
+        '/user-tokens',
+        (Request q) => _session(q, (u) => _userTokens(q, u)),
+      );
+    }
+    r.post(
+      '/user-tokens/<id>/revoke',
+      (Request q, String id) => _session(q, (u) => _revokeUserToken(u, id)),
+    );
+    for (final method in ['GET', 'POST']) {
+      r.add(
+        method,
         '/tokens',
         (Request q) => _session(q, (u) => _tokens(q, u)),
       );
@@ -39,6 +50,7 @@ class AutomationRouter {
         (u) => records.transaction((tx) async {
           final token = await tx.get(tokens, id);
           if (token == null ||
+              token['scope'] == 'user' ||
               token['userId'] != u.id ||
               token['companyId'] != u.companyId)
             return jsonError('Zugang nicht gefunden.', status: 404);
@@ -227,6 +239,7 @@ class AutomationRouter {
           ? null
           : await tx.get(tokens, SessionTokens.hashOf(raw));
       if (t == null ||
+          t['scope'] == 'user' ||
           t['revoked'] == true ||
           !DateTime.now().toUtc().isBefore(DateTime.parse(t['expiresAt'])))
         return jsonError(
@@ -269,13 +282,95 @@ class AutomationRouter {
     'Projektstand geändert. Neu lesen und neuen Vorschlag erstellen; keine automatische Konfliktauflösung.',
     status: 409,
   );
+  Json _tokenPublic(Json t) => {
+    for (final key in [
+      'id',
+      'label',
+      'scope',
+      'revoked',
+      'expiresAt',
+      'version',
+    ])
+      if (t.containsKey(key)) key: t[key],
+  };
+
+  Future<Response> _userTokens(Request q, AppUser u) async {
+    if (q.method == 'GET') {
+      return records.transaction(
+        (tx) async => jsonOk({
+          'tokens': [
+            for (final t in await tx.list(tokens))
+              if (t['scope'] == 'user' &&
+                  t['userId'] == u.id &&
+                  t['companyId'] == u.companyId)
+                _tokenPublic(t),
+          ],
+        }),
+      );
+    }
+    final b = await readJson(q, maxBytes: 4096);
+    if (b['confirmed'] != true)
+      throw FormatException('Datenweitergabe bewusst bestätigen.');
+    final label = b['label'];
+    if (label is! String || label.trim().isEmpty || label.length > 100)
+      throw FormatException('Bezeichnung mit 1–100 Zeichen erforderlich.');
+    final c = await users.findCompanyById(u.companyId);
+    if (c == null || !c.active)
+      return jsonError('Zugang gesperrt.', status: 401);
+    final raw = SessionTokens.generate();
+    return records.transaction((tx) async {
+      final t = await tx.put(
+        tokens,
+        {
+          'id': SessionTokens.hashOf(raw),
+          'scope': 'user',
+          'userId': u.id,
+          'companyId': u.companyId,
+          'userEpoch': u.authEpoch,
+          'companyEpoch': c.authEpoch,
+          'label': label.trim(),
+          'revoked': false,
+          'expiresAt': DateTime.now()
+              .toUtc()
+              .add(const Duration(days: 90))
+              .toIso8601String(),
+        },
+        expected: 0,
+        actor: u.id,
+        reason: 'Nutzer bestätigt persönlichen API-Zugang',
+      );
+      return jsonOk({..._tokenPublic(t), 'token': raw}, status: 201);
+    });
+  }
+
+  Future<Response> _revokeUserToken(AppUser u, String id) =>
+      records.transaction((tx) async {
+        final t = await tx.get(tokens, id);
+        if (t == null ||
+            t['scope'] != 'user' ||
+            t['userId'] != u.id ||
+            t['companyId'] != u.companyId)
+          return jsonError('Zugang nicht gefunden.', status: 404);
+        await tx.put(
+          tokens,
+          {...t, 'revoked': true},
+          expected: t['version'],
+          actor: u.id,
+          reason: 'Nutzer widerruft persönlichen API-Zugang',
+        );
+        return jsonOk({'revoked': true});
+      });
+
   Future<Response> _tokens(Request q, AppUser u) async {
     if (q.method == 'GET')
       return records.transaction(
         (tx) async => jsonOk({
           'tokens': [
             for (final t in await tx.list(tokens))
-              if (t['userId'] == u.id && t['companyId'] == u.companyId) t,
+              if (t['scope'] != 'user' &&
+                  t['userId'] == u.id &&
+                  t['companyId'] == u.companyId)
+                t,
           ],
         }),
       );

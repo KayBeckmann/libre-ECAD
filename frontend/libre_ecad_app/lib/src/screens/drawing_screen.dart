@@ -205,6 +205,7 @@ class DrawingScreen extends StatefulWidget {
 }
 
 class _DrawingScreenState extends State<DrawingScreen> {
+  bool propertiesHidden = false;
   late final api = widget.api ?? WorkspaceApi(widget.session);
   DrawingController? controller;
   Timer? heartbeat;
@@ -1476,6 +1477,19 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           child: Row(
                             children: [
                               const SizedBox(width: 12),
+                              IconButton(
+                                tooltip: propertiesHidden
+                                    ? 'Eigenschaften einblenden'
+                                    : 'Eigenschaften ausblenden',
+                                onPressed: () => setState(
+                                  () => propertiesHidden = !propertiesHidden,
+                                ),
+                                icon: Icon(
+                                  propertiesHidden
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                              ),
                               for (final mode in [
                                 ('select', 'Auswählen', Icons.near_me_outlined),
                                 ('region', 'Rahmenauswahl', Icons.select_all),
@@ -1655,7 +1669,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                 ],
                               ),
                             ),
-                            if (!compact)
+                            if (!compact && !propertiesHidden)
                               SizedBox(width: 280, child: inspector(enabled)),
                           ],
                         ),

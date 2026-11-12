@@ -12,6 +12,7 @@ import 'package:company_users_service/src/workspace/global_catalog.dart';
 void main() {
   late InMemoryCompanyUserRepository users;
   late MemoryWorkspaceStore store;
+  late MemoryRecords records;
   late Handler handler;
   var globalAvailable = true;
   final tokens = <String, String>{};
@@ -57,6 +58,7 @@ void main() {
   setUp(() async {
     users = InMemoryCompanyUserRepository();
     store = MemoryWorkspaceStore();
+    records = MemoryRecords();
     globalAvailable = true;
     await users.createCompany(id: 'a', name: 'Firma A');
     await users.createCompany(id: 'b', name: 'Firma B');
@@ -67,7 +69,7 @@ void main() {
       repository: users,
       internalToken: 'test',
       workspace: store,
-      automationRecords: MemoryRecords(),
+      automationRecords: records,
       globalLookup: (id) async {
         if (!globalAvailable) throw GlobalCatalogUnavailable();
         return {
@@ -81,6 +83,193 @@ void main() {
       },
     ).handler.call;
   });
+  test('personal token is issued once and accesses future projects', () async {
+    expect(
+      (await call('admin-a', 'POST', 'automation/user-tokens', {
+        'label': 'Assistant',
+      })).statusCode,
+      400,
+    );
+    final created = await call('admin-a', 'POST', 'automation/user-tokens', {
+      'confirmed': true,
+      'label': 'Assistant',
+    });
+    expect(created.statusCode, 201);
+    final issued = await json(created);
+    expect(issued['token'], isA<String>());
+    expect(issued, isNot(contains('projectIds')));
+    final stored = await records.transaction(
+      (tx) => tx.get('m6-automation-token', issued['id']),
+    );
+    expect(stored!['id'], SessionTokens.hashOf(issued['token']));
+    expect(stored, isNot(contains('token')));
+    expect(stored, isNot(contains('projectIds')));
+    expect(stored['scope'], 'user');
+    tokens['personal'] = issued['token'];
+    final listed = await json(
+      await call('admin-a', 'GET', 'automation/user-tokens'),
+    );
+    expect(listed['tokens'], hasLength(1));
+    expect(listed['tokens'][0], isNot(contains('token')));
+    expect(listed['tokens'][0], isNot(contains('projectIds')));
+    final project = await json(
+      await call('admin-a', 'POST', 'projects', {'name': 'Future'}),
+    );
+    expect(
+      (await call('personal', 'GET', 'projects/${project['id']}')).statusCode,
+      200,
+    );
+    expect(
+      (await call('personal', 'GET', 'automation/user-tokens')).statusCode,
+      401,
+    );
+    expect(
+      (await call('personal', 'POST', 'automation/user-tokens', {
+        'confirmed': true,
+        'label': 'Nested',
+      })).statusCode,
+      401,
+    );
+    expect(
+      (await call(
+        'personal',
+        'POST',
+        'automation/user-tokens/${issued['id']}/revoke',
+        {},
+      )).statusCode,
+      401,
+    );
+    expect(
+      (await call('personal', 'POST', 'automation/tokens', {})).statusCode,
+      401,
+    );
+    expect(
+      (await handler(
+        Request(
+          'POST',
+          Uri.parse('http://localhost/me/password'),
+          headers: {'authorization': 'Bearer ${tokens['personal']}'},
+          body: '{}',
+        ),
+      )).statusCode,
+      401,
+    );
+    expect(
+      (await call(
+        'admin-a',
+        'POST',
+        'automation/user-tokens/${issued['id']}/revoke',
+        {},
+      )).statusCode,
+      200,
+    );
+    expect((await call('personal', 'GET', 'projects')).statusCode, 401);
+  });
+  test(
+    'personal tokens retain live tenant, role and project ACL boundaries',
+    () async {
+      final issued = await json(
+        await call('drafter-a', 'POST', 'automation/user-tokens', {
+          'confirmed': true,
+          'label': 'Drafter',
+        }),
+      );
+      tokens['personal'] = issued['token'];
+      expect((await call('personal', 'GET', 'users')).statusCode, 404);
+      final adminRead = await handler(
+        Request(
+          'GET',
+          Uri.parse('http://localhost/users'),
+          headers: {'authorization': 'Bearer ${tokens['personal']}'},
+        ),
+      );
+      expect(adminRead.statusCode, 403);
+      expect(
+        (await call('admin-b', 'GET', 'automation/user-tokens')).statusCode,
+        200,
+      );
+      expect(
+        (await json(
+          await call('admin-b', 'GET', 'automation/user-tokens'),
+        ))['tokens'],
+        isEmpty,
+      );
+      expect(
+        (await call(
+          'admin-b',
+          'POST',
+          'automation/user-tokens/${issued['id']}/revoke',
+          {},
+        )).statusCode,
+        404,
+      );
+      final privateProject = await json(
+        await call('admin-a', 'POST', 'projects', {'name': 'Restricted'}),
+      );
+      expect(
+        (await call(
+          'personal',
+          'GET',
+          'projects/${privateProject['id']}',
+        )).statusCode,
+        404,
+      );
+      expect(
+        (await call('personal', 'GET', 'automation/projects')).statusCode,
+        401,
+      );
+      await users.setUserActive(id: 'drafter-a', active: false);
+      expect((await call('personal', 'GET', 'projects')).statusCode, 401);
+    },
+  );
+  test(
+    'personal token expiry and auth epoch invalidate without affecting sessions',
+    () async {
+      final issued = await json(
+        await call('admin-a', 'POST', 'automation/user-tokens', {
+          'confirmed': true,
+          'label': 'Expiring',
+        }),
+      );
+      tokens['personal'] = issued['token'];
+      await records.transaction((tx) async {
+        final t = (await tx.get('m6-automation-token', issued['id']))!;
+        await tx.put(
+          'm6-automation-token',
+          {
+            ...t,
+            'expiresAt': DateTime.now()
+                .toUtc()
+                .subtract(const Duration(seconds: 1))
+                .toIso8601String(),
+          },
+          expected: t['version'],
+          actor: 'test',
+          reason: 'expire fixture',
+        );
+      });
+      expect((await call('personal', 'GET', 'projects')).statusCode, 401);
+      expect((await call('admin-a', 'GET', 'projects')).statusCode, 200);
+      final second = await json(
+        await call('admin-a', 'POST', 'automation/user-tokens', {
+          'confirmed': true,
+          'label': 'Epoch',
+        }),
+      );
+      tokens['personal'] = second['token'];
+      await records.transaction((tx) async {
+        final t = (await tx.get('m6-automation-token', second['id']))!;
+        await tx.put(
+          'm6-automation-token',
+          {...t, 'companyEpoch': -1},
+          expected: t['version'],
+          actor: 'test',
+          reason: 'epoch fixture',
+        );
+      });
+      expect((await call('personal', 'GET', 'projects')).statusCode, 401);
+    },
+  );
   test(
     'project groups grant and revoke workspace, offline and scoped API access with tenant and CAS checks',
     () async {
@@ -953,6 +1142,21 @@ void main() {
         await call('admin-a', 'POST', 'automation/tokens', issue),
       );
       tokens['scoped'] = t['token'];
+      expect((await call('scoped', 'GET', 'projects')).statusCode, 401);
+      expect(
+        (await call('scoped', 'GET', 'automation/user-tokens')).statusCode,
+        401,
+      );
+      expect(
+        (await handler(
+          Request(
+            'GET',
+            Uri.parse('http://localhost/users'),
+            headers: {'authorization': 'Bearer ${tokens['scoped']}'},
+          ),
+        )).statusCode,
+        403,
+      );
       final list = await json(
         await call('scoped', 'GET', 'automation/projects'),
       );

@@ -22,6 +22,36 @@ void main() {
     companyName: 'TEST',
     backendUrl: Uri.parse('http://localhost'),
   );
+  testWidgets('properties panel hides and restores without losing drawing', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final api = WorkspaceApi(
+      session,
+      client: MockClient((_) async => http.Response(jsonEncode({
+        'projectName': 'Testplan',
+        'version': 1,
+        'drawing': emptyDrawing(),
+      }), 200)),
+    );
+    await tester.pumpWidget(MaterialApp(
+      home: DrawingScreen(session: session, projectId: 'p', api: api),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('EIGENSCHAFTEN'), findsOneWidget);
+    final canvasWidth = tester.getSize(find.byType(DrawingCanvas)).width;
+    await tester.tap(find.byTooltip('Eigenschaften ausblenden'));
+    await tester.pumpAndSettle();
+    expect(find.text('EIGENSCHAFTEN'), findsNothing);
+    expect(tester.getSize(find.byType(DrawingCanvas)).width, greaterThan(canvasWidth));
+    await tester.tap(find.byTooltip('Eigenschaften einblenden'));
+    await tester.pumpAndSettle();
+    expect(find.text('EIGENSCHAFTEN'), findsOneWidget);
+    expect(tester.getSize(find.byType(DrawingCanvas)).width, canvasWidth);
+    api.close();
+  });
   testWidgets('page references are searchable and open the creation dialog', (
     tester,
   ) async {

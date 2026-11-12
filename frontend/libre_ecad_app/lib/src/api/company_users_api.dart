@@ -144,4 +144,37 @@ class CompanyUsersApi {
     );
     await _parse(response);
   }
+
+  Future<List<Map<String, Object?>>> listUserLlmTokens(String token) async {
+    final response = await _http.get(
+      _endpoint('api/v1/automation/user-tokens'),
+      headers: _authHeaders(token),
+    );
+    final body = await _parse(response);
+    return (body['tokens'] as List).cast<Map<String, Object?>>();
+  }
+
+  /// Only this creation response carries the secret. Never persist it locally.
+  Future<Map<String, Object?>> createUserLlmToken(
+    String token, {
+    required String label,
+  }) async {
+    final response = await _http.post(
+      _endpoint('api/v1/automation/user-tokens'),
+      headers: _authHeaders(token),
+      body: jsonEncode({'confirmed': true, 'label': label}),
+    );
+    return _parse(response, expect: 201);
+  }
+
+  Future<void> revokeUserLlmToken(String token, String id) async {
+    final response = await _http.post(
+      _endpoint(
+        'api/v1/automation/user-tokens/${Uri.encodeComponent(id)}/revoke',
+      ),
+      headers: _authHeaders(token),
+      body: jsonEncode(<String, Object?>{}),
+    );
+    await _parse(response);
+  }
 }

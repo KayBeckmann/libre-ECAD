@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../api/company_users_api.dart';
 import '../session_service.dart';
 import 'login_screen.dart';
+import 'user_llm_tokens_panel.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -144,6 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onPressed: _busy ? null : _submit,
                     child: Text(_busy ? 'Bitte warten…' : 'Passwort ändern'),
                   ),
+                  const UserLlmTokensPanel(),
                 ],
               ),
             ),

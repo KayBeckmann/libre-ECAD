@@ -92,6 +92,7 @@ class WorkspaceShell extends StatefulWidget {
 
 class _WorkspaceShellState extends State<WorkspaceShell> {
   late int current = widget.initialSection;
+  bool navigationHidden = false;
   final visited = <int>{};
   final keys = <int, GlobalKey<NavigatorState>>{};
 
@@ -162,7 +163,28 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     return Scaffold(
       body: Row(
         children: [
-          if (mode == _NavMode.sidebar)
+          if (mode != _NavMode.bottom)
+            SizedBox(
+              width: 48,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: IconButton(
+                    tooltip: navigationHidden
+                        ? 'Menüleiste einblenden'
+                        : 'Menüleiste ausblenden',
+                    onPressed: () => setState(
+                      () => navigationHidden = !navigationHidden,
+                    ),
+                    icon: Icon(
+                      navigationHidden ? Icons.menu_open : Icons.menu,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (!navigationHidden && mode == _NavMode.sidebar)
             _Sidebar(
               sections: sections,
               current: current,
@@ -170,7 +192,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
               onSelect: select,
               onLogout: logout,
             )
-          else if (mode == _NavMode.rail)
+          else if (!navigationHidden && mode == _NavMode.rail)
             _Rail(
               sections: sections,
               current: current,

@@ -63,8 +63,8 @@ class CompanyUserRouter {
     router.post(
       '/api/v1/contributions',
       (Request request) => apiGuard(() async {
-        final auth = await _requireUser(request);
-        if (auth == null)
+        final user = await _authenticateUser(request);
+        if (user == null)
           return jsonError(
             'Nicht angemeldet oder Firmenzugang gesperrt.',
             status: 401,
@@ -75,9 +75,9 @@ class CompanyUserRouter {
         // All identity and privilege fields come from the local session.
         body.remove('mode');
         body['actor'] = {
-          'companyId': auth.user.companyId,
-          'userId': auth.user.id,
-          'role': auth.user.role.wireValue,
+          'companyId': user.companyId,
+          'userId': user.id,
+          'role': user.role.wireValue,
         };
         return jsonOk(
           await catalogApi!.call(
@@ -105,7 +105,7 @@ class CompanyUserRouter {
         MacroRouter(
           catalogApi: catalogApi,
           store: workspace!,
-          authenticate: (q) async => (await _requireUser(q))?.user,
+          authenticate: _authenticateUser,
         ).handler.call,
       );
       router.mount(
@@ -114,7 +114,7 @@ class CompanyUserRouter {
           store: workspace!,
           users: repository,
           globalLookup: globalLookup,
-          authenticate: (request) async => (await _requireUser(request))?.user,
+          authenticate: _authenticateUser,
         ).handler.call,
       );
     }
@@ -254,12 +254,12 @@ class CompanyUserRouter {
   }
 
   Future<Response> _me(Request request) async {
-    final auth = await _requireUser(request);
-    if (auth == null) return jsonError('Nicht angemeldet.', status: 401);
-    final company = await repository.findCompanyById(auth.user.companyId);
+    final user = await _authenticateUser(request);
+    if (user == null) return jsonError('Nicht angemeldet.', status: 401);
+    final company = await repository.findCompanyById(user.companyId);
     return jsonOk({
-      'username': auth.user.username,
-      'role': auth.user.role.wireValue,
+      'username': user.username,
+      'role': user.role.wireValue,
       'companyName': company?.name,
     });
   }
@@ -401,6 +401,33 @@ class CompanyUserRouter {
     return header.substring('Bearer '.length);
   }
 
+  Future<AppUser?> _authenticateUser(Request request) async {
+    final session = await _requireUser(request);
+    if (session != null) return session.user;
+    final raw = _bearerToken(request);
+    if (raw == null || automationRecords == null) return null;
+    final token = await automationRecords!.transaction(
+      (tx) => tx.get(AutomationRouter.tokens, SessionTokens.hashOf(raw)),
+    );
+    if (token == null || token['scope'] != 'user' || token['revoked'] == true)
+      return null;
+    final expiry = DateTime.tryParse(token['expiresAt']?.toString() ?? '');
+    if (expiry == null || !DateTime.now().toUtc().isBefore(expiry)) return null;
+    final user = await repository.findUserById(token['userId']);
+    if (user == null ||
+        !user.active ||
+        !user.isActivated ||
+        user.companyId != token['companyId'] ||
+        user.authEpoch != token['userEpoch'])
+      return null;
+    final company = await repository.findCompanyById(user.companyId);
+    if (company == null ||
+        !company.active ||
+        company.authEpoch != token['companyEpoch'])
+      return null;
+    return user;
+  }
+
   Future<({AppUser user, UserSession session})?> _requireUser(
     Request request,
   ) async {
@@ -426,11 +453,9 @@ class CompanyUserRouter {
     return (user: user, session: session);
   }
 
-  Future<({AppUser user, UserSession session})?> _requireAdmin(
-    Request request,
-  ) async {
-    final auth = await _requireUser(request);
-    if (auth == null || auth.user.role != UserRole.admin) return null;
-    return auth;
+  Future<({AppUser user})?> _requireAdmin(Request request) async {
+    final user = await _authenticateUser(request);
+    if (user == null || user.role != UserRole.admin) return null;
+    return (user: user);
   }
 }
