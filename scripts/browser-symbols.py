@@ -42,7 +42,7 @@ with sync_playwright() as p:
     assert len(article['layers']['symbol']['definition']['primitives'])==3
     # Navigate back through the actual application routes.
     page.get_by_role('button',name='Back',exact=True).click()
-    page.get_by_role('button',name=re.compile('^Projekte')).click()
+    page.get_by_role('button',name=re.compile('^Projekte')).first.click()
     page.get_by_role('button',name=re.compile('^'+re.escape(state['projectName']))).click()
     page.get_by_role('button',name='Schaltplan öffnen',exact=True).click()
     expect(page.get_by_text('BAUTEILBIBLIOTHEK',exact=True)).to_be_visible()

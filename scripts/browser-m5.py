@@ -21,7 +21,7 @@ with sync_playwright() as p:
         f=page.get_by_role('textbox',name=label,exact=True);f.click();page.wait_for_timeout(100);f.press('ControlOrMeta+A');f.press('Backspace');f.press_sequentially(value,delay=4)
     field('Benutzername',a['username']);field('Passwort',a['password']);page.get_by_role('button',name='Anmelden',exact=True).click()
     expect(page.get_by_text('Team und Projekte im Blick.',exact=True)).to_be_visible();page.screenshot(path='/tmp/libre-m5-home.png')
-    page.get_by_role('button',name=re.compile('^Projekte')).click();page.get_by_role('button',name=re.compile('^'+re.escape(project['name']))).click()
+    page.get_by_role('button',name=re.compile('^Projekte')).first.click();page.get_by_role('button',name=re.compile('^'+re.escape(project['name']))).click()
     page.get_by_role('button',name='Schaltplan öffnen',exact=True).click();expect(page.get_by_text('BAUTEILBIBLIOTHEK',exact=True)).to_be_visible()
     page.get_by_role('button',name='Dokumente und Freigabe',exact=True).click()
     expect(page.get_by_role('button',name='PDF herunterladen',exact=True)).to_be_visible()

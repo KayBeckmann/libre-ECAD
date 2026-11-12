@@ -41,6 +41,8 @@ The three backend services each use a separate PostgreSQL instance; the web deli
 
 **Follow-up 2026-10-25:** Project groups and employee grants, unified article libraries, rectangle-to-macro selection, explicit target-sheet selection and contact combs below relay coils. Contacts reference only their coil. See [workflows and checks](docs/2026-10-25-followup.md).
 
+**Follow-up 2026-11-12:** Persistent workspace shell (sidebar, rail or bottom navigation with one nested navigator per section), project tools moved from the editor palette into a **Werkzeuge** menu, grouped property panel. See [UI shell notes](docs/2026-11-12-ui-shell.md).
+
 ## Important boundaries
 
 - **The web app requires a reachable company backend.** Prepared offline work is available in installed clients; Linux offline execution is verified.

@@ -40,7 +40,7 @@ und ein dreipoliges Schutzgerät mit sechs einzeln verdrahtbaren Anschlüssen.
 Der Motor besitzt U/V/W/PE. Im Verbindungsmenü lässt sich jeder Leitung eine
 Kennzeichnung L1, L2, L3, N oder PE geben oder diese entfernen.
 
-**Arbeitsproben → TEST · Dreiphasen und Relaiskontakte** lädt einen zweiblättrigen
+**Werkzeuge → Arbeitsproben → TEST · Dreiphasen und Relaiskontakte** lädt einen zweiblättrigen
 Beispielplan mit Motorabgang und einer Spule mit drei zugeordneten Kontakten.
 Das Laden ersetzt den aktuellen Entwurf nach Bestätigung. Sich widersprechende
 Leiterkennzeichnungen innerhalb eines explizit verbundenen Netzes erzeugen einen

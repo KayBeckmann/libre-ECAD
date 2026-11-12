@@ -37,6 +37,8 @@ Die drei Backenddienste nutzen jeweils eine eigene PostgreSQL-Instanz; das Web-F
 
 **Meilenstein 8 – Entwicklungsstand:** Homepage und versioniertes Wiki auf Deutsch/Englisch in unabhängigen Containern, klarer Betriebs-/Buildstatus, lokale Suche und geprüfter Linux-Download. [Betrieb und ausgeführte Abnahme](docs/m8-sites.md); [Pflege der Seiten](sites/README.md). Öffentlicher Livegang benötigt weiterhin Kays Freigabe.
 
+**Nachtrag 2026-11-12:** Persistente Arbeitsplatz-Shell (Seitenleiste, Rail oder untere Navigation mit je einem verschachtelten Navigator pro Bereich), Projektwerkzeuge aus der Editor-Bibliothek in ein **Werkzeuge**-Menü verlagert, gegliedertes Eigenschaften-Panel. Siehe [Notizen zur Shell](docs/2026-11-12-ui-shell.md).
+
 ## Wichtige Grenzen
 
 - **Web benötigt ein erreichbares Firmenbackend.** Vorbereitete Offline-Arbeit ist im installierten Client verfügbar; der Linux-Ablauf wurde geprüft.
