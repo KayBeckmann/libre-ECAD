@@ -99,7 +99,7 @@ with sync_playwright() as p:
     assert len(saved['drawing']['devices']) == 3
     # Existing explicit paired page continuation, verified through the actual UI.
     button('Blattfortsetzung').click()
-    field('Signalname', 'TEST-L1'); button('Fortsetzung anlegen').click()
+    field('Verbindungskennung (intern)', 'TEST-L1'); button('Fortsetzung anlegen').click()
     inspect('after-continuation')
     button('Speichern').click(); page.wait_for_timeout(500)
     saved = m4.request(m4.P + 'projects/' + project['id'] + '/drawing', token=a['token'])
