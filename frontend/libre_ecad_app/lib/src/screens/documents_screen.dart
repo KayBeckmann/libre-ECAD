@@ -62,6 +62,29 @@ Map<String, List<Json>> groupedTerminalRows(List<dynamic> rows) {
   };
 }
 
+const materialTableFields = <String, String>{
+  'articleNumber': 'Art.-Nr.',
+  'label': 'Bezeichnung',
+  'type': 'Typ',
+  'quantity': 'Anzahl',
+  'positions': 'Positionen',
+  'bmk': 'BMK',
+};
+
+Json displayMaterialRow(Json row) {
+  final article = row['article'];
+  final name = article is Map ? article['name'] : null;
+  final number = article is Map ? article['number'] : null;
+  return {
+    ...row,
+    'label': name is String && name.trim().isNotEmpty ? name : row['label'],
+    'articleNumber': number ?? row['articleNumber'] ?? '',
+    'type': row['typeName'] ??
+        symbolLibrary.where((s) => s.key == row['type']).firstOrNull?.name ??
+        row['type'],
+  };
+}
+
 class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({
     super.key,
@@ -453,6 +476,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
               }),
             table('Verbindungsliste', data['connections'], {
               'sheet': 'Blatt',
+              'potential': 'Potential',
               'from': 'Von',
               'to': 'Nach',
               'cable': 'Kabel',
@@ -464,13 +488,9 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
               'color': 'Farbe',
               'connections': 'Verbindungen',
             }),
-            table('Materialliste', data['material'], {
-              'bmk': 'BMK',
-              'label': 'Bezeichnung',
-              'type': 'Typ',
-              'quantity': 'Anzahl',
-              'positions': 'Positionen',
-            }),
+            table('Materialliste',
+                (data['material'] as List).map((r) => displayMaterialRow(r as Json)).toList(),
+                materialTableFields),
           ],
         ],
       ),

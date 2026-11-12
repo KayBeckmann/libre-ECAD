@@ -4,6 +4,27 @@ import 'drawing.dart';
 
 typedef _Position = Point<double>;
 
+/// Baseline of a single wire caption, directly beside the longest visible
+/// segment. This shared geometry keeps the editor and SVG/PDF in sync.
+Point<double> wireLabelPosition(List<Point<double>> points) {
+  if (points.length < 2) throw ArgumentError('A wire needs two route points');
+  var start = points.first;
+  var end = points[1];
+  var length = -1.0;
+  for (var index = 1; index < points.length; index++) {
+    final a = points[index - 1], b = points[index];
+    final distance = (b.x - a.x).abs() + (b.y - a.y).abs();
+    if (distance > length) {
+      start = a;
+      end = b;
+      length = distance;
+    }
+  }
+  return start.y == end.y
+      ? Point(min(start.x, end.x) + min(8.0, length / 2), start.y - 5)
+      : Point(start.x + 6, (start.y + end.y) / 2);
+}
+
 /// Render-only orthogonal route. Electrical connectivity remains defined by
 /// the wire's fixed endpoint references; explicit waypoints take precedence.
 /// The automatic grid, obstacle bounds, and tie order mirror the editor route.

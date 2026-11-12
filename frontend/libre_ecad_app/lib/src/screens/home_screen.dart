@@ -6,7 +6,6 @@ import '../models.dart';
 import '../session_service.dart';
 import '../app_theme.dart';
 import '../workspace_shell.dart';
-import 'article_search_demo.dart';
 import 'login_screen.dart';
 
 /// Bereich „Arbeitsplatz“ innerhalb der [WorkspaceShell]: Firmenname,
@@ -57,9 +56,8 @@ class HomeScreen extends StatelessWidget {
             isAdmin
                 ? 'Team und Projekte im Blick.'
                 : 'Bereit für Ihren nächsten Plan.',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.headlineLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Text(
@@ -129,14 +127,6 @@ class HomeScreen extends StatelessWidget {
             )
           else
             const _ZeichnerPlaceholder(),
-          const SizedBox(height: 16),
-          FutureBuilder<String>(
-            future: context.read<SessionService>().loadGlobalArticlesUrl(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const SizedBox.shrink();
-              return ArticleSearchDemo(globalArticlesUrl: snapshot.data!);
-            },
-          ),
         ],
       ),
     );
@@ -347,9 +337,8 @@ class _AdminUserManagementState extends State<_AdminUserManagement> {
       _reload();
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
       }
     }
   }
@@ -364,9 +353,8 @@ class _AdminUserManagementState extends State<_AdminUserManagement> {
       _reload();
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
       }
     }
   }

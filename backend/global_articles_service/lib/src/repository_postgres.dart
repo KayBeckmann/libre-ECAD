@@ -18,8 +18,8 @@ class PostgresArticleRepository implements ArticleRepository {
     for (final article in articles) {
       await _db.execute(
         Sql.named('''
-          INSERT INTO articles (id, article_number, name, source, manufacturer_name, version)
-          VALUES (@id, @articleNumber, @name, @source, @manufacturerName, @version)
+          INSERT INTO articles (id, article_number, name, source, manufacturer_name, category, symbol_key, origin, version)
+          VALUES (@id, @articleNumber, @name, @source, @manufacturerName, @category, @symbolKey, @origin, @version)
           ON CONFLICT (id) DO NOTHING
         '''),
         parameters: {
@@ -28,6 +28,9 @@ class PostgresArticleRepository implements ArticleRepository {
           'name': article.name,
           'source': article.source.wireValue,
           'manufacturerName': article.manufacturerName,
+          'category': article.category,
+          'symbolKey': article.symbolKey,
+          'origin': article.origin,
           'version': article.version,
         },
       );
@@ -38,7 +41,7 @@ class PostgresArticleRepository implements ArticleRepository {
   Future<Article?> findById(String id) async {
     final result = await _db.execute(
       Sql.named(
-        'SELECT id, article_number, name, source, manufacturer_name, version FROM articles WHERE id = @id',
+        'SELECT id, article_number, name, source, manufacturer_name, version, category, symbol_key, origin FROM articles WHERE id = @id',
       ),
       parameters: {'id': id},
     );
@@ -50,7 +53,7 @@ class PostgresArticleRepository implements ArticleRepository {
   Future<List<Article>> search(String query) async {
     final result = await _db.execute(
       Sql.named('''
-        SELECT id, article_number, name, source, manufacturer_name, version FROM articles
+        SELECT id, article_number, name, source, manufacturer_name, version, category, symbol_key, origin FROM articles
         WHERE article_number ILIKE @needle OR name ILIKE @needle
         ORDER BY article_number
       '''),
@@ -60,11 +63,14 @@ class PostgresArticleRepository implements ArticleRepository {
   }
 
   Article _toArticle(ResultRow row) => Article(
-        id: row[0] as String,
-        articleNumber: row[1] as String,
-        name: row[2] as String,
-        source: ArticleSourceJson.fromWire(row[3] as String),
-        manufacturerName: row[4] as String?,
-        version: row[5] as int,
-      );
+    id: row[0] as String,
+    articleNumber: row[1] as String,
+    name: row[2] as String,
+    source: ArticleSourceJson.fromWire(row[3] as String),
+    manufacturerName: row[4] as String?,
+    version: row[5] as int,
+    category: row[6] as String?,
+    symbolKey: row[7] as String?,
+    origin: row[8] as String?,
+  );
 }

@@ -85,6 +85,37 @@ void main() {
   });
 
   test(
+    'redaktioneller Katalogartikel hat Typ, Symbol und Quelle',
+    () async {
+      await repository.insertAll([
+        const Article(
+          id: 'catalog-example-demo',
+          articleNumber: 'DEMO-123',
+          name: 'Fiktiver FI-Schutzschalter',
+          source: ArticleSource.catalog,
+          manufacturerName: 'FIKTIV',
+          category: 'Fehlerstromschutzschalter',
+          symbolKey: 'rcd4',
+          origin: 'Beispielkatalog, S. 16',
+          version: 1,
+        ),
+      ]);
+      final response = await http.get(
+        baseUrl.resolve(
+          '/articles?query=DEMO-123&manufacturer=FIKTIV&source=catalog',
+        ),
+      );
+      expect(response.statusCode, 200);
+      final results = (jsonDecode(response.body)['results'] as List);
+      expect(results, hasLength(1));
+      expect(results.single['category'], 'Fehlerstromschutzschalter');
+      expect(results.single['symbolKey'], 'rcd4');
+      expect(results.single['origin'], 'Beispielkatalog, S. 16');
+      expect(results.single['manufacturerName'], 'FIKTIV');
+    },
+  );
+
+  test(
     'ArticleSource.fromWire wirft bei unbekanntem Wert statt still null zu liefern',
     () {
       expect(

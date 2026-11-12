@@ -128,6 +128,7 @@ String sheetSvg(
   for (var r = 0; r < 6; r++) {
     label(String.fromCharCode(65 + r), 18, 110 + r * 100);
   }
+  final potentials = netPotentials(d);
   for (final w in objects(
     d,
     'wires',
@@ -136,20 +137,20 @@ String sheetSvg(
     for (var n = 1; n < points.length; n++) {
       line(points[n - 1].x, points[n - 1].y, points[n].x, points[n].y);
     }
-    final labelPoint = points.length > 1 ? points[1] : points.first;
-    if (w['conductor'] != null)
-      label(w['conductor'], labelPoint.x + 6, labelPoint.y - 30, size: 12);
+    final captions = <String>[
+      if (potentials[w['id']] != null) potentials[w['id']]!,
+      if (w['conductor'] != null) w['conductor'] as String,
+    ];
     if (w['cableId'] != null) {
       final c = objectById(d, 'cables', w['cableId']);
       final core = (c['cores'] as List).firstWhere(
         (v) => v['id'] == w['coreId'],
       );
-      label(
-        '${c['bmk']}:${core['label']}',
-        labelPoint.x + 6,
-        labelPoint.y - 16,
-        size: 10,
-      );
+      captions.add('${c['bmk']}:${core['label']}');
+    }
+    if (captions.isNotEmpty) {
+      final position = wireLabelPosition(points);
+      label(captions.join(' · '), position.x, position.y, size: 11);
     }
   }
   for (final i in objects(
@@ -203,9 +204,9 @@ String sheetSvg(
           label(shape['text'], a, b + 10, size: 12);
       }
     }
-    final labelX = x + symbolDeviceLabelOffset(s);
+    final labelX = x + symbolDeviceLabelOffset(s, rotation: rotation);
     label(terminalDisplayBmk(d, dev), labelX, y - 8, size: 14);
-    label(dev['label'], labelX, y + 10, size: 10);
+    label(deviceDisplayLabel(dev), labelX, y + 10, size: 10);
     final refs = instanceReferences(d, i).map((v) => v['position']).join(', ');
     if (refs.isNotEmpty && s.role != 'coil')
       label('Ref. $refs', labelX, y + 27, size: 10);
@@ -243,14 +244,11 @@ String sheetSvg(
     'continuations',
   ).where((o) => o['sheetId'] == sheetId)) {
     final num x = o['x'], y = o['y'];
-    line(x - 10, y - 9, x + 10, y);
-    line(x + 10, y, x - 10, y + 9);
-    final other = objects(
-      d,
-      'continuations',
-    ).firstWhere((v) => v['linkId'] == o['linkId'] && v['id'] != o['id']);
+    final outgoing = continuationIsOutgoing(d, o);
+    line(outgoing ? x - 10 : x + 10, y - 9, outgoing ? x + 10 : x - 10, y);
+    line(outgoing ? x + 10 : x - 10, y, outgoing ? x - 10 : x + 10, y + 9);
     label(
-      '${o['label']} -> ${positionReference(d, other)}',
+      continuationCaption(d, o, potentials: potentials),
       x + 16,
       y + 4,
       size: 11,
@@ -259,6 +257,31 @@ String sheetSvg(
   out.write('</svg>');
   return out.toString();
 }
+
+List<List<String>> connectionPdfRows(Json data) => [
+  ['Blatt', 'Leiter', 'Potential', 'Von', 'Nach', 'Kabel / Ader'],
+  for (final w in data['connections'])
+    [
+      '${w['sheet']}',
+      '${w['conductor'] ?? ''}',
+      '${w['potential'] ?? ''}',
+      '${w['from']}',
+      '${w['to']}',
+      '${w['cable']} / ${w['core']}',
+    ],
+];
+
+List<List<String>> materialPdfTable(Json data) => [
+  ['Bezeichnung / Art.-Nr.', 'Typ', 'Anzahl', 'Positionen', 'BMK'],
+  for (final m in data['material'])
+    [
+      '${m['label']}${m['articleNumber'] == null ? '' : ' · ${m['articleNumber']}'}',
+      '${m['typeName'] ?? m['type']}',
+      '${m['quantity']}',
+      '${m['positions']}',
+      '${m['bmk']}',
+    ],
+];
 
 Future<Uint8List> projectPdf(
   Json project, {
@@ -345,33 +368,13 @@ Future<Uint8List> projectPdf(
       for (final t in data['terminals'])
         ['${t['bmk']}', '${t['terminal']}', '${t['connections']}'],
     ],
-    'Verbindungsliste': [
-      ['Blatt', 'Leiter', 'Von', 'Nach', 'Kabel / Ader'],
-      for (final w in data['connections'])
-        [
-          '${w['sheet']}',
-          '${w['conductor'] ?? ''}',
-          '${w['from']}',
-          '${w['to']}',
-          '${w['cable']} / ${w['core']}',
-        ],
-    ],
+    'Verbindungsliste': connectionPdfRows(data),
     'Kabel- und Aderliste': [
       ['Kabel', 'Ader', 'Farbe', 'Verbindungen'],
       for (final c in data['cables'])
         ['${c['bmk']}', '${c['core']}', '${c['color']}', '${c['connections']}'],
     ],
-    'Materialliste': [
-      ['BMK', 'Bezeichnung', 'Typ', 'Anzahl', 'Positionen'],
-      for (final m in data['material'])
-        [
-          '${m['bmk']}',
-          '${m['label']}',
-          '${m['type']}',
-          '${m['quantity']}',
-          '${m['positions']}',
-        ],
-    ],
+    'Materialliste': materialPdfTable(data),
   };
   // Bound individual rows so they can split across pages without losing long text.
   List<String> textParts(String text) {

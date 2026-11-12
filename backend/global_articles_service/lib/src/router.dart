@@ -72,7 +72,12 @@ class ArticleRouter {
     final source = request.url.queryParameters['source'];
     final manufacturer = request.url.queryParameters['manufacturer'];
     if (source != null &&
-        !['general', 'manufacturer', 'userUpload'].contains(source)) {
+        ![
+          'general',
+          'manufacturer',
+          'catalog',
+          'userUpload',
+        ].contains(source)) {
       return jsonError('Unbekannter Artikelbereich.');
     }
     final results = (await repository.search(query)).where(

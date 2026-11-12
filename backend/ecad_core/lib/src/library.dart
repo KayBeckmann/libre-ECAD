@@ -824,14 +824,29 @@ Map<String, dynamic> validateSymbol(Object? input) {
   return input;
 }
 
-/// Keep device annotations beyond the widest pole and its functional labels.
-num symbolDeviceLabelOffset(SymbolDefinition s) {
-  if (s.definition != null ||
-      const {'Drehstrom', 'Automatisierung'}.contains(s.group)) {
-    return 140;
+/// Place annotations just beyond the rendered glyph, including functional text.
+num symbolDeviceLabelOffset(SymbolDefinition s, {num rotation = 0}) {
+  num rotatedX(num x, num y) => switch (rotation % 360) {
+    90 => -y,
+    180 => -x,
+    270 => y,
+    _ => x,
+  };
+  num right = 0;
+  for (final shape in symbolGeometry(s)) {
+    num extent = rotatedX(shape['x'] as num, shape['y'] as num);
+    if (shape['x2'] is num) {
+      final end = rotatedX(shape['x2'] as num, shape['y2'] as num);
+      if (end > extent) extent = end;
+    }
+    if (shape['kind'] == 'circle') {
+      extent += shape['radius'] as num;
+    } else if (shape['kind'] == 'text') {
+      extent += (shape['text'] as String).runes.length * 7;
+    }
+    if (extent > right) right = extent;
   }
-  if (s.group == 'Schutzgeräte') return (s.ports.length ~/ 2) * 20 + 60;
-  return 32;
+  return right + 12;
 }
 
 List<Map<String, dynamic>> symbolPins(SymbolDefinition s) {
@@ -1006,6 +1021,29 @@ List<Map<String, dynamic>> symbolGeometry(SymbolDefinition s) {
     'text': t,
   };
   if (s.group == 'Schutzgeräte') {
+    // One shared 1-pole MCB glyph, independently drawn from the circuit style
+    // illustrated for Eaton PXL on catalog print page 82. Existing port IDs
+    // and coordinates stay unchanged for already saved project drawings.
+    if (s.key == 'mcb1') return [
+      line(0, -60, 0, -35),
+      line(-7, -42, 7, -28),
+      line(-7, -28, 7, -42),
+      line(-3, -22, 6, -22),
+      line(-10, -29, 0, 20),
+      circle(0, 20, 4),
+      line(0, 20, 0, 60),
+      // Thermal bimetal qualifier, left of the contact blade.
+      line(-30, -15, -25, -15),
+      line(-25, -15, -25, -10),
+      line(-25, -10, -20, -10),
+      line(-20, -10, -20, -18),
+      line(-20, -18, -10, -20),
+      // Magnetic instantaneous-trip arrow; these are not electrical pins.
+      line(-28, 5, -20, 0),
+      line(-28, 5, -20, 10),
+      line(-20, 0, -20, 10),
+      line(-20, 2, -10, 4),
+    ];
     final pins = symbolPins(s), columns = s.ports.length ~/ 2;
     final halfWidth = columns * 20;
     return [

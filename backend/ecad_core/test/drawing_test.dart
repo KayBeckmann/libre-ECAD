@@ -1,8 +1,27 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:ecad_core/ecad_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('wire caption stays adjacent to a real route segment', () {
+    expect(
+      wireLabelPosition([const Point(100, 200), const Point(400, 200)]),
+      const Point(108.0, 195.0),
+    );
+    expect(
+      wireLabelPosition([const Point(100, 100), const Point(100, 400)]),
+      const Point(106.0, 250.0),
+    );
+    expect(
+      wireLabelPosition([
+        const Point(100, 100),
+        const Point(100, 120),
+        const Point(400, 120),
+      ]),
+      const Point(108.0, 115.0),
+    );
+  });
   test('both working examples preserve references through serialization', () {
     for (final kind in ['distribution', 'motor']) {
       final d = sampleDrawing(kind);
@@ -122,6 +141,75 @@ void main() {
       expect(nets(validateDrawing(d)), hasLength(4));
     },
   );
+  test('cross-sheet references follow a later free-text net potential', () {
+    final d = sampleDrawing('motor');
+    final ends = objects(d, 'continuations');
+    final first = ends[0], second = ends[1];
+    final source = objects(
+      d,
+      'wires',
+    ).singleWhere((w) => w['to']['id'] == first['id']);
+    final target = objects(
+      d,
+      'wires',
+    ).singleWhere((w) => w['from']['id'] == second['id']);
+    expect(
+      continuationCaption(d, first),
+      'Nach ${positionReference(d, second)}',
+    );
+    expect(
+      continuationCaption(d, second),
+      'Von ${positionReference(d, first)}',
+    );
+    setNetPotential(d, source['id'], '+24V Steuerung');
+    expect(wirePotential(d, source), '+24V Steuerung');
+    expect(wirePotential(d, target), '+24V Steuerung');
+    expect(
+      continuationCaption(d, first),
+      'Nach ${positionReference(d, second)} · +24V Steuerung',
+    );
+    expect(
+      continuationCaption(d, second),
+      'Von ${positionReference(d, first)} · +24V Steuerung',
+    );
+    expect(validateDrawing(d), isNotNull);
+    setNetPotential(d, target['id'], '0V Steuerung');
+    expect(wirePotential(d, source), '0V Steuerung');
+    setNetPotential(d, source['id'], '');
+    expect(wirePotential(d, target), isNull);
+    expect(
+      continuationCaption(d, second),
+      'Von ${positionReference(d, first)}',
+    );
+  });
+  test('potential names reject control text and conflicting net snapshots', () {
+    final d = sampleDrawing('motor');
+    final ends = objects(d, 'continuations');
+    final a = objects(
+      d,
+      'wires',
+    ).singleWhere((w) => w['to']['id'] == ends.first['id']);
+    final b = objects(
+      d,
+      'wires',
+    ).singleWhere((w) => w['from']['id'] == ends.last['id']);
+    expect(() => setNetPotential(d, a['id'], 'A\nB'), throwsFormatException);
+    setNetPotential(d, a['id'], 'Steuerkreis Nord');
+    expect(wirePotential(validateDrawing(d), b), 'Steuerkreis Nord');
+    b['potential'] = 'Steuerkreis Süd';
+    expect(() => validateDrawing(d), throwsFormatException);
+  });
+  test('new cross-page link directions are validated and reversible', () {
+    final d = sampleDrawing('motor');
+    final pair = objects(d, 'continuations');
+    pair[0]['direction'] = 'in';
+    pair[1]['direction'] = 'out';
+    expect(continuationCaption(d, pair[0]), startsWith('Von '));
+    expect(continuationCaption(d, pair[1]), startsWith('Nach '));
+    expect(validateDrawing(d), isNotNull);
+    pair[1]['direction'] = 'in';
+    expect(() => validateDrawing(d), throwsFormatException);
+  });
   test('continuations join by stable link ID, not equal labels', () {
     final d = sampleDrawing('motor');
     final continuations = objects(d, 'continuations');

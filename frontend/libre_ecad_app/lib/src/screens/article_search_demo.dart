@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:ecad_core/ecad_core.dart';
 import 'package:provider/provider.dart';
 
 import '../api/workspace_api.dart';
 import '../models.dart';
 import '../session_service.dart';
+
+String catalogSymbolDescription(GlobalArticleSearchHit hit) {
+  final key = hit.symbolKey;
+  if (key == null) return 'Noch nicht zugeordnet';
+  return symbolLibrary.where((s) => s.key == key).firstOrNull?.name ??
+      'Schaltsymbol nicht in der Bibliothek';
+}
 
 /// Separate global catalog search. Its failure never clears local libraries.
 class ArticleSearchDemo extends StatefulWidget {
@@ -16,13 +24,14 @@ class ArticleSearchDemo extends StatefulWidget {
 class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
   final query = TextEditingController();
   final manufacturer = TextEditingController();
-  String source = 'general';
+  String source = 'catalog';
   List<GlobalArticleSearchHit>? results;
   String? error;
   bool busy = false;
   static const labels = {
     'general': 'Allgemeine Artikel',
     'manufacturer': 'Hersteller',
+    'catalog': 'Herstellerkataloge',
     'userUpload': 'User-Uploads',
   };
   @override
@@ -48,7 +57,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
       final hits = await api.search(
         query.text.trim(),
         source: source,
-        manufacturer: source == 'manufacturer'
+        manufacturer: source == 'manufacturer' || source == 'catalog'
             ? manufacturer.text.trim()
             : null,
       );
@@ -71,23 +80,70 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
 
   Future<void> details(GlobalArticleSearchHit hit) async {
     try {
-      final entries=await context.read<SessionService>().globalArticlesApiFor(Uri.parse(widget.globalArticlesUrl)).history(hit.id);
-      if(!mounted)return;
-      await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(title:Text(hit.name),content:SizedBox(width:600,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
-        SelectableText('Version ${hit.version}\nLizenz: ${hit.license??"Ungeklärte Beispieldaten"}\nHerkunft: ${hit.origin??"Synthetischer Katalog"}\nNamensnennung: ${hit.attribution??"–"}\n${hit.identityVerification=="identity-only"?"Herstelleridentität zum Freigabezeitpunkt geprüft.":"Keine Identitätsprüfung."} Technische Angaben ungeprüft.'),
-        const SizedBox(height:16),const Text('Öffentliche Historie'),
-        for(final e in entries)ListTile(title:Text(e['event']=='withdrawn'?'Zurückgezogen':'Version ${e['article']['version']} veröffentlicht'),subtitle:Text('${e['at']} · ${e['reason']??e['article']?['license']??""}')),
-        if(entries.isEmpty)const Text('Synthetischer Bestand ohne Beitragshistorie.'),
-      ]))),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Schließen'))]));
-    }catch(e){if(mounted){setState(()=>error=e.toString());}}
+      final entries = await context
+          .read<SessionService>()
+          .globalArticlesApiFor(Uri.parse(widget.globalArticlesUrl))
+          .history(hit.id);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(hit.name),
+          content: SizedBox(
+            width: 600,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SelectableText(
+                    'Version ${hit.version}\nLizenz: ${hit.license ?? "Nicht geklärt"}\nHerkunft: ${hit.origin ?? "Keine Quellenangabe"}\nTyp: ${hit.category ?? "Nicht klassifiziert"}\nSymbol: ${catalogSymbolDescription(hit)}\nNamensnennung: ${hit.attribution ?? "–"}\n${hit.identityVerification == "identity-only" ? "Herstelleridentität zum Freigabezeitpunkt geprüft." : "Keine Identitätsprüfung."} Technische Angaben ungeprüft.',
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Öffentliche Historie'),
+                  for (final e in entries)
+                    ListTile(
+                      title: Text(
+                        e['event'] == 'withdrawn'
+                            ? 'Zurückgezogen'
+                            : 'Version ${e['article']['version']} veröffentlicht',
+                      ),
+                      subtitle: Text(
+                        '${e['at']} · ${e['reason'] ?? e['article']?['license'] ?? ""}',
+                      ),
+                    ),
+                  if (entries.isEmpty)
+                    Text(
+                      hit.source == 'catalog'
+                          ? 'Redaktioneller Katalogbestand ohne Beitragshistorie.'
+                          : 'Synthetischer Bestand ohne Beitragshistorie.',
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Schließen'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => error = e.toString());
+      }
+    }
   }
+
   Future<void> copy(GlobalArticleSearchHit hit) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Persönliche Artikelkopie'),
         content: Text(
-          '${hit.articleNumber} · ${hit.name}\nVersion ${hit.version}\n\n${hit.license==null?'Synthetische Beispieldaten: Lizenz ungeklärt.':'Lizenz: ${hit.license} · ${hit.attribution}'} Technische Angaben sind ungeprüft. Die Kopie bleibt unabhängig vom globalen Original.',
+          '${hit.articleNumber} · ${hit.name}\nVersion ${hit.version}\n\n${hit.license == null ? 'Synthetische Beispieldaten: Lizenz ungeklärt.' : 'Lizenz: ${hit.license} · ${hit.attribution}'} Technische Angaben sind ungeprüft. Die Kopie bleibt unabhängig vom globalen Original.',
         ),
         actions: [
           TextButton(
@@ -157,7 +213,7 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
                     error = null;
                   }),
           ),
-          if (source == 'manufacturer')
+          if (source == 'manufacturer' || source == 'catalog')
             TextField(
               controller: manufacturer,
               decoration: const InputDecoration(
@@ -197,16 +253,18 @@ class _ArticleSearchDemoState extends State<ArticleSearchDemo> {
           if (results != null)
             for (final hit in results!)
               ListTile(
-                onTap:()=>details(hit),
+                onTap: () => details(hit),
                 title: Text('${hit.articleNumber} · ${hit.name}'),
                 subtitle: Text(
-                  '${labels[hit.source]}${hit.manufacturerName == null ? '' : ' / ${hit.manufacturerName}'} · Version ${hit.version}',
+                  '${labels[hit.source] ?? hit.source}${hit.manufacturerName == null ? '' : ' / ${hit.manufacturerName}'}${hit.category == null ? '' : ' / ${hit.category}'}${hit.source == 'catalog' ? ' · Symbol: ${catalogSymbolDescription(hit)}' : ''} · Version ${hit.version}',
                 ),
-                trailing: IconButton(
-                  tooltip: 'In persönlichen Stamm kopieren',
-                  onPressed: () => copy(hit),
-                  icon: const Icon(Icons.copy_outlined),
-                ),
+                trailing: hit.source == 'catalog'
+                    ? null
+                    : IconButton(
+                        tooltip: 'In persönlichen Stamm kopieren',
+                        onPressed: () => copy(hit),
+                        icon: const Icon(Icons.copy_outlined),
+                      ),
               ),
         ],
       ),

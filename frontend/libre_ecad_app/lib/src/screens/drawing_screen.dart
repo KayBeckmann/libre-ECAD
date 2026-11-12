@@ -16,6 +16,9 @@ import '../app_theme.dart';
 import '../drawing/drawing_canvas.dart';
 import '../drawing/drawing_controller.dart';
 import '../models.dart';
+import '../session_service.dart';
+
+import 'package:provider/provider.dart';
 
 /// Display order only; persisted symbol keys and IDs remain unchanged.
 String paletteGroup(SymbolDefinition s) {
@@ -157,6 +160,36 @@ String terminalDisplayName(Json drawing, Json device) {
       : '${matches.first['bmk']}:${device['terminals'][0]['label']}';
 }
 
+Json placeCatalogArticle(
+  Json drawing,
+  String sheetId,
+  num x,
+  num y,
+  GlobalArticleSearchHit hit,
+) {
+  final key = hit.symbolKey;
+  if (hit.source != 'catalog' ||
+      key == null ||
+      !drawingSymbols(drawing).any((symbol) => symbol.key == key)) {
+    throw const FormatException('Kein passendes Schaltsymbol zugeordnet.');
+  }
+  final instance = addSymbol(drawing, key, sheetId, x, y);
+  objectById(
+    drawing,
+    'devices',
+    instance['deviceId'],
+  )['article'] = articleSnapshot({
+    'id': hit.id,
+    'version': hit.version,
+    'articleNumber': hit.articleNumber,
+    'name': hit.name,
+    'manufacturerName': hit.manufacturerName,
+    'origin': hit.origin ?? 'Unbekannte Katalogquelle',
+    'license': hit.license ?? 'Ungeklärt – redaktionelle Katalogdaten',
+  });
+  return instance;
+}
+
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -177,6 +210,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Timer? heartbeat;
   String? error, sheetId, selected, pendingDevice;
   String name = '', tool = 'select', query = '';
+  Timer? catalogDebounce;
+  int catalogQueryVersion = 0;
+  List<GlobalArticleSearchHit>? catalogResults;
+  String? catalogError;
+  bool catalogBusy = false;
+  GlobalArticleSearchHit? pendingArticle;
   Rect? macroRegion;
   String? regionSheet;
   Json? pendingPort;
@@ -194,10 +233,46 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   @override
   void dispose() {
+    catalogDebounce?.cancel();
     heartbeat?.cancel();
     controller?.dispose();
     if (widget.api == null) api.close();
     super.dispose();
+  }
+
+  void searchLibrary(String value) {
+    final text = value.trim();
+    catalogDebounce?.cancel();
+    final version = ++catalogQueryVersion;
+    setState(() {
+      query = text.toLowerCase();
+      catalogResults = null;
+      catalogError = null;
+      catalogBusy = text.isNotEmpty;
+    });
+    if (text.isEmpty) return;
+    catalogDebounce = Timer(const Duration(milliseconds: 250), () async {
+      try {
+        final session = context.read<SessionService>();
+        final url = await session.loadGlobalArticlesUrl();
+        final results = await session
+            .globalArticlesApiFor(Uri.parse(url))
+            .search(text, source: 'catalog');
+        if (mounted && version == catalogQueryVersion) {
+          setState(() {
+            catalogResults = results;
+            catalogBusy = false;
+          });
+        }
+      } catch (e) {
+        if (mounted && version == catalogQueryVersion) {
+          setState(() {
+            catalogError = 'Herstellerkatalog nicht erreichbar: $e';
+            catalogBusy = false;
+          });
+        }
+      }
+    });
   }
 
   void refresh() {
@@ -869,6 +944,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       if (key != null) {
         setState(() {
           tool = 'place:$key';
+          pendingArticle = null;
           pendingDevice = null;
           pendingPort = null;
         });
@@ -952,18 +1028,24 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (tool.startsWith('place:')) {
       String? created;
       change((d) {
-        created = addSymbol(
-          d,
-          tool.substring(6),
-          sheetId!,
-          x,
-          y,
-          deviceId: pendingDevice,
-        )['id'];
+        created =
+            (pendingArticle != null &&
+                pendingDevice == null &&
+                pendingArticle!.symbolKey == tool.substring(6)
+            ? placeCatalogArticle(d, sheetId!, x, y, pendingArticle!)
+            : addSymbol(
+                d,
+                tool.substring(6),
+                sheetId!,
+                x,
+                y,
+                deviceId: pendingDevice,
+              ))['id'];
       });
       setState(() {
         selected = created;
         pendingDevice = null;
+        pendingArticle = null;
         tool = 'select';
       });
     } else if (tool == 'node') {
@@ -1030,7 +1112,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
       );
       return;
     }
-    final signal = TextEditingController(text: 'Signal');
+    final signal = TextEditingController(
+      text: 'Verweis ${objects(d, 'continuations').length ~/ 2 + 1}',
+    );
     var target = others.first['id'] as String;
     final values = await showDialog<Map<String, String>>(
       context: context,
@@ -1044,7 +1128,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
               TextField(
                 controller: signal,
                 maxLength: 160,
-                decoration: const InputDecoration(labelText: 'Signalname'),
+                decoration: const InputDecoration(
+                  labelText: 'Verbindungskennung (intern)',
+                ),
               ),
               DropdownButtonFormField<String>(
                 initialValue: target,
@@ -1061,7 +1147,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Erzeugt zwei zusammengehörige Enden. Beide Enden anschließend mit dem Werkzeug Verbinden an die jeweiligen Anschlüsse anschließen.',
+                'Erzeugt einen Ausgangspfeil auf diesem Blatt und einen Eingangspfeil auf dem Zielblatt. Beide Enden mit Verbinden anschließen. Potentiale kannst du später an einer beliebigen verbundenen Leitung frei eingeben.',
               ),
             ],
           ),
@@ -1093,6 +1179,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           'y': 600,
           'linkId': link,
           'label': values['Signalname'],
+          'direction': sid == sheetId ? 'out' : 'in',
         });
       }
     });
@@ -1217,6 +1304,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         'from': pointRef('node', node['id'] as String),
         'to': end,
         if (w['conductor'] != null) 'conductor': w['conductor'],
+        if (w['potential'] != null) 'potential': w['potential'],
       });
     });
   }
@@ -1227,7 +1315,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
       {
         'X [Raster 20]': '${point['x']}',
         'Y [Raster 20]': '${point['y']}',
-        if (kind == 'continuations') 'Signalname': point['label'],
+        if (kind == 'continuations')
+          'Verbindungskennung (intern)': point['label'],
       },
     );
     if (values == null || !mounted) return;
@@ -1240,7 +1329,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           d,
           kind,
         ).where((c) => c['linkId'] == o['linkId'])) {
-          c['label'] = values['Signalname'];
+          c['label'] = values['Verbindungskennung (intern)'];
         }
       }
     });
@@ -1411,6 +1500,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                     onSelected: enabled
                                         ? (_) => setState(() {
                                             tool = mode.$1;
+                                            pendingArticle = null;
                                             pendingPort = null;
                                             pendingDevice = null;
                                           })
@@ -1707,8 +1797,53 @@ class _DrawingScreenState extends State<DrawingScreen> {
             prefixIcon: Icon(Icons.search),
             isDense: true,
           ),
-          onChanged: (v) => setState(() => query = v.toLowerCase()),
+          onChanged: searchLibrary,
         ),
+        if (query.isEmpty ||
+            'seitenverweis blattverweis blattfortsetzung verweis potentialpfeil'
+                .contains(query))
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.compare_arrows),
+            title: const Text('Seitenverweis / Blattfortsetzung'),
+            subtitle: const Text('Pfeile Von/Nach auf zwei Blättern anlegen'),
+            onTap: enabled ? continuation : null,
+          ),
+        if (catalogBusy) const LinearProgressIndicator(),
+        if (catalogError != null) Text(catalogError!),
+        if (catalogResults != null && query.isNotEmpty) ...[
+          Text(
+            'Hersteller · ${catalogResults!.length} Treffer',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          for (final hit in catalogResults!.take(50))
+            ListTile(
+              dense: true,
+              title: Text('${hit.articleNumber} · ${hit.name}'),
+              subtitle: Text(
+                '${hit.manufacturerName ?? 'Unbekannt'} / ${hit.category ?? 'Ohne Typ'}${hit.symbolKey == null
+                    ? ' · Schaltsymbol fehlt'
+                    : !drawingSymbols(d).any((symbol) => symbol.key == hit.symbolKey)
+                    ? ' · Schaltsymbol nicht in dieser Zeichnung'
+                    : ''}',
+              ),
+              enabled:
+                  enabled &&
+                  hit.symbolKey != null &&
+                  drawingSymbols(d)
+                      .any((symbol) => symbol.key == hit.symbolKey),
+              onTap: () => setState(() {
+                tool = 'place:${hit.symbolKey}';
+                pendingArticle = hit;
+                pendingDevice = null;
+                pendingPort = null;
+              }),
+            ),
+          if (catalogResults!.length > 50)
+            const Text(
+              'Weitere Treffer: Suche mit Artikelnummer oder genauerer Bezeichnung eingrenzen.',
+            ),
+        ],
         const SizedBox(height: 8),
         // Projektwerkzeuge (Planart, Makros, Berechnungen, Material)
         // liegen im Menü „Werkzeuge“ der Kopfzeile; die Bibliothek
@@ -1739,6 +1874,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   selected: tool == 'place:${s.key}',
                   onTap: () => setState(() {
                     tool = 'place:${s.key}';
+                    pendingArticle = null;
                     pendingDevice = null;
                     pendingPort = null;
                   }),
@@ -1796,6 +1932,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       );
 
   Widget inspector(bool enabled) {
+    final potentials = netPotentials(d);
     final views = objects(d, 'instances').where((i) => i['id'] == selected);
     final i = views.isEmpty ? null : views.first;
     final device = i == null ? null : objectById(d, 'devices', i['deviceId']);
@@ -1831,7 +1968,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(device['label']),
+            Text(deviceDisplayLabel(device)),
             const SizedBox(height: 6),
             Text(
               'Position ${positionReference(d, i)} · ${i['x']}/${i['y']}'
@@ -1871,13 +2008,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                 ) &&
                                 mounted) {
                               change(
-                                (d) =>
-                                    objectById(
-                                          d,
-                                          'devices',
-                                          device['id'],
-                                        )['bmk'] =
-                                        proposal,
+                                (d) => objectById(
+                                  d,
+                                  'devices',
+                                  device['id'],
+                                )['bmk'] = proposal,
                               );
                             }
                           }
@@ -1886,7 +2021,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 inspectorAction(
                   'Artikel / Maße zuordnen',
                   Icons.inventory_2_outlined,
-                  enabled && !api.isOffline ? () => assignArticle(device) : null,
+                  enabled && !api.isOffline
+                      ? () => assignArticle(device)
+                      : null,
                 ),
                 if (i['symbol'] == 'terminal')
                   inspectorAction(
@@ -1980,6 +2117,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
               onChanged: enabled
                   ? (key) => setState(() {
                       tool = 'place:$key';
+                      pendingArticle = null;
                       pendingDevice = device['id'];
                       pendingPort = null;
                     })
@@ -2028,7 +2166,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                   title: Text(
-                    '${w['conductor'] == null ? '' : '${w['conductor']} · '}${endpointLabel(w['from'])} -> ${endpointLabel(w['to'])}',
+                    '${potentials[w['id']] == null ? '' : '${potentials[w['id']]} · '}${w['conductor'] == null ? '' : '${w['conductor']} · '}${endpointLabel(w['from'])} -> ${endpointLabel(w['to'])}',
                     style: const TextStyle(fontSize: 11),
                   ),
                   subtitle: w['cableId'] == null
@@ -2050,6 +2188,24 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           change(
                             (d) => (d['wires'] as List).removeWhere(
                               (v) => v['id'] == w['id'],
+                            ),
+                          );
+                        }
+                      }
+                      if (action == 'potential') {
+                        final values = await fields(
+                          'Potential des gesamten Netzes',
+                          {
+                            'Potential (leer = entfernen)':
+                                potentials[w['id']] ?? '',
+                          },
+                        );
+                        if (values != null && mounted) {
+                          change(
+                            (d) => setNetPotential(
+                              d,
+                              w['id'],
+                              values['Potential (leer = entfernen)']!,
                             ),
                           );
                         }
@@ -2076,6 +2232,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       }
                     },
                     itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'potential',
+                        child: Text('Potential frei eingeben / entfernen'),
+                      ),
                       PopupMenuItem(
                         value: 'conductor:L1',
                         child: Text('Leiter L1'),
@@ -2124,11 +2284,21 @@ class _DrawingScreenState extends State<DrawingScreen> {
           for (final kind in ['nodes', 'continuations'])
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
+              initiallyExpanded: kind == 'continuations',
               title: Text(
-                kind == 'nodes' ? 'Knoten' : 'Blattfortsetzungen',
+                kind == 'nodes'
+                    ? 'Knoten'
+                    : 'Seitenverweise / Blattfortsetzungen',
                 style: const TextStyle(fontSize: 13),
               ),
               children: [
+                if (kind == 'continuations')
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.add, size: 18),
+                    title: const Text('Seitenverweis hinzufügen'),
+                    onTap: enabled ? continuation : null,
+                  ),
                 for (final o in objects(
                   d,
                   kind,
@@ -2139,7 +2309,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     title: Text(
                       kind == 'nodes'
                           ? 'Knoten ${shortObjectId(o['id'])}'
-                          : o['label'],
+                          : continuationCaption(d, o),
                       style: const TextStyle(fontSize: 11),
                     ),
                     subtitle: Text('${o['x']}/${o['y']}'),
