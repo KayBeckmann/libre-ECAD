@@ -41,7 +41,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         confirmPassword: _confirm.text,
       );
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
+      // Die Einstellungen liegen in einem verschachtelten Bereichs-
+      // Navigator; die Anmeldung ersetzt die gesamte Shell.
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (_) => false,
       );

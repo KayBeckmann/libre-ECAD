@@ -18,7 +18,11 @@ with sync_playwright() as p:
     def button(name):return page.get_by_role('button',name=name,exact=True)
     def inspect(name):
         page.wait_for_timeout(500);Path('/tmp/libre-m7-'+name+'.txt').write_text(page.locator('body').aria_snapshot());page.screenshot(path='/tmp/libre-m7-'+name+'.png')
+    TOOLS={'Planart / Maßstab','Makrobibliothek','Berechnungen','Material / ERP'}
     def palette(name):
+        # Projektwerkzeuge liegen seit der Shell-Überarbeitung im Menü „Werkzeuge“.
+        if name in TOOLS:
+            button('Werkzeuge').click();page.wait_for_timeout(300);page.get_by_role('menuitem',name=name,exact=True).click();return
         for _ in range(8):
             if button(name).count():break
             page.mouse.move(180,720);page.mouse.wheel(0,-600);page.wait_for_timeout(150)

@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 const ecadGold = Color(0xffeab75a);
 const ecadMuted = Color(0xffa8bec1);
+/// Seitenleisten-, AppBar- und Eingabehintergrund.
+const ecadPanel = Color(0xff0b202a);
+/// Hervorhebung des aktiven Navigationseintrags.
+const ecadSelected = Color(0xff23434c);
+const ecadOutline = Color(0xff31505a);
 ThemeData ecadTheme() {
   final scheme =
       ColorScheme.fromSeed(
@@ -22,8 +27,27 @@ ThemeData ecadTheme() {
     colorScheme: scheme,
     scaffoldBackgroundColor: const Color(0xff071923),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xff0b202a),
+      backgroundColor: ecadPanel,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      shape: Border(bottom: BorderSide(color: ecadOutline)),
+    ),
+    navigationRailTheme: const NavigationRailThemeData(
+      backgroundColor: ecadPanel,
+      indicatorColor: ecadSelected,
+      selectedIconTheme: IconThemeData(color: ecadGold),
+      selectedLabelTextStyle: TextStyle(color: ecadGold, fontSize: 12),
+      unselectedLabelTextStyle: TextStyle(color: ecadMuted, fontSize: 12),
+    ),
+    navigationBarTheme: const NavigationBarThemeData(
+      backgroundColor: ecadPanel,
+      indicatorColor: ecadSelected,
+      iconTheme: WidgetStatePropertyAll(IconThemeData(color: ecadMuted)),
+      labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 11)),
+    ),
+    listTileTheme: const ListTileThemeData(
+      selectedColor: ecadGold,
+      iconColor: ecadMuted,
     ),
     cardTheme: CardThemeData(
       elevation: 0,
@@ -66,7 +90,7 @@ class EcadShell extends StatelessWidget {
       final wide = size.maxWidth >= 980;
       final sidebar = Container(
         width: 236,
-        color: const Color(0xff0b202a),
+        color: ecadPanel,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,7 +128,7 @@ class EcadShell extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Material(
                   color: tile is ListTile && tile.selected
-                      ? const Color(0xff23434c)
+                      ? ecadSelected
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   child: tile,
@@ -139,9 +163,7 @@ class EcadShell extends StatelessWidget {
                       height: 78,
                       padding: const EdgeInsets.symmetric(horizontal: 38),
                       decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: Color(0xff31505a)),
-                        ),
+                        border: Border(bottom: BorderSide(color: ecadOutline)),
                       ),
                       child: Row(
                         children: [

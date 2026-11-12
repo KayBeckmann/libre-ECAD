@@ -12,6 +12,7 @@ import 'material_screen.dart';
 
 import '../api/company_users_api.dart';
 import '../api/workspace_api.dart';
+import '../app_theme.dart';
 import '../drawing/drawing_canvas.dart';
 import '../drawing/drawing_controller.dart';
 import '../models.dart';
@@ -289,8 +290,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
+  /// Fenstergrenze für Bearbeitung; dieselbe Schwelle, ab der die
+  /// Arbeitsplatz-Shell auf die untere Navigationsleiste wechselt.
   bool get hasEditingSpace =>
-      MediaQuery.sizeOf(context).width >= 1000 &&
+      MediaQuery.sizeOf(context).width >= 980 &&
       MediaQuery.sizeOf(context).height -
               kToolbarHeight -
               MediaQuery.paddingOf(context).vertical >=
@@ -1292,12 +1295,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
           title: Text(ready ? '$name · Schaltplan' : 'Schaltplan laden'),
           actions: [
             if (ready)
-              IconButton(
-                tooltip: 'Dokumente und Freigabe',
-                onPressed: online && !busy ? documents : null,
-                icon: const Icon(Icons.picture_as_pdf_outlined),
-              ),
-            if (ready)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Center(
@@ -1320,15 +1317,22 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 color: online ? accent : Colors.red,
               ),
             ),
+            if (ready) projectToolsMenu(online && !busy && hasEditingSpace),
             if (ready)
-              TextButton.icon(
-                onPressed: online && !busy ? history : null,
-                icon: const Icon(Icons.history),
-                label: const Text('Historie'),
+              appBarAction(
+                'Historie',
+                Icons.history,
+                online && !busy ? history : null,
+              ),
+            if (ready)
+              appBarAction(
+                'Dokumente und Freigabe',
+                Icons.picture_as_pdf_outlined,
+                online && !busy ? documents : null,
               ),
             if (ready)
               Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(left: 8, right: 16),
                 child: FilledButton.icon(
                   onPressed:
                       online && !busy && hasEditingSpace && controller!.dirty
@@ -1357,7 +1361,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
               )
             : LayoutBuilder(
                 builder: (context, c) {
-                  final compact = c.maxWidth < 1000 || c.maxHeight < 500;
+                  // Inhaltsbreite neben der Seitenleiste; die
+                  // Fensterschwelle steckt in `hasEditingSpace`.
+                  final compact = c.maxWidth < 900 || c.maxHeight < 500;
                   final enabled = online && !busy && !compact;
                   return Column(
                     children: [
@@ -1445,31 +1451,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                 icon: const Icon(Icons.compare_arrows),
                                 label: const Text('Blattfortsetzung'),
                               ),
-                              PopupMenuButton<String>(
-                                tooltip: 'Synthetische Arbeitsproben',
-                                enabled: enabled,
-                                onSelected: sample,
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(
-                                    value: 'distribution',
-                                    child: Text('TEST · Verteilerabgang'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'three-phase',
-                                    child: Text(
-                                      'TEST · Dreiphasen und Relaiskontakte',
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'motor',
-                                    child: Text('TEST · Steuer- / Motorabgang'),
-                                  ),
-                                ],
-                                child: const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: Text('Arbeitsproben'),
-                                ),
-                              ),
+                              const SizedBox(width: 12),
                             ],
                           ),
                         ),
@@ -1627,6 +1609,84 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
   }
 
+  /// Projektweite Werkzeuge, die eigene Seiten öffnen oder den Entwurf
+  /// ersetzen. Sie gehören nicht in die Bauteilbibliothek, deshalb ein
+  /// Menü in der Kopfzeile.
+  Widget projectToolsMenu(bool editable) => MenuAnchor(
+    menuChildren: [
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.layers_outlined),
+        onPressed: editable ? planning : null,
+        child: const Text('Planart / Maßstab'),
+      ),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.account_tree_outlined),
+        onPressed: editable && !api.isOffline ? macros : null,
+        child: const Text('Makrobibliothek'),
+      ),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.calculate_outlined),
+        onPressed: calculations,
+        child: const Text('Berechnungen'),
+      ),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.receipt_long_outlined),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MaterialScreen(
+              project: {
+                'id': widget.projectId,
+                'name': name,
+                'version': version,
+                'drawing': d,
+              },
+              source: widget.session.backendUrl.toString(),
+            ),
+          ),
+        ),
+        child: const Text('Material / ERP'),
+      ),
+      const Divider(),
+      SubmenuButton(
+        leadingIcon: const Icon(Icons.science_outlined),
+        menuChildren: [
+          for (final sampleKind in const [
+            ('distribution', 'TEST · Verteilerabgang'),
+            ('three-phase', 'TEST · Dreiphasen und Relaiskontakte'),
+            ('motor', 'TEST · Steuer- / Motorabgang'),
+          ])
+            MenuItemButton(
+              onPressed: editable ? () => sample(sampleKind.$1) : null,
+              child: Text(sampleKind.$2),
+            ),
+        ],
+        child: const Text('Arbeitsproben'),
+      ),
+    ],
+    builder: (context, menu, _) => appBarAction(
+      'Werkzeuge',
+      Icons.construction_outlined,
+      () => menu.isOpen ? menu.close() : menu.open(),
+    ),
+  );
+
+  /// Kopfzeilenaktion: beschriftet in breiten Fenstern, sonst nur Symbol
+  /// mit Tooltip, damit die Kopfzeile nicht überläuft.
+  Widget appBarAction(String label, IconData icon, VoidCallback? onPressed) {
+    final wide = MediaQuery.sizeOf(context).width >= 1280;
+    return Tooltip(
+      message: label,
+      child: wide
+          ? TextButton.icon(
+              onPressed: onPressed,
+              icon: Icon(icon),
+              label: Text(label.split(' und ').first),
+            )
+          : IconButton(onPressed: onPressed, icon: Icon(icon)),
+    );
+  }
+
   Widget libraryPanel(bool enabled) => Material(
     color: Theme.of(context).colorScheme.surface,
     child: ListView(
@@ -1649,45 +1709,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
           ),
           onChanged: (v) => setState(() => query = v.toLowerCase()),
         ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
+        const SizedBox(height: 8),
+        // Projektwerkzeuge (Planart, Makros, Berechnungen, Material)
+        // liegen im Menü „Werkzeuge“ der Kopfzeile; die Bibliothek
+        // enthält nur, was auf das Blatt platziert wird.
+        TextButton.icon(
           onPressed: enabled && !api.isOffline ? importArticleSymbol : null,
-          icon: const Icon(Icons.inventory_2_outlined),
+          icon: const Icon(Icons.inventory_2_outlined, size: 18),
           label: const Text('Artikelsymbol einfügen'),
         ),
-        OutlinedButton.icon(
-          onPressed: enabled ? planning : null,
-          icon: const Icon(Icons.layers_outlined),
-          label: const Text('Planart / Maßstab'),
-        ),
-        OutlinedButton.icon(
-          onPressed: enabled && !api.isOffline ? macros : null,
-          icon: const Icon(Icons.account_tree_outlined),
-          label: const Text('Makrobibliothek'),
-        ),
-        OutlinedButton.icon(
-          onPressed: calculations,
-          icon: const Icon(Icons.calculate_outlined),
-          label: const Text('Berechnungen'),
-        ),
-        OutlinedButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MaterialScreen(
-                project: {
-                  'id': widget.projectId,
-                  'name': name,
-                  'version': version,
-                  'drawing': d,
-                },
-                source: widget.session.backendUrl.toString(),
-              ),
-            ),
-          ),
-          icon: const Icon(Icons.receipt_long_outlined),
-          label: const Text('Material / ERP'),
-        ),
+        const SizedBox(height: 4),
         for (final group in orderedPaletteGroups(d))
           ExpansionTile(
             key: ValueKey(group),
@@ -1736,6 +1767,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return 'Knoten ${shortObjectId(ref['id'])}';
   }
 
+  Widget inspectorHeading(String text) => Padding(
+    padding: const EdgeInsets.only(top: 14, bottom: 4),
+    child: Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 10,
+        letterSpacing: 1.3,
+        color: ecadMuted,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  );
+
+  /// Kompakte, linksbündige Aktion im Eigenschaftenbereich.
+  Widget inspectorAction(String label, IconData icon, VoidCallback? onTap) =>
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            visualDensity: VisualDensity.compact,
+          ),
+          onPressed: onTap,
+          icon: Icon(icon, size: 16),
+          label: Text(label, style: const TextStyle(fontSize: 12)),
+        ),
+      );
+
   Widget inspector(bool enabled) {
     final views = objects(d, 'instances').where((i) => i['id'] == selected);
     final i = views.isEmpty ? null : views.first;
@@ -1773,76 +1832,76 @@ class _DrawingScreenState extends State<DrawingScreen> {
               ),
             ),
             Text(device['label']),
-            if (i['symbol'] == 'terminal')
-              TextButton.icon(
-                onPressed: enabled ? () => terminalEdit(i) : null,
-                icon: const Icon(Icons.view_week_outlined),
-                label: const Text('Klemmenleiste / Markierung'),
-              ),
             const SizedBox(height: 6),
             Text(
-              'Position ${positionReference(d, i)} · ${i['x']}/${i['y']}',
-              style: const TextStyle(fontSize: 12),
+              'Position ${positionReference(d, i)} · ${i['x']}/${i['y']}'
+              '${device['article'] != null ? '\n${device['article']['number']} · V${device['article']['version']} · ${device['article']['widthMm'] ?? '?'} × ${device['article']['heightMm'] ?? '?'} mm' : ''}',
+              style: const TextStyle(fontSize: 12, color: ecadMuted),
             ),
-            TextButton.icon(
-              onPressed: enabled
-                  ? () => controller!.rotateInstance(i['id'])
-                  : null,
-              icon: const Icon(Icons.rotate_right),
-              label: Text('90° drehen (${i['rotation'] ?? 0}°)'),
-            ),
-            TextButton.icon(
-              onPressed: enabled ? () => deviceEdit(i) : null,
-              icon: const Icon(Icons.edit_outlined, size: 16),
-              label: const Text('Kennung / Anschlüsse'),
-            ),
-            if (device['terminalStripId'] == null)
-              TextButton(
-                onPressed: enabled
-                    ? () async {
-                        final proposal = proposedBmk(
-                          d,
-                          i['sheetId'],
-                          symbolByKey(i['symbol'], d).code,
-                          i['x'],
-                          exceptDevice: device['id'],
-                        );
-                        if (await confirm(
-                              'BMK-Vorschlag übernehmen?',
-                              '${device['bmk']} -> $proposal. Alle Darstellungen erhalten dieselbe Kennung.',
-                            ) &&
-                            mounted) {
-                          change(
-                            (d) =>
-                                objectById(d, 'devices', device['id'])['bmk'] =
-                                    proposal,
-                          );
-                        }
-                      }
-                    : null,
-                child: const Text('BMK aus Position vorschlagen'),
-              ),
-            TextButton.icon(
-              onPressed: enabled && !api.isOffline
-                  ? () => assignArticle(device)
-                  : null,
-              icon: const Icon(Icons.inventory_2_outlined),
-              label: const Text('Artikel / Maße zuordnen'),
-            ),
-            if (device['article'] != null)
-              Text(
-                '${device['article']['number']} · V${device['article']['version']} · ${device['article']['widthMm'] ?? '?'} × ${device['article']['heightMm'] ?? '?'} mm',
-              ),
-            if (symbolByKey(i['symbol'], d).isContact) ...[
+            if (symbolByKey(i['symbol'], d).isContact)
               Text(
                 '${symbolByKey(i['symbol'], d).role == 'no' ? 'Schließer' : 'Öffner'} · Anschlüsse ${instancePorts(d, i).join(' / ')}',
+                style: const TextStyle(fontSize: 12, color: ecadMuted),
               ),
-              TextButton.icon(
-                onPressed: enabled ? () => marryContact(i) : null,
-                icon: const Icon(Icons.link),
-                label: const Text('Spule zuordnen / ändern'),
-              ),
-            ],
+            inspectorHeading('Gerät'),
+            Wrap(
+              spacing: 4,
+              children: [
+                inspectorAction(
+                  'Kennung / Anschlüsse',
+                  Icons.edit_outlined,
+                  enabled ? () => deviceEdit(i) : null,
+                ),
+                if (device['terminalStripId'] == null)
+                  inspectorAction(
+                    'BMK aus Position vorschlagen',
+                    Icons.auto_fix_high_outlined,
+                    enabled
+                        ? () async {
+                            final proposal = proposedBmk(
+                              d,
+                              i['sheetId'],
+                              symbolByKey(i['symbol'], d).code,
+                              i['x'],
+                              exceptDevice: device['id'],
+                            );
+                            if (await confirm(
+                                  'BMK-Vorschlag übernehmen?',
+                                  '${device['bmk']} -> $proposal. Alle Darstellungen erhalten dieselbe Kennung.',
+                                ) &&
+                                mounted) {
+                              change(
+                                (d) =>
+                                    objectById(
+                                          d,
+                                          'devices',
+                                          device['id'],
+                                        )['bmk'] =
+                                        proposal,
+                              );
+                            }
+                          }
+                        : null,
+                  ),
+                inspectorAction(
+                  'Artikel / Maße zuordnen',
+                  Icons.inventory_2_outlined,
+                  enabled && !api.isOffline ? () => assignArticle(device) : null,
+                ),
+                if (i['symbol'] == 'terminal')
+                  inspectorAction(
+                    'Klemmenleiste / Markierung',
+                    Icons.view_week_outlined,
+                    enabled ? () => terminalEdit(i) : null,
+                  ),
+                if (symbolByKey(i['symbol'], d).isContact)
+                  inspectorAction(
+                    'Spule zuordnen / ändern',
+                    Icons.link,
+                    enabled ? () => marryContact(i) : null,
+                  ),
+              ],
+            ),
             if (device['type'] == 'plc')
               TextButton(
                 onPressed: enabled
@@ -1898,8 +1957,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
             if (device['type'] == 'relay')
               const Text(
                 'Spule und Kontakte · gemeinsame Gerätekennung',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 12, color: ecadMuted),
               ),
+            inspectorHeading('Darstellung'),
+            inspectorAction(
+              '90° drehen (${i['rotation'] ?? 0}°)',
+              Icons.rotate_right,
+              enabled ? () => controller!.rotateInstance(i['id']) : null,
+            ),
             DropdownButton<String>(
               isExpanded: true,
               hint: const Text(
@@ -1931,8 +1996,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   'Blatt ${ref['position']} · ${symbolByKey(ref['symbol'], d).name}',
                 ),
               ),
-            TextButton.icon(
-              onPressed: enabled
+            inspectorAction(
+              'Darstellung entfernen',
+              Icons.delete_outline,
+              enabled
                   ? () async {
                       if (await confirm(
                             'Darstellung entfernen?',
@@ -1944,11 +2011,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       }
                     }
                   : null,
-              icon: const Icon(Icons.delete_outline, size: 16),
-              label: const Text('Darstellung entfernen'),
             ),
           ],
           const Divider(),
+          inspectorHeading('Blatt'),
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
             title: Text(

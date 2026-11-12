@@ -5,6 +5,7 @@ import '../offline/offline_screen.dart';
 
 import '../api/workspace_api.dart';
 import '../api/company_users_api.dart';
+import '../app_theme.dart';
 import '../models.dart';
 import 'drawing_screen.dart';
 import 'project_groups_screen.dart';
@@ -151,11 +152,24 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   separatorBuilder: (_, _) => const Divider(),
                   itemBuilder: (context, index) {
                     final p = projects[index] as Map<String, dynamic>;
+                    final groupNames = groups
+                        .where(
+                          (g) => (p['groupIds'] as List? ?? []).contains(
+                            g['id'],
+                          ),
+                        )
+                        .map((g) => g['name'])
+                        .join(' / ');
+                    final members = (p['memberIds'] as List).length;
                     return ListTile(
                       leading: const Icon(Icons.folder_outlined),
                       title: Text(p['name'] as String),
                       subtitle: Text(
-                        "Arbeitsstand ${p['version']} · ${groups.where((g) => (p['groupIds'] as List? ?? []).contains(g['id'])).map((g) => g['name']).join(' / ')} · ${(p['memberIds'] as List).length} direkte Zuweisungen",
+                        [
+                          'Arbeitsstand ${p['version']}',
+                          if (groupNames.isNotEmpty) groupNames,
+                          '$members direkte ${members == 1 ? 'Zuweisung' : 'Zuweisungen'}',
+                        ].join(' · '),
                       ),
                       trailing: const Icon(Icons.arrow_forward),
                       onTap: () async {
@@ -300,54 +314,67 @@ class _ProjectEditorState extends State<ProjectEditor> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              if (widget.project != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: busy
-                        ? null
-                        : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DrawingScreen(
-                                session: widget.session,
-                                projectId: widget.project!['id'],
+              if (widget.project != null) ...[
+                // Einstiege in die Projektarbeit; der Schaltplan ist der
+                // Hauptweg, die übrigen sind Nebenwege.
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: busy
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DrawingScreen(
+                                  session: widget.session,
+                                  projectId: widget.project!['id'],
+                                ),
                               ),
                             ),
-                          ),
-                    icon: const Icon(Icons.polyline_outlined),
-                    label: const Text('Schaltplan öffnen'),
-                  ),
-                ),
-              if (widget.project != null)
-                OutlinedButton.icon(
-                  onPressed: busy
-                      ? null
-                      : () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AutomationScreen(
-                              session: widget.session,
-                              projectId: widget.project!['id'],
+                      icon: const Icon(Icons.polyline_outlined),
+                      label: const Text('Schaltplan öffnen'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: busy
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AutomationScreen(
+                                  session: widget.session,
+                                  projectId: widget.project!['id'],
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                  icon: const Icon(Icons.integration_instructions_outlined),
-                  label: const Text('API / MCP'),
+                      icon: const Icon(
+                        Icons.integration_instructions_outlined,
+                      ),
+                      label: const Text('API / MCP'),
+                    ),
+                    if (!kIsWeb)
+                      OutlinedButton.icon(
+                        onPressed: busy
+                            ? null
+                            : () => prepareOffline(
+                                context,
+                                widget.session,
+                                widget.project!['id'],
+                              ),
+                        icon: const Icon(Icons.download),
+                        label: const Text('Offline vorbereiten'),
+                      ),
+                  ],
                 ),
-              if (!kIsWeb && widget.project != null)
-                OutlinedButton.icon(
-                  onPressed: busy
-                      ? null
-                      : () => prepareOffline(
-                          context,
-                          widget.session,
-                          widget.project!['id'],
-                        ),
-                  icon: const Icon(Icons.download),
-                  label: const Text('Offline vorbereiten'),
+                const SizedBox(height: 24),
+                Text(
+                  'Projektstamm',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 8),
+              ],
               TextFormField(
                 controller: name,
                 decoration: const InputDecoration(labelText: 'Projektname'),
@@ -380,6 +407,7 @@ class _ProjectEditorState extends State<ProjectEditor> {
                 ],
               ),
               if (widget.session.role == UserRole.admin) ...[
+                const SizedBox(height: 8),
                 Text(
                   'Projektgruppen',
                   style: Theme.of(context).textTheme.titleLarge,
@@ -397,6 +425,15 @@ class _ProjectEditorState extends State<ProjectEditor> {
                     }
                     if (!snapshot.hasData) {
                       return const LinearProgressIndicator();
+                    }
+                    if ((snapshot.data!['groups'] as List).isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          'Noch keine Projektgruppen angelegt (Projekte → Gruppen & Mitarbeiter).',
+                          style: TextStyle(color: ecadMuted),
+                        ),
+                      );
                     }
                     return Column(
                       children: [
@@ -416,7 +453,7 @@ class _ProjectEditorState extends State<ProjectEditor> {
                     );
                   },
                 ),
-
+                const SizedBox(height: 16),
                 Text(
                   'Projektmitglieder',
                   style: Theme.of(context).textTheme.titleLarge,
