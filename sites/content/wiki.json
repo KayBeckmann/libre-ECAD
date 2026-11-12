@@ -773,7 +773,7 @@
                 "type": "ol",
                 "items": [
                   "Im Schaltplan „Rahmenauswahl“ aktivieren und mit gedrückter Maustaste einen Rahmen um die Bauteilgruppe ziehen.",
-                  "„Makrobibliothek → Auswahl als Makro speichern“ öffnen. Anzahl prüfen, Name, Herkunft, Lizenz und Suchgruppen angeben, dann speichern.",
+                  "„Werkzeuge → Makrobibliothek → Auswahl als Makro speichern“ öffnen. Anzahl prüfen, Name, Herkunft, Lizenz und Suchgruppen angeben, dann speichern.",
                   "Zum Wiederverwenden das Makro suchen, „Einfügen“ wählen, die Vorschau prüfen und „Als neue Blätter einfügen“ bestätigen. Anschließend den Projektentwurf speichern."
                 ]
               },
@@ -862,7 +862,7 @@
                 "type": "ol",
                 "items": [
                   "In the drawing, activate “Rahmenauswahl” and drag a rectangle around the components.",
-                  "Open “Makrobibliothek → Auswahl als Makro speichern”. Check the count, provide a name, origin, license and search groups, then save.",
+                  "Open “Werkzeuge → Makrobibliothek → Auswahl als Makro speichern”. Check the count, provide a name, origin, license and search groups, then save.",
                   "To reuse it, find the macro, select “Einfügen”, review the preview and confirm “Als neue Blätter einfügen”. Save the project draft afterwards."
                 ]
               },

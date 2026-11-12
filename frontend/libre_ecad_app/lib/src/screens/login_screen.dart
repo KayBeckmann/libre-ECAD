@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../api/company_users_api.dart';
 import '../session_service.dart';
 import '../app_theme.dart';
-import 'home_screen.dart';
+import '../workspace_shell.dart';
 import 'activation_screen.dart';
 
 /// M1.4 — "Web-/App-Anmeldeansicht mit vorbelegtem Kay-Managed-Backend
@@ -63,7 +63,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       await Navigator.of(
         context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+      ).pushReplacement(
+        MaterialPageRoute(builder: (_) => const WorkspaceShell()),
+      );
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {

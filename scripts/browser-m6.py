@@ -15,7 +15,7 @@ with sync_playwright() as p:
         f=page.get_by_role('textbox',name=label,exact=True);f.click();page.wait_for_timeout(100);f.press('ControlOrMeta+A');f.press('Backspace');f.press_sequentially(value,delay=4)
     field('Benutzername',a['username']);field('Passwort',a['password']);page.get_by_role('button',name='Anmelden',exact=True).click()
     expect(page.get_by_text('Team und Projekte im Blick.',exact=True)).to_be_visible()
-    page.get_by_role('button',name=re.compile('^Projekte')).click();page.get_by_role('button',name=re.compile('^'+re.escape(project['name']))).click()
+    page.get_by_role('button',name=re.compile('^Projekte')).first.click();page.get_by_role('button',name=re.compile('^'+re.escape(project['name']))).click()
     expect(page.get_by_text('Offline vorbereiten',exact=True)).to_have_count(0)
     page.get_by_role('button',name='API / MCP',exact=True).click()
     expect(page.get_by_text('Zeichnungsvorschläge',exact=True)).to_be_visible()

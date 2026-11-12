@@ -18,14 +18,18 @@ with sync_playwright() as p:
     def button(name):return page.get_by_role('button',name=name,exact=True)
     def inspect(name):
         page.wait_for_timeout(500);Path('/tmp/libre-m7-'+name+'.txt').write_text(page.locator('body').aria_snapshot());page.screenshot(path='/tmp/libre-m7-'+name+'.png')
+    TOOLS={'Planart / Maßstab','Makrobibliothek','Berechnungen','Material / ERP'}
     def palette(name):
+        # Projektwerkzeuge liegen seit der Shell-Überarbeitung im Menü „Werkzeuge“.
+        if name in TOOLS:
+            button('Werkzeuge').click();page.wait_for_timeout(300);button(name).click();return
         for _ in range(8):
             if button(name).count():break
             page.mouse.move(180,720);page.mouse.wheel(0,-600);page.wait_for_timeout(150)
         button(name).click()
     field('Benutzername',a['username']);field('Passwort',a['password']);button('Anmelden').click()
     expect(page.get_by_text('Team und Projekte im Blick.',exact=True)).to_be_visible()
-    page.get_by_role('button',name=re.compile('^Projekte')).click()
+    page.get_by_role('button',name=re.compile('^Projekte')).first.click()
     page.get_by_role('button',name=re.compile('^'+re.escape(state['projectName']))).click()
     button('Schaltplan öffnen').click()
     expect(page.get_by_text('BAUTEILBIBLIOTHEK',exact=True)).to_be_visible()

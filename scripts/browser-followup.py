@@ -31,14 +31,19 @@ with sync_playwright() as p:
         page.wait_for_timeout(350)
         Path('/tmp/libre-followup-' + name + '.txt').write_text(page.locator('body').aria_snapshot())
         page.screenshot(path='/tmp/libre-followup-' + name + '.png')
+    TOOLS = {'Planart / Maßstab', 'Makrobibliothek', 'Berechnungen', 'Material / ERP'}
     def palette(name):
+        # Projektwerkzeuge liegen seit der Shell-Überarbeitung im Menü „Werkzeuge“.
+        if name in TOOLS:
+            button('Werkzeuge').click(); page.wait_for_timeout(300)
+            button(name).click(); return
         for _ in range(10):
             if button(name).count(): break
             page.mouse.move(180, 760); page.mouse.wheel(0, -500); page.wait_for_timeout(100)
         button(name).click()
     field('Benutzername', a['username']); field('Passwort', a['password']); button('Anmelden').click()
     expect(page.get_by_text('Team und Projekte im Blick.', exact=True)).to_be_visible()
-    page.get_by_role('button', name=re.compile('^Projekte')).click()
+    page.get_by_role('button', name=re.compile('^Projekte')).first.click()
     button('Gruppen & Mitarbeiter').click()
     page.get_by_role('button', name=re.compile('^' + re.escape(group['name']))).click()
     page.get_by_role('checkbox', name=employee['username'], exact=True).click()
@@ -101,7 +106,7 @@ with sync_playwright() as p:
     ends = [c for c in saved['drawing']['continuations'] if c['label'] == 'TEST-L1']
     assert len(ends) == 2 and ends[0]['linkId'] == ends[1]['linkId'] and ends[0]['sheetId'] != ends[1]['sheetId']
     # Contact inspector links to only the coil, not to its peer contact.
-    page.get_by_role('checkbox', name='Auswählen', exact=True).click(); hit(contact).click()
+    page.get_by_role('checkbox', name='Auswählen', exact=True).click(); page.wait_for_timeout(300); hit(contact).click()
     inspect('contact-reference')
     expect(page.get_by_role('button', name=re.compile('Blatt .*Relaisspule'))).to_have_count(1)
     assert not page.get_by_role('button', name=re.compile('Blatt .*Öffner')).count()
@@ -111,9 +116,10 @@ with sync_playwright() as p:
     inspect('return-project')
     page.wait_for_timeout(350); button('Back').click()
     expect(button('Gruppen & Mitarbeiter')).to_be_visible()
-    page.wait_for_timeout(350); button('Back').click()
+    # Bereiche sind Wurzeln der persistenten Shell: Wechsel über die Seitenleiste statt „Back“.
+    page.get_by_role('button', name=re.compile('^Arbeitsplatz')).first.click()
     expect(page.get_by_text('Team und Projekte im Blick.', exact=True)).to_be_visible()
-    page.get_by_role('button', name=re.compile('^Artikelbibliothek')).click()
+    page.get_by_role('button', name=re.compile('^Artikelbibliothek')).first.click()
     inspect('libraries-personal-start')
     expect(page.get_by_role('button', name=re.compile('^TEST-PERSONAL · TEST Bibliothek personal'))).to_be_visible()
     page.get_by_role('checkbox', name='Nur mit Schaltsymbol', exact=True).click()
